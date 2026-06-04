@@ -2,7 +2,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 安装 WeasyPrint 必需的系统依赖（已修复改名问题）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     libpango-1.0-0 \
@@ -13,12 +12,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Python 依赖
 COPY requirements.txt .
-RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+# 末尾新增 flask-login
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt flask-login
 
-# 复制项目代码
 COPY . .
 
-# 启动项目（直接运行，看报错）
 CMD python -u app.py
