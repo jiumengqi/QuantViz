@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-# 末尾新增 flask-login
-RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt flask-login
+# 新增pyjwt
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt flask-login pyjwt
 
 COPY . .
 
