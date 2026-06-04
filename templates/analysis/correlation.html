@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>相关性分析 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 引入Chart.js矩阵插件（用于热力图） -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix"></script>
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题 -->
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-neutral-dark mb-2">相关性分析</h1>
+                        <p class="text-gray-600">分析多只股票之间的相关性，帮助您构建分散化投资组合</p>
+                    </div>
+                    <nav class="flex mt-4 md:mt-0" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="{{ url_for('main.index') }}" class="text-gray-700 hover:text-primary text-sm font-medium">首页</a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <a href="{{ url_for('analysis.analysis_index') }}" class="ml-1 text-gray-700 hover:text-primary text-sm font-medium">数据分析</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="ml-1 text-gray-500 font-medium text-sm">相关性分析</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- 左侧控制面板 -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
+                        <h2 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fa fa-sliders text-primary mr-2"></i> 分析参数
+                        </h2>
+                        
+                        <!-- 股票选择 -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">选择股票</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="stock-1" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="600036.SH" checked>
+                                    <label for="stock-1" class="ml-2 text-sm text-gray-700">招商银行 (600036.SH)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="stock-2" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="601318.SH" checked>
+                                    <label for="stock-2" class="ml-2 text-sm text-gray-700">中国平安 (601318.SH)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="stock-3" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="600519.SH" checked>
+                                    <label for="stock-3" class="ml-2 text-sm text-gray-700">贵州茅台 (600519.SH)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="stock-4" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="000858.SZ">
+                                    <label for="stock-4" class="ml-2 text-sm text-gray-700">五粮液 (000858.SZ)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="stock-5" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="000001.SZ">
+                                    <label for="stock-5" class="ml-2 text-sm text-gray-700">平安银行 (000001.SZ)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="stock-6" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="601888.SH">
+                                    <label for="stock-6" class="ml-2 text-sm text-gray-700">中国中免 (601888.SH)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="stock-7" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="600276.SH">
+                                    <label for="stock-7" class="ml-2 text-sm text-gray-700">恒瑞医药 (600276.SH)</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 时间范围 -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">时间范围</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs text-gray-500 mb-1 block">开始日期</label>
+                                    <input type="date" id="start-date" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="{{ default_start }}">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500 mb-1 block">结束日期</label>
+                                    <input type="date" id="end-date" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="{{ today }}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 分析类型 -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">分析类型</label>
+                            <div class="relative">
+                                <select id="correlation-type" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary appearance-none bg-white">
+                                    <option value="price">价格相关性</option>
+                                    <option value="return">收益率相关性</option>
+                                    <option value="volume">成交量相关性</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                    <i class="fa fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 执行按钮 -->
+                        <button id="analyze-btn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center font-medium">
+                            <i class="fa fa-bar-chart mr-2"></i> 执行分析
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 右侧结果展示 -->
+                <div class="lg:col-span-3 space-y-8">
+                    <!-- 相关性矩阵 -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold">相关性矩阵</h2>
+                            <button id="export-matrix-btn" class="px-4 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center text-sm">
+                                <i class="fa fa-download mr-2"></i> 导出矩阵
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-100 rounded-lg">
+                                <thead>
+                                    <tr class="bg-gray-50">
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">股票</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-center">招商银行</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-center">中国平安</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-center">贵州茅台</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="correlation-matrix-body">
+                                    <tr>
+                                        <td class="py-3 px-4 border-b border-gray-200 font-medium">招商银行</td>
+                                        <td class="py-3 px-4 border-b border-gray-200 text-center bg-gray-50">1.00</td>
+                                        <td class="py-3 px-4 border-b border-gray-200 text-center">0.75</td>
+                                        <td class="py-3 px-4 border-b border-gray-200 text-center">0.42</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 border-b border-gray-200 font-medium">中国平安</td>
+                                        <td class="py-3 px-4 border-b border-gray-200 text-center">0.75</td>
+                                        <td class="py-3 px-4 border-b border-gray-200 text-center bg-gray-50">1.00</td>
+                                        <td class="py-3 px-4 border-b border-gray-200 text-center">0.38</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 border-b border-gray-200 font-medium">贵州茅台</td>
+                                        <td class="py-3 px-4 border-b border-gray-200 text-center">0.42</td>
+                                        <td class="py-3 px-4 border-b border-gray-200 text-center">0.38</td>
+                                        <td class="py-3 px-4 border-b border-gray-200 text-center bg-gray-50">1.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- 相关性热力图 -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold">相关性热力图</h2>
+                            <button id="export-heatmap-btn" class="px-4 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center text-sm">
+                                <i class="fa fa-download mr-2"></i> 导出图表
+                            </button>
+                        </div>
+                        <div class="h-96">
+                            <canvas id="correlation-heatmap"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 相关性分析总结 -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-semibold mb-4">相关性分析总结</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-all">
+                                <div class="text-sm text-gray-500 mb-1">平均相关系数</div>
+                                <div class="text-2xl font-bold text-primary mb-2">0.58</div>
+                                <div class="text-xs text-gray-500">所有股票对的平均相关程度</div>
+                            </div>
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-all">
+                                <div class="text-sm text-gray-500 mb-1">最高相关对</div>
+                                <div class="text-lg font-bold text-primary mb-2">招商银行 - 平安银行</div>
+                                <div class="text-xs text-gray-500">相关系数: 0.85</div>
+                            </div>
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-all">
+                                <div class="text-sm text-gray-500 mb-1">最低相关对</div>
+                                <div class="text-lg font-bold text-primary mb-2">贵州茅台 - 中国平安</div>
+                                <div class="text-xs text-gray-500">相关系数: 0.38</div>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <h3 class="text-lg font-medium mb-3">投资组合建议</h3>
+                            <p class="text-gray-600 text-sm">
+                                基于相关性分析，建议构建包含招商银行、贵州茅台和中国平安的投资组合，以实现较好的分散化效果。这三只股票之间的相关性相对较低，可以有效降低投资组合的整体风险。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化相关性热力图
+        initCorrelationHeatmap();
+        
+        // 绑定分析按钮事件
+        document.getElementById('analyze-btn').addEventListener('click', function() {
+            analyzeCorrelation();
+        });
+        
+        // 绑定导出按钮事件
+        document.getElementById('export-matrix-btn')?.addEventListener('click', function() {
+            exportCorrelationMatrix();
+        });
+        
+        document.getElementById('export-heatmap-btn')?.addEventListener('click', function() {
+            exportCorrelationHeatmap();
+        });
+    });
+    
+    function initCorrelationHeatmap() {
+        const ctx = document.getElementById('correlation-heatmap').getContext('2d');
+        
+        // 相关性数据
+        const correlationData = [
+            [1.00, 0.75, 0.42],
+            [0.75, 1.00, 0.38],
+            [0.42, 0.38, 1.00]
+        ];
+        
+        // 股票标签
+        const stockLabels = ['招商银行', '中国平安', '贵州茅台'];
+        
+        // 准备矩阵数据
+        const matrixData = [];
+        for (let i = 0; i < correlationData.length; i++) {
+            for (let j = 0; j < correlationData[i].length; j++) {
+                matrixData.push({
+                    x: j,
+                    y: i,
+                    v: correlationData[i][j]
+                });
+            }
+        }
+        
+        // 创建热力图
+        window.correlationChart = new Chart(ctx, {
+            type: 'matrix',
+            data: {
+                datasets: [{
+                    label: '相关性热力图',
+                    data: matrixData,
+                    backgroundColor: function(context) {
+                        const value = context.raw.v;
+                        const alpha = Math.abs(value);
+                        if (value > 0) {
+                            return `rgba(22, 93, 255, ${alpha})`;
+                        } else {
+                            return `rgba(245, 63, 63, ${alpha})`;
+                        }
+                    },
+                    borderColor: 'rgba(0, 0, 0, 0.1)',
+                    borderWidth: 1,
+                    width: ({ chart }) => (chart.chartArea || {}).width / stockLabels.length - 1,
+                    height: ({ chart }) => (chart.chartArea || {}).height / stockLabels.length - 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#165DFF',
+                        borderWidth: 1,
+                        padding: 12,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            title: function(context) {
+                                const dataPoint = context[0].raw;
+                                return `${stockLabels[dataPoint.y]} vs ${stockLabels[dataPoint.x]}`;
+                            },
+                            label: function(context) {
+                                const value = context.raw.v;
+                                return `相关性: ${value.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'category',
+                        labels: stockLabels,
+                        offset: true,
+                        ticks: {
+                            display: true,
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        type: 'category',
+                        labels: stockLabels,
+                        offset: true,
+                        ticks: {
+                            display: true,
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function analyzeCorrelation() {
+        // 显示加载状态
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const originalText = analyzeBtn.textContent;
+        analyzeBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 分析中...';
+        analyzeBtn.disabled = true;
+        
+        // 模拟分析过程
+        setTimeout(function() {
+            // 恢复按钮状态
+            analyzeBtn.innerHTML = '<i class="fa fa-bar-chart mr-2"></i> 执行分析';
+            analyzeBtn.disabled = false;
+            
+            // 模拟分析结果
+            const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(checkbox => checkbox.value);
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const correlationType = document.getElementById('correlation-type').value;
+            
+            // 显示分析结果（这里使用模拟数据）
+            updateCorrelationMatrix(selectedStocks);
+            updateCorrelationHeatmap(selectedStocks);
+            
+            // 显示成功消息
+            alert('相关性分析完成！');
+        }, 1500);
+    }
+    
+    function updateCorrelationMatrix(selectedStocks) {
+        // 模拟相关性数据
+        const correlationData = {
+            '600036.SH': {
+                '600036.SH': 1.00,
+                '601318.SH': 0.75,
+                '600519.SH': 0.42,
+                '000858.SZ': 0.38,
+                '000001.SZ': 0.85,
+                '601888.SH': 0.45,
+                '600276.SH': 0.32
+            },
+            '601318.SH': {
+                '600036.SH': 0.75,
+                '601318.SH': 1.00,
+                '600519.SH': 0.38,
+                '000858.SZ': 0.32,
+                '000001.SZ': 0.72,
+                '601888.SH': 0.35,
+                '600276.SH': 0.28
+            },
+            '600519.SH': {
+                '600036.SH': 0.42,
+                '601318.SH': 0.38,
+                '600519.SH': 1.00,
+                '000858.SZ': 0.88,
+                '000001.SZ': 0.35,
+                '601888.SH': 0.52,
+                '600276.SH': 0.30
+            },
+            '000858.SZ': {
+                '600036.SH': 0.38,
+                '601318.SH': 0.32,
+                '600519.SH': 0.88,
+                '000858.SZ': 1.00,
+                '000001.SZ': 0.30,
+                '601888.SH': 0.48,
+                '600276.SH': 0.25
+            },
+            '000001.SZ': {
+                '600036.SH': 0.85,
+                '601318.SH': 0.72,
+                '600519.SH': 0.35,
+                '000858.SZ': 0.30,
+                '000001.SZ': 1.00,
+                '601888.SH': 0.40,
+                '600276.SH': 0.28
+            },
+            '601888.SH': {
+                '600036.SH': 0.45,
+                '601318.SH': 0.35,
+                '600519.SH': 0.52,
+                '000858.SZ': 0.48,
+                '000001.SZ': 0.40,
+                '601888.SH': 1.00,
+                '600276.SH': 0.35
+            },
+            '600276.SH': {
+                '600036.SH': 0.32,
+                '601318.SH': 0.28,
+                '600519.SH': 0.30,
+                '000858.SZ': 0.25,
+                '000001.SZ': 0.28,
+                '601888.SH': 0.35,
+                '600276.SH': 1.00
+            }
+        };
+        
+        // 股票代码到名称的映射
+        const stockNames = {
+            '600036.SH': '招商银行',
+            '601318.SH': '中国平安',
+            '600519.SH': '贵州茅台',
+            '000858.SZ': '五粮液',
+            '000001.SZ': '平安银行',
+            '601888.SH': '中国中免',
+            '600276.SH': '恒瑞医药'
+        };
+        
+        // 更新相关性矩阵表格
+        const matrixBody = document.getElementById('correlation-matrix-body');
+        const tableHead = matrixBody.previousElementSibling;
+        
+        // 更新表头
+        tableHead.innerHTML = '<tr class="bg-gray-50"><th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">股票</th></tr>';
+        selectedStocks.forEach(stockCode => {
+            const th = document.createElement('th');
+            th.className = 'py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-center';
+            th.textContent = stockNames[stockCode];
+            tableHead.querySelector('tr').appendChild(th);
+        });
+        
+        // 更新表体
+        matrixBody.innerHTML = '';
+        
+        selectedStocks.forEach(stockCode => {
+            const row = document.createElement('tr');
+            
+            // 股票名称单元格
+            const nameCell = document.createElement('td');
+            nameCell.className = 'py-3 px-4 border-b border-gray-200 font-medium';
+            nameCell.textContent = stockNames[stockCode];
+            row.appendChild(nameCell);
+            
+            // 相关性值单元格
+            selectedStocks.forEach(targetCode => {
+                const valueCell = document.createElement('td');
+                valueCell.className = 'py-3 px-4 border-b border-gray-200 text-center';
+                const correlation = correlationData[stockCode][targetCode];
+                valueCell.textContent = correlation.toFixed(2);
+                
+                // 对角线单元格特殊处理
+                if (stockCode === targetCode) {
+                    valueCell.className += ' bg-gray-50';
+                }
+                
+                row.appendChild(valueCell);
+            });
+            
+            matrixBody.appendChild(row);
+        });
+    }
+    
+    function updateCorrelationHeatmap(selectedStocks) {
+        // 模拟相关性数据
+        const correlationData = {
+            '600036.SH': {
+                '600036.SH': 1.00,
+                '601318.SH': 0.75,
+                '600519.SH': 0.42,
+                '000858.SZ': 0.38,
+                '000001.SZ': 0.85,
+                '601888.SH': 0.45,
+                '600276.SH': 0.32
+            },
+            '601318.SH': {
+                '600036.SH': 0.75,
+                '601318.SH': 1.00,
+                '600519.SH': 0.38,
+                '000858.SZ': 0.32,
+                '000001.SZ': 0.72,
+                '601888.SH': 0.35,
+                '600276.SH': 0.28
+            },
+            '600519.SH': {
+                '600036.SH': 0.42,
+                '601318.SH': 0.38,
+                '600519.SH': 1.00,
+                '000858.SZ': 0.88,
+                '000001.SZ': 0.35,
+                '601888.SH': 0.52,
+                '600276.SH': 0.30
+            },
+            '000858.SZ': {
+                '600036.SH': 0.38,
+                '601318.SH': 0.32,
+                '600519.SH': 0.88,
+                '000858.SZ': 1.00,
+                '000001.SZ': 0.30,
+                '601888.SH': 0.48,
+                '600276.SH': 0.25
+            },
+            '000001.SZ': {
+                '600036.SH': 0.85,
+                '601318.SH': 0.72,
+                '600519.SH': 0.35,
+                '000858.SZ': 0.30,
+                '000001.SZ': 1.00,
+                '601888.SH': 0.40,
+                '600276.SH': 0.28
+            },
+            '601888.SH': {
+                '600036.SH': 0.45,
+                '601318.SH': 0.35,
+                '600519.SH': 0.52,
+                '000858.SZ': 0.48,
+                '000001.SZ': 0.40,
+                '601888.SH': 1.00,
+                '600276.SH': 0.35
+            },
+            '600276.SH': {
+                '600036.SH': 0.32,
+                '601318.SH': 0.28,
+                '600519.SH': 0.30,
+                '000858.SZ': 0.25,
+                '000001.SZ': 0.28,
+                '601888.SH': 0.35,
+                '600276.SH': 1.00
+            }
+        };
+        
+        // 股票代码到名称的映射
+        const stockNames = {
+            '600036.SH': '招商银行',
+            '601318.SH': '中国平安',
+            '600519.SH': '贵州茅台',
+            '000858.SZ': '五粮液',
+            '000001.SZ': '平安银行',
+            '601888.SH': '中国中免',
+            '600276.SH': '恒瑞医药'
+        };
+        
+        // 准备热力图数据
+        const matrixData = [];
+        const labels = selectedStocks.map(code => stockNames[code]);
+        
+        for (let i = 0; i < selectedStocks.length; i++) {
+            for (let j = 0; j < selectedStocks.length; j++) {
+                matrixData.push({
+                    x: j,
+                    y: i,
+                    v: correlationData[selectedStocks[i]][selectedStocks[j]]
+                });
+            }
+        }
+        
+        // 更新热力图
+        if (window.correlationChart) {
+            window.correlationChart.data.datasets[0].data = matrixData;
+            window.correlationChart.options.scales.x.labels = labels;
+            window.correlationChart.options.scales.y.labels = labels;
+            window.correlationChart.update();
+        }
+    }
+    
+    function exportCorrelationMatrix() {
+        // 模拟导出功能
+        alert('相关性矩阵导出功能即将实现，敬请期待！');
+    }
+    
+    function exportCorrelationHeatmap() {
+        // 模拟导出功能
+        alert('相关性热力图导出功能即将实现，敬请期待！');
+    }
+</script>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas显示测试
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('图表加载中...', canvas.width/2, canvas.height/2);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

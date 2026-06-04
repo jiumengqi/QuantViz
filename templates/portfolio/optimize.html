@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投资组合优化 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 配置Tailwind颜色方案 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-16">
+        <!-- 页面标题 -->
+        <div class="mb-8 animate-fade-in">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-neutral-dark mb-2">投资组合优化</h1>
+                    <p class="text-neutral-medium">使用Markowitz模型优化您的资产配置</p>
+                </div>
+                <a href="{{ url_for('portfolio.portfolio_index') }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:border-primary hover:text-primary transition-colors">
+                    返回列表
+                </a>
+            </div>
+        </div>
+
+        <!-- 优化设置和结果 -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-up">
+            <!-- 左侧：优化设置 -->
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <h2 class="text-lg font-semibold mb-6">优化参数设置</h2>
+                
+                <form id="optimizationForm" class="space-y-6">
+                    <div>
+                        <label for="riskAversion" class="block text-sm font-medium text-gray-700 mb-2">风险厌恶系数</label>
+                        <div class="flex items-center space-x-4">
+                            <input type="range" id="riskAversion" name="riskAversion" min="0.1" max="5" step="0.1" value="1"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <span id="riskAversionValue" class="text-sm font-medium text-gray-900 min-w-[40px]">1.0</span>
+                        </div>
+                        <p class="text-xs text-neutral-medium mt-1">值越小，风险偏好越高</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">可选资产</label>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="asset1" name="assets" value="AAPL" checked
+                                       class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                <label for="asset1" class="ml-2 text-sm text-gray-700">苹果公司 (AAPL)</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="asset2" name="assets" value="MSFT" checked
+                                       class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                <label for="asset2" class="ml-2 text-sm text-gray-700">微软公司 (MSFT)</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="asset3" name="assets" value="GOOGL" checked
+                                       class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                <label for="asset3" class="ml-2 text-sm text-gray-700">Alphabet公司 (GOOGL)</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="asset4" name="assets" value="AMZN" checked
+                                       class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                <label for="asset4" class="ml-2 text-sm text-gray-700">亚马逊公司 (AMZN)</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="asset5" name="assets" value="TSLA" checked
+                                       class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                <label for="asset5" class="ml-2 text-sm text-gray-700">特斯拉公司 (TSLA)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">约束条件</label>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-700">单个资产最大权重</span>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" id="maxWeight" name="maxWeight" min="10" max="100" value="30" step="5"
+                                           class="w-20 px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <span class="text-sm text-gray-500">%</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-700">现金比例</span>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" id="cashRatio" name="cashRatio" min="0" max="50" value="5" step="5"
+                                           class="w-20 px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <span class="text-sm text-gray-500">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4">
+                        <button type="button" id="optimizeButton" class="w-full px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-1">
+                            开始优化
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 右侧：优化结果 -->
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <h2 class="text-lg font-semibold mb-6">优化结果</h2>
+                
+                <div id="optimizationResults" class="space-y-6">
+                    <!-- 结果将通过JavaScript动态填充 -->
+                    <div class="text-center py-12 text-neutral-medium">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 text-2xl mx-auto mb-4">
+                            <i class="fa fa-line-chart"></i>
+                        </div>
+                        <p>点击左侧"开始优化"按钮查看结果</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 有效前沿和资产配置图表 -->
+        <section class="mt-12 animate-slide-up" style="animation-delay: 0.2s">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 有效前沿图表 -->
+                <div class="bg-white rounded-xl shadow-md p-8">
+                    <h2 class="text-lg font-semibold mb-4">有效前沿</h2>
+                    <div class="h-80">
+                        <canvas id="efficientFrontierChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 资产配置图表 -->
+                <div class="bg-white rounded-xl shadow-md p-8">
+                    <h2 class="text-lg font-semibold mb-4">最优资产配置</h2>
+                    <div class="h-80">
+                        <canvas id="optimalAllocationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 优化建议 -->
+        <section class="mt-12 animate-slide-up" style="animation-delay: 0.3s">
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <h2 class="text-lg font-semibold mb-6">优化建议</h2>
+                <div id="optimizationAdvice" class="space-y-4">
+                    <p class="text-neutral-medium">优化完成后，将显示基于当前市场状况的投资建议</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // 页面加载完成后执行
+        window.addEventListener('DOMContentLoaded', function() {
+            // 风险厌恶系数滑块
+            const riskAversionSlider = document.getElementById('riskAversion');
+            const riskAversionValue = document.getElementById('riskAversionValue');
+            
+            riskAversionSlider.addEventListener('input', function() {
+                riskAversionValue.textContent = this.value;
+            });
+
+            // 有效前沿图表初始化
+            const frontierCtx = document.getElementById('efficientFrontierChart').getContext('2d');
+            const frontierChart = new Chart(frontierCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: '有效前沿',
+                        data: [],
+                        backgroundColor: 'rgba(22, 93, 255, 0.6)',
+                        borderColor: 'rgba(22, 93, 255, 1)',
+                        borderWidth: 1,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }, {
+                        label: '最优组合',
+                        data: [],
+                        backgroundColor: 'rgba(54, 207, 201, 1)',
+                        borderColor: 'rgba(54, 207, 201, 1)',
+                        borderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `预期收益: ${(context.parsed.x * 100).toFixed(2)}%, 波动率: ${(context.parsed.y * 100).toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '预期收益率 (%)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return (value * 100).toFixed(0) + '%';
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '波动率 (%)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return (value * 100).toFixed(0) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 资产配置图表初始化
+            const allocationCtx = document.getElementById('optimalAllocationChart').getContext('2d');
+            const allocationChart = new Chart(allocationCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '资产权重',
+                        data: [],
+                        backgroundColor: [
+                            'rgba(22, 93, 255, 0.7)',
+                            'rgba(54, 207, 201, 0.7)',
+                            'rgba(114, 46, 209, 0.7)',
+                            'rgba(255, 125, 0, 0.7)',
+                            'rgba(24, 144, 255, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(22, 93, 255, 1)',
+                            'rgba(54, 207, 201, 1)',
+                            'rgba(114, 46, 209, 1)',
+                            'rgba(255, 125, 0, 1)',
+                            'rgba(24, 144, 255, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `权重: ${context.parsed.y.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 优化按钮点击事件
+            document.getElementById('optimizeButton').addEventListener('click', function() {
+                const riskAversion = parseFloat(document.getElementById('riskAversion').value);
+                const maxWeight = parseFloat(document.getElementById('maxWeight').value) / 100;
+                const cashRatio = parseFloat(document.getElementById('cashRatio').value) / 100;
+                
+                // 模拟优化结果
+                const mockResult = {
+                    weights: {
+                        'AAPL': 0.25,
+                        'MSFT': 0.20,
+                        'GOOGL': 0.15,
+                        'AMZN': 0.15,
+                        'TSLA': 0.15,
+                        'CASH': 0.10
+                    },
+                    expected_return: 0.15,
+                    volatility: 0.12,
+                    sharpe_ratio: 1.25
+                };
+                
+                // 显示优化结果
+                displayOptimizationResults(mockResult);
+                
+                // 更新图表
+                updateCharts(mockResult);
+                
+                // 显示优化建议
+                displayOptimizationAdvice(mockResult);
+            });
+
+            // 显示优化结果
+            function displayOptimizationResults(result) {
+                const resultsContainer = document.getElementById('optimizationResults');
+                
+                let html = `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="p-4 bg-blue-50 rounded-lg">
+                                <h3 class="text-sm font-medium text-blue-700 mb-1">预期年化收益</h3>
+                                <p class="text-xl font-bold text-blue-900">${(result.expected_return * 100).toFixed(2)}%</p>
+                            </div>
+                            <div class="p-4 bg-yellow-50 rounded-lg">
+                                <h3 class="text-sm font-medium text-yellow-700 mb-1">预期波动率</h3>
+                                <p class="text-xl font-bold text-yellow-900">${(result.volatility * 100).toFixed(2)}%</p>
+                            </div>
+                            <div class="p-4 bg-green-50 rounded-lg">
+                                <h3 class="text-sm font-medium text-green-700 mb-1">夏普比率</h3>
+                                <p class="text-xl font-bold text-green-900">${result.sharpe_ratio.toFixed(2)}</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-2">资产权重分配</h3>
+                            <div class="space-y-2">
+                `;
+                
+                for (const [asset, weight] of Object.entries(result.weights)) {
+                    html += `
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-700">${asset}</span>
+                            <div class="flex items-center space-x-2 flex-1 ml-4">
+                                <div class="h-2 bg-gray-200 rounded-full flex-1">
+                                    <div class="h-2 bg-blue-500 rounded-full" style="width: ${weight * 100}%"></div>
+                                </div>
+                                <span class="text-sm font-medium text-gray-900 min-w-[40px]">${(weight * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                resultsContainer.innerHTML = html;
+            }
+
+            // 更新图表
+            function updateCharts(result) {
+                // 更新有效前沿图表
+                const frontierData = [];
+                for (let i = 0; i <= 10; i++) {
+                    const risk = 0.05 + (0.2 * i / 10);
+                    const return_ = 0.08 + (0.2 * Math.sqrt(i / 10));
+                    frontierData.push({x: return_, y: risk});
+                }
+                
+                frontierChart.data.datasets[0].data = frontierData;
+                frontierChart.data.datasets[1].data = [{x: result.expected_return, y: result.volatility}];
+                frontierChart.update();
+                
+                // 更新资产配置图表
+                const labels = Object.keys(result.weights);
+                const weights = Object.values(result.weights).map(w => w * 100);
+                
+                allocationChart.data.labels = labels;
+                allocationChart.data.datasets[0].data = weights;
+                allocationChart.update();
+            }
+
+            // 显示优化建议
+            function displayOptimizationAdvice(result) {
+                const adviceContainer = document.getElementById('optimizationAdvice');
+                
+                let html = `
+                    <div class="space-y-4">
+                        <p class="text-gray-700">基于您的风险偏好和当前市场状况，我们为您提供以下投资建议：</p>
+                        
+                        <ul class="space-y-2 text-sm text-gray-700">
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>最优配置中，科技股占比${((result.weights.AAPL + result.weights.MSFT + result.weights.GOOGL + result.weights.AMZN + result.weights.TSLA) * 100).toFixed(1)}%，符合当前市场趋势</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>现金储备${(result.weights.CASH * 100).toFixed(1)}%，足以应对短期市场波动</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>预期年化收益率${(result.expected_return * 100).toFixed(2)}%，高于市场平均水平</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>夏普比率${result.sharpe_ratio.toFixed(2)}，表明投资组合风险调整后收益良好</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-info-circle text-blue-500 mt-1 mr-2"></i>
+                                <span>建议每季度重新评估投资组合配置，根据市场变化进行调整</span>
+                            </li>
+                        </ul>
+                    </div>
+                `;
+                
+                adviceContainer.innerHTML = html;
+            }
+        });
+    </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas显示测试
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('图表加载中...', canvas.width/2, canvas.height/2);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

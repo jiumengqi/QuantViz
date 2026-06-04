@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - 服务器内部错误</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center">
+    <div class="text-center p-8 bg-white rounded-lg shadow-lg max-w-md w-full">
+        <div class="text-6xl font-bold text-gray-200 mb-4">500</div>
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">服务器内部错误</h1>
+        <p class="text-gray-600 mb-6">抱歉，服务器遇到了内部错误，请稍后再试</p>
+        <a href="/" class="inline-flex items-center px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+            <i class="fa fa-home mr-2"></i> 返回首页
+        </a>
+    </div>
+    
+    <!-- 页脚 -->
+    <footer class="bg-gray-900 text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">股票分析与量化投资平台</h3>
+                    <p class="text-gray-400">专业的量化投资工具，助力投资者做出更明智的决策。</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">功能模块</h4>
+                    <ul class="space-y-2">
+                        <li><a href="/data" class="text-gray-400 hover:text-white transition-colors">数据中心</a></li>
+                        <li><a href="/models" class="text-gray-400 hover:text-white transition-colors">金融模型</a></li>
+                        <li><a href="/backtest" class="text-gray-400 hover:text-white transition-colors">策略回测</a></li>
+                        <li><a href="/courses" class="text-gray-400 hover:text-white transition-colors">投资课程</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">关于我们</h4>
+                    <ul class="space-y-2">
+                        <li><a href="/about" class="text-gray-400 hover:text-white transition-colors">平台简介</a></li>
+                        <li><a href="/contact" class="text-gray-400 hover:text-white transition-colors">联系我们</a></li>
+                        <li><a href="/features" class="text-gray-400 hover:text-white transition-colors">核心优势</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">关注我们</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-weixin text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-weibo text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-github text-2xl"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
+                <p>&copy; 2024 股票分析与量化投资平台. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

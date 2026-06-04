@@ -1,0 +1,588 @@
+<!-- 导航栏 -->
+<nav class="fixed top-0 left-0 right-0 bg-white shadow-md z-50 transition-all duration-300" id="navbar">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-2 transform hover:scale-105 transition-transform duration-300">
+            <i class="fa fa-line-chart text-primary text-2xl transform hover:rotate-12 transition-transform duration-300"></i>
+            <span class="text-xl font-bold text-primary transform hover:scale-105 transition-transform duration-300">股票分析与量化投资平台</span>
+        </div>
+        
+        <!-- 桌面导航 -->
+        <div class="hidden md:flex items-center space-x-8">
+            <a href="{{ url_for('main.index') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium relative group">
+                首页
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="{{ url_for('main.features') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium relative group">
+                功能介绍
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            
+            <!-- 数据中心下拉菜单 -->
+            <div class="relative group">
+                <a href="{{ url_for('data.data_index') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex items-center relative group">
+                    数据中心 <i class="fa fa-angle-down ml-1 text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-lg overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <a href="{{ url_for('data.data_index') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">市场概览</a>
+                    <a href="{{ url_for('data.indexes_data') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">指数数据</a>
+                    <a href="{{ url_for('data.stock_data_default') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">个股数据</a>
+                </div>
+            </div>
+            
+            <!-- 数据分析下拉菜单 -->
+            <div class="relative group">
+                <a href="{{ url_for('analysis.analysis_index') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex items-center relative group">
+                    数据分析 <i class="fa fa-angle-down ml-1 text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-lg overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <a href="{{ url_for('analysis.analysis_index') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">技术指标</a>
+                    <a href="{{ url_for('analysis.correlation_analysis') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">相关性分析</a>
+                    <a href="{{ url_for('analysis.heatmap_analysis') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">热力图分析</a>
+                    <a href="{{ url_for('analysis.factor_analysis') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">因子分析</a>
+                </div>
+            </div>
+            
+            <!-- 金融模型下拉菜单 -->
+            <div class="relative group">
+                <a href="{{ url_for('models.models_index') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex items-center relative group">
+                    金融模型 <i class="fa fa-angle-down ml-1 text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-lg overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <a href="{{ url_for('models.models_index') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">模型列表</a>
+                    <a href="{{ url_for('models.black_scholes_model') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">Black-Scholes模型</a>
+                    <a href="{{ url_for('models.markowitz_model') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">Markowitz模型</a>
+                    <a href="{{ url_for('models.var_model') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">风险价值(VaR)</a>
+                </div>
+            </div>
+            
+            <!-- 策略回测下拉菜单 -->
+            <div class="relative group">
+                <a href="{{ url_for('backtest.backtest_index') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex items-center relative group">
+                    策略回测 <i class="fa fa-angle-down ml-1 text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-lg overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <a href="{{ url_for('backtest.backtest_index') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">回测系统</a>
+                    <a href="{{ url_for('backtest.strategy_templates') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">策略模板</a>
+                    <a href="{{ url_for('backtest.backtest_history') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">回测历史</a>
+                </div>
+            </div>
+            
+            <!-- 投资组合下拉菜单 -->
+            <div class="relative group">
+                <a href="{{ url_for('portfolio.portfolio_index') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex items-center relative group">
+                    投资组合 <i class="fa fa-angle-down ml-1 text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-lg overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <a href="{{ url_for('portfolio.portfolio_index') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">投资组合列表</a>
+                    <a href="{{ url_for('portfolio.create_portfolio') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">创建投资组合</a>
+                    <a href="{{ url_for('portfolio.portfolio_visualization') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">可视化分析</a>
+                    <a href="{{ url_for('portfolio.market_monitor') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">市场监控</a>
+                    <a href="{{ url_for('portfolio.watchlist') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">股票观察列表</a>
+                </div>
+            </div>
+            
+            <!-- 课程与知识库下拉菜单 -->
+            <div class="relative group">
+                <a href="{{ url_for('courses.courses_index') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex items-center relative group">
+                    课程实践 <i class="fa fa-angle-down ml-1 text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-lg overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <a href="{{ url_for('courses.courses_index') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">课程中心</a>
+                    <a href="{{ url_for('knowledge.knowledge_index') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">
+                        <i class="fa fa-book mr-1"></i>知识库
+                    </a>
+                    <a href="{{ url_for('knowledge.tutorials') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300 pl-8">入门教程</a>
+                    <a href="{{ url_for('knowledge.indicators') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300 pl-8">技术指标</a>
+                    <a href="{{ url_for('knowledge.strategies') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300 pl-8">策略原理</a>
+                    <a href="{{ url_for('knowledge.faq') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300 pl-8">常见问题</a>
+                </div>
+            </div>
+
+            <!-- 策略社区 -->
+            <a href="{{ url_for('community.community_index') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium relative group">
+                <i class="fa fa-users mr-1"></i>策略社区
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+
+            <!-- 帮助与反馈下拉菜单 -->
+            <div class="relative group">
+                <a href="{{ url_for('feedback.submit_feedback') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex items-center relative group">
+                    帮助与反馈 <i class="fa fa-angle-down ml-1 text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-lg overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <a href="{{ url_for('feedback.submit_feedback') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">提交反馈</a>
+                    <a href="{{ url_for('feedback.my_feedback') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">我的反馈</a>
+                    {% if current_user.is_authenticated and current_user.is_admin %}
+                    <a href="{{ url_for('feedback.manage_feedback') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">反馈管理</a>
+                    {% endif %}
+                    <a href="{{ url_for('main.changelog') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">更新日志</a>
+                </div>
+            </div>
+
+            <!-- AI 助手 -->
+            <div class="relative group">
+                <a href="{{ url_for('main.ai_assistant') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex items-center relative group">
+                    <i class="fa fa-android mr-1"></i> AI助手 <i class="fa fa-angle-down ml-1 text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-lg overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <a href="{{ url_for('main.ai_assistant') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">
+                        <i class="fa fa-comments mr-1"></i> 开始对话
+                    </a>
+                    <a href="{{ url_for('main.ai_config') }}" class="block px-4 py-2 text-neutral-dark hover:bg-primary/10 hover:text-primary transition-all duration-300">
+                        <i class="fa fa-cog mr-1"></i> AI 配置
+                    </a>
+                </div>
+            </div>
+            
+            <a href="{{ url_for('main.about') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium relative group">
+                关于我们
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="{{ url_for('main.contact') }}" class="text-neutral-dark hover:text-primary transition-all duration-300 font-medium relative group">
+                联系我们
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+        </div>
+        
+        <!-- 深色模式切换 -->
+        <button class="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-neutral-light hover:bg-neutral-medium/30 transition-all duration-300 transform hover:scale-110 active:scale-95 transition-transform duration-200" id="theme-toggle" title="切换深色模式" onclick="toggleTheme()">
+            <i class="fa fa-moon-o text-neutral-medium transition-all duration-300" id="theme-icon"></i>
+        </button>
+        
+        <!-- 全局搜索按钮 -->
+        <button class="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-neutral-light hover:bg-neutral-medium/30 transition-all duration-300 transform hover:scale-110 active:scale-95 transition-transform duration-200" id="global-search-btn" title="全局搜索 (Ctrl+K)">
+            <i class="fa fa-search text-neutral-medium transition-all duration-300"></i>
+        </button>
+        
+        <!-- 登录/注册按钮 -->
+        <div class="hidden md:flex items-center space-x-4">
+            {% if current_user.is_authenticated %}
+                <!-- 通知图标 -->
+                <a href="{{ url_for('notifications.notifications_page') }}" class="relative p-2 text-neutral-dark hover:text-primary transition-all duration-300" id="notification-icon" title="通知中心">
+                    <i class="fa fa-bell text-lg"></i>
+                    <span id="notification-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                </a>
+                
+                <a href="{{ url_for('auth.profile') }}" class="px-4 py-2 rounded-md text-primary border border-primary hover:bg-primary/5 transition-all duration-300 font-medium transform hover:scale-105 active:scale-95 transition-transform duration-200">个人资料</a>
+                {% if current_user.is_admin %}
+                    <a href="{{ url_for('auth.admin_dashboard') }}" class="px-4 py-2 rounded-md bg-accent text-white hover:bg-accent/90 transition-all duration-300 font-medium transform hover:scale-105 active:scale-95 transition-transform duration-200 flex items-center gap-1 shadow-lg shadow-accent/30 animate-pulse" title="管理员面板 (Ctrl+Shift+A)">
+                        <i class="fa fa-shield"></i> 管理面板
+                    </a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="px-4 py-2 rounded-md bg-white text-neutral-dark border border-gray-300 hover:bg-gray-50 transition-all duration-300 font-medium transform hover:scale-105 active:scale-95 transition-transform duration-200">退出</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="px-4 py-2 rounded-md text-primary border border-primary hover:bg-primary/5 transition-all duration-300 font-medium transform hover:scale-105 active:scale-95 transition-transform duration-200">登录</a>
+                <a href="{{ url_for('auth.register') }}" class="px-4 py-2 rounded-md bg-primary text-white hover:bg-primary/90 transition-all duration-300 font-medium transform hover:scale-105 active:scale-95 transition-transform duration-200">注册</a>
+            {% endif %}
+        </div>
+        
+        <!-- 移动端菜单按钮 -->
+        <button class="md:hidden text-neutral-dark text-xl transition-all duration-300 hover:text-primary transform hover:scale-110 active:scale-95 transition-transform duration-200" id="menu-toggle">
+            <i class="fa fa-bars transition-transform duration-300"></i>
+        </button>
+    </div>
+    
+    <!-- 移动端导航菜单 -->
+    <div class="md:hidden hidden bg-white border-t shadow-lg transition-all duration-300 transform translate-y-0" id="mobile-menu">
+        <div class="container mx-auto px-4 py-2 flex flex-col space-y-3">
+            <a href="{{ url_for('main.index') }}" class="py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium">首页</a>
+            <a href="{{ url_for('main.features') }}" class="py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium">功能介绍</a>
+            
+            <!-- 数据中心移动端菜单 -->
+            <div class="mobile-dropdown">
+                <button class="w-full text-left py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex justify-between items-center">
+                    <span>数据中心</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-300"></i>
+                </button>
+                <div class="pl-4 mt-1 space-y-1 hidden">
+                    <a href="{{ url_for('data.data_index') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">市场概览</a>
+                    <a href="{{ url_for('data.indexes_data') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">指数数据</a>
+                    <a href="{{ url_for('data.stock_data_default') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">个股数据</a>
+                </div>
+            </div>
+            
+            <!-- 数据分析移动端菜单 -->
+            <div class="mobile-dropdown">
+                <button class="w-full text-left py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex justify-between items-center">
+                    <span>数据分析</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-300"></i>
+                </button>
+                <div class="pl-4 mt-1 space-y-1 hidden">
+                    <a href="{{ url_for('analysis.analysis_index') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">技术指标</a>
+                    <a href="{{ url_for('analysis.correlation_analysis') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">相关性分析</a>
+                    <a href="{{ url_for('analysis.heatmap_analysis') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">热力图分析</a>
+                    <a href="{{ url_for('analysis.factor_analysis') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">因子分析</a>
+                </div>
+            </div>
+            
+            <!-- 金融模型移动端菜单 -->
+            <div class="mobile-dropdown">
+                <button class="w-full text-left py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex justify-between items-center">
+                    <span>金融模型</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-300"></i>
+                </button>
+                <div class="pl-4 mt-1 space-y-1 hidden">
+                    <a href="{{ url_for('models.models_index') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">模型列表</a>
+                    <a href="{{ url_for('models.black_scholes_model') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">Black-Scholes模型</a>
+                    <a href="{{ url_for('models.markowitz_model') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">Markowitz模型</a>
+                    <a href="{{ url_for('models.var_model') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">风险价值(VaR)</a>
+                </div>
+            </div>
+            
+            <!-- 策略回测移动端菜单 -->
+            <div class="mobile-dropdown">
+                <button class="w-full text-left py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex justify-between items-center">
+                    <span>策略回测</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-300"></i>
+                </button>
+                <div class="pl-4 mt-1 space-y-1 hidden">
+                    <a href="{{ url_for('backtest.backtest_index') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">回测系统</a>
+                    <a href="{{ url_for('backtest.strategy_templates') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">策略模板</a>
+                    <a href="{{ url_for('backtest.backtest_history') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">回测历史</a>
+                </div>
+            </div>
+            
+            <!-- 投资组合移动端菜单 -->
+            <div class="mobile-dropdown">
+                <button class="w-full text-left py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex justify-between items-center">
+                    <span>投资组合</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-300"></i>
+                </button>
+                <div class="pl-4 mt-1 space-y-1 hidden">
+                    <a href="{{ url_for('portfolio.portfolio_index') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">投资组合列表</a>
+                    <a href="{{ url_for('portfolio.create_portfolio') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">创建投资组合</a>
+                    <a href="{{ url_for('portfolio.portfolio_visualization') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">可视化分析</a>
+                    <a href="{{ url_for('portfolio.market_monitor') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">市场监控</a>
+                    <a href="{{ url_for('portfolio.watchlist') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">股票观察列表</a>
+                </div>
+            </div>
+            
+            <!-- 课程与知识库移动端菜单 -->
+            <div class="mobile-dropdown">
+                <button class="w-full text-left py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex justify-between items-center">
+                    <span>课程实践</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-300"></i>
+                </button>
+                <div class="pl-4 mt-1 space-y-1 hidden">
+                    <a href="{{ url_for('courses.courses_index') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">课程中心</a>
+                    <a href="{{ url_for('knowledge.knowledge_index') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">
+                        <i class="fa fa-book mr-1"></i>知识库
+                    </a>
+                    <a href="{{ url_for('knowledge.tutorials') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300 pl-8">入门教程</a>
+                    <a href="{{ url_for('knowledge.indicators') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300 pl-8">技术指标</a>
+                    <a href="{{ url_for('knowledge.strategies') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300 pl-8">策略原理</a>
+                    <a href="{{ url_for('knowledge.faq') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300 pl-8">常见问题</a>
+                </div>
+            </div>
+
+            <!-- 策略社区（移动端） -->
+            <a href="{{ url_for('community.community_index') }}" class="py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium">
+                <i class="fa fa-users mr-1"></i>策略社区
+            </a>
+
+            <!-- 帮助与反馈移动端菜单 -->
+            <div class="mobile-dropdown">
+                <button class="w-full text-left py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium flex justify-between items-center">
+                    <span>帮助与反馈</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-300"></i>
+                </button>
+                <div class="pl-4 mt-1 space-y-1 hidden">
+                    <a href="{{ url_for('feedback.submit_feedback') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">提交反馈</a>
+                    <a href="{{ url_for('feedback.my_feedback') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">我的反馈</a>
+                    {% if current_user.is_authenticated and current_user.is_admin %}
+                    <a href="{{ url_for('feedback.manage_feedback') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">反馈管理</a>
+                    {% endif %}
+                    <a href="{{ url_for('main.changelog') }}" class="block py-2 text-neutral-dark hover:text-primary transition-all duration-300">更新日志</a>
+                </div>
+            </div>
+
+            <!-- AI 助手 -->
+            <a href="{{ url_for('main.ai_assistant') }}" class="py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium">
+                <i class="fa fa-android mr-1"></i> AI助手
+            </a>
+            
+            <a href="{{ url_for('main.about') }}" class="py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium">关于我们</a>
+            <a href="{{ url_for('main.contact') }}" class="py-3 text-neutral-dark hover:text-primary transition-all duration-300 font-medium">联系我们</a>
+            
+            <!-- 深色模式切换（移动端） -->
+            <button class="w-full py-3 rounded-md text-center flex items-center justify-center space-x-2 text-neutral-dark hover:bg-neutral-light transition-all duration-300 font-medium" id="mobile-theme-toggle" title="切换深色模式" onclick="toggleTheme()">
+                <i class="fa fa-moon-o text-neutral-medium" id="mobile-theme-icon"></i>
+                <span>切换深色模式</span>
+            </button>
+            
+            <div class="flex flex-col space-y-3 pt-3 border-t">
+                {% if current_user.is_authenticated %}
+                    <!-- 移动端通知入口 -->
+                    <a href="{{ url_for('notifications.notifications_page') }}" class="px-4 py-3 rounded-md text-center text-neutral-dark border border-gray-200 hover:bg-primary/5 hover:border-primary transition-all duration-300 font-medium flex items-center justify-center space-x-2">
+                        <i class="fa fa-bell"></i>
+                        <span>通知中心</span>
+                        <span id="mobile-notification-badge" class="hidden bg-red-500 text-white text-xs rounded-full px-2 py-0.5">0</span>
+                    </a>
+                    
+                    <a href="{{ url_for('auth.profile') }}" class="px-4 py-3 rounded-md text-center text-primary border border-primary hover:bg-primary/5 transition-all duration-300 font-medium">个人资料</a>
+                    {% if current_user.is_admin %}
+                        <a href="{{ url_for('auth.admin_dashboard') }}" class="px-4 py-3 rounded-md text-center bg-accent text-white hover:bg-accent/90 transition-all duration-300 font-medium flex items-center justify-center gap-1 shadow-lg shadow-accent/30">
+                            <i class="fa fa-shield"></i> 管理面板
+                        </a>
+                    {% endif %}
+                    <a href="{{ url_for('auth.logout') }}" class="px-4 py-3 rounded-md text-center bg-primary text-white hover:bg-primary/90 transition-all duration-300 font-medium">退出登录</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="px-4 py-3 rounded-md text-center text-primary border border-primary hover:bg-primary/5 transition-all duration-300 font-medium">登录</a>
+                    <a href="{{ url_for('auth.register') }}" class="px-4 py-3 rounded-md text-center bg-primary text-white hover:bg-primary/90 transition-all duration-300 font-medium">注册</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- 移动端菜单JavaScript -->
+<script>
+    // 用户主题偏好同步 - 确保在 utils.js 初始化之前执行
+    (function() {
+        {% if current_user.is_authenticated %}
+        // 如果用户已登录，将用户主题偏好保存到 localStorage
+        const userTheme = '{{ current_user.theme_preference }}';
+        if (userTheme && userTheme !== 'system') {
+            localStorage.setItem('theme', userTheme);
+        }
+        // 将用户主题偏好暴露到全局
+        window.__userThemePreference = userTheme;
+        {% else %}
+        window.__userThemePreference = 'system';
+        {% endif %}
+    })();
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        if (menuToggle && mobileMenu) {
+            menuToggle.addEventListener('click', function() {
+                mobileMenu.classList.toggle('hidden');
+                // 切换菜单图标
+                const icon = menuToggle.querySelector('i');
+                if (mobileMenu.classList.contains('hidden')) {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                    icon.style.transform = 'rotate(0deg)';
+                } else {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                    icon.style.transform = 'rotate(180deg)';
+                }
+            });
+        }
+        
+        // 移动端下拉菜单交互
+        const mobileDropdowns = document.querySelectorAll('.mobile-dropdown');
+        mobileDropdowns.forEach(dropdown => {
+            const button = dropdown.querySelector('button');
+            const content = dropdown.querySelector('div');
+            const icon = button.querySelector('i');
+            
+            if (button && content && icon) {
+                button.addEventListener('click', function() {
+                    content.classList.toggle('hidden');
+                    // 旋转图标
+                    if (content.classList.contains('hidden')) {
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                });
+            }
+        });
+        
+        // 导航栏滚动效果 - 优化版
+        const navbar = document.getElementById('navbar');
+        if (navbar) {
+            // 初始化时设置默认状态
+            navbar.classList.add('py-3', 'shadow-sm');
+            
+            window.addEventListener('scroll', function() {
+                // 使用toggle方法简化类切换逻辑
+                navbar.classList.toggle('py-2', window.scrollY > 50);
+                navbar.classList.toggle('py-3', window.scrollY <= 50);
+                navbar.classList.toggle('shadow-md', window.scrollY > 50);
+                navbar.classList.toggle('shadow-sm', window.scrollY <= 50);
+            });
+        }
+        
+        // 检测当前页面，高亮导航项
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a');
+        navLinks.forEach(link => {
+            const linkPath = link.getAttribute('href');
+            if (currentPath === linkPath || (linkPath !== '/' && currentPath.startsWith(linkPath))) {
+                link.classList.add('text-primary');
+                if (link.querySelector('span')) {
+                    link.querySelector('span').classList.add('w-full');
+                }
+            }
+        });
+        
+        // 平滑滚动效果
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 全局搜索按钮事件
+        const globalSearchBtn = document.getElementById('global-search-btn');
+        if (globalSearchBtn) {
+            globalSearchBtn.addEventListener('click', function() {
+                document.dispatchEvent(new CustomEvent('global-search'));
+            });
+        }
+
+        // 更新导航栏通知未读计数
+        async function updateNotificationBadge() {
+            {% if current_user.is_authenticated %}
+            try {
+                const response = await fetch('/api/notifications/unread-count');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const count = data.unread_count;
+                    const badge = document.getElementById('notification-badge');
+                    const mobileBadge = document.getElementById('mobile-notification-badge');
+                    
+                    if (badge) {
+                        if (count > 0) {
+                            badge.textContent = count > 99 ? '99+' : count;
+                            badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
+                        }
+                    }
+                    
+                    if (mobileBadge) {
+                        if (count > 0) {
+                            mobileBadge.textContent = count > 99 ? '99+' : count;
+                            mobileBadge.classList.remove('hidden');
+                        } else {
+                            mobileBadge.classList.add('hidden');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating notification badge:', error);
+            }
+            {% endif %}
+        }
+
+        // ============ 管理员快捷键 ============
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+                e.preventDefault();
+                window.location.href = '{{ url_for("auth.admin_dashboard") }}';
+            }
+        });
+        {% endif %}
+
+        // ============ 初始化通知计数 ============
+        updateNotificationBadge();
+        
+        // 每30秒更新一次通知计数
+        setInterval(updateNotificationBadge, 30000);
+
+        // 浏览器通知功能
+        {% if current_user.is_authenticated %}
+        let notificationPermission = localStorage.getItem('notification_permission') || 'default';
+
+        // 请求浏览器通知权限
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                console.log('此浏览器不支持通知');
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                notificationPermission = 'granted';
+                localStorage.setItem('notification_permission', 'granted');
+                return;
+            }
+
+            if (Notification.permission !== 'denied') {
+                const permission = await Notification.requestPermission();
+                notificationPermission = permission;
+                localStorage.setItem('notification_permission', permission);
+                
+                if (permission === 'granted') {
+                    showBrowserNotification('通知已开启', '您将收到重要的系统通知');
+                }
+            }
+        }
+
+        // 显示浏览器通知
+        function showBrowserNotification(title, body, icon = '') {
+            if (Notification.permission === 'granted') {
+                const notification = new Notification(title, {
+                    body: body,
+                    icon: icon || '/static plots/favicon.ico',
+                    tag: 'quant-platform-notification'
+                });
+                
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+                
+                // 5秒后自动关闭
+                setTimeout(() => notification.close(), 5000);
+            }
+        }
+
+        // 保存通知权限设置到服务器
+        async function saveNotificationPermission(permission) {
+            try {
+                await fetch('/api/user/notification-setting', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ notification_permission: permission })
+                });
+            } catch (error) {
+                console.error('Error saving notification permission:', error);
+            }
+        }
+
+        // 初始化通知权限状态
+        if (notificationPermission === 'granted') {
+            requestNotificationPermission();
+        }
+
+        // 监听通知图标点击，询问用户是否开启通知
+        const notificationIcon = document.getElementById('notification-icon');
+        if (notificationIcon) {
+            notificationIcon.addEventListener('click', function(e) {
+                if (notificationPermission === 'default' || notificationPermission === 'denied') {
+                    // 首次点击时请求权限
+                    requestNotificationPermission();
+                }
+            });
+        }
+        {% endif %}
+    });
+</script>
+
+<!-- 全局工具脚本 -->
+<script src="{{ url_for('static', filename='js/utils.js') }}"></script>

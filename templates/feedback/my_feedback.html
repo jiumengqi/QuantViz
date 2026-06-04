@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的反馈 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .status-pending { background-color: #FF9F43; }
+        .status-processing { background-color: #165DFF; }
+        .status-resolved { background-color: #36CFC9; }
+        .status-rejected { background-color: #86909C; }
+    </style>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    {% include 'components/header.html' %}
+
+    <main class="container mx-auto px-4 pt-28 pb-16">
+        <!-- 页面标题 -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-neutral-dark mb-2">
+                    <i class="fa fa-comments text-primary mr-2"></i>我的反馈
+                </h1>
+                <p class="text-neutral-medium">查看您提交的所有反馈及处理进度</p>
+            </div>
+            <a href="{{ url_for('feedback.submit_feedback') }}" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-300 font-medium transform hover:scale-105 active:scale-95">
+                <i class="fa fa-plus mr-2"></i>提交新反馈
+            </a>
+        </div>
+
+        <!-- 反馈列表 -->
+        <div id="feedbackList" class="space-y-4">
+            <div class="text-center py-12 text-neutral-medium">
+                <i class="fa fa-spinner fa-spin text-3xl mb-4"></i>
+                <p>加载中...</p>
+            </div>
+        </div>
+
+        <!-- 分页 -->
+        <div id="pagination" class="flex justify-center mt-8"></div>
+    </main>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+        let currentPage = 1;
+
+        async function loadFeedbacks(page = 1) {
+            currentPage = page;
+            try {
+                const response = await fetch(`/feedback/api/feedbacks?page=${page}&per_page=10`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderFeedbacks(result.feedbacks);
+                    renderPagination(result.page, result.pages);
+                } else {
+                    document.getElementById('feedbackList').innerHTML = `
+                        <div class="text-center py-12 text-neutral-medium">
+                            <i class="fa fa-exclamation-triangle text-3xl mb-4"></i>
+                            <p>加载失败，请稍后重试</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error(error);
+                document.getElementById('feedbackList').innerHTML = `
+                    <div class="text-center py-12 text-neutral-medium">
+                        <i class="fa fa-exclamation-triangle text-3xl mb-4"></i>
+                        <p>加载失败，请稍后重试</p>
+                    </div>
+                `;
+            }
+        }
+
+        function getStatusHtml(status) {
+            const statusMap = {
+                'pending': { text: '待处理', class: 'status-pending' },
+                'processing': { text: '处理中', class: 'status-processing' },
+                'resolved': { text: '已解决', class: 'status-resolved' },
+                'rejected': { text: '已拒绝', class: 'status-rejected' }
+            };
+            const info = statusMap[status] || statusMap['pending'];
+            return `<span class="px-3 py-1 rounded-full text-white text-sm ${info.class}">${info.text}</span>`;
+        }
+
+        function getTypeHtml(type) {
+            const typeMap = {
+                'bug': { text: 'Bug报告', icon: 'fa-bug', class: 'text-red-500' },
+                'suggestion': { text: '功能建议', icon: 'fa-lightbulb-o', class: 'text-yellow-500' },
+                'feature': { text: '新功能', icon: 'fa-rocket', class: 'text-primary' }
+            };
+            const info = typeMap[type] || typeMap['bug'];
+            return `<span class="${info.class}"><i class="fa ${info.icon} mr-1"></i>${info.text}</span>`;
+        }
+
+        function renderFeedbacks(feedbacks) {
+            const container = document.getElementById('feedbackList');
+            
+            if (!feedbacks || feedbacks.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-lg p-12 text-center">
+                        <i class="fa fa-inbox text-6xl text-neutral-light mb-4"></i>
+                        <h3 class="text-xl font-medium text-neutral-dark mb-2">暂无反馈</h3>
+                        <p class="text-neutral-medium mb-6">您还没有提交过任何反馈</p>
+                        <a href="{{ url_for('feedback.submit_feedback') }}" class="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-300 font-medium">
+                            <i class="fa fa-plus mr-2"></i>提交反馈
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = feedbacks.map(f => `
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            ${getTypeHtml(f.type)}
+                            <h3 class="text-lg font-semibold text-neutral-dark">${f.title}</h3>
+                        </div>
+                        ${getStatusHtml(f.status)}
+                    </div>
+                    <p class="text-neutral-medium mb-4 line-clamp-3">${f.content}</p>
+                    <div class="flex items-center justify-between text-sm text-neutral-medium">
+                        <span><i class="fa fa-clock-o mr-1"></i>${f.created_at}</span>
+                    </div>
+                    ${f.admin_reply ? `
+                        <div class="mt-4 p-4 bg-primary/5 rounded-lg border-l-4 border-primary">
+                            <div class="flex items-center mb-2">
+                                <i class="fa fa-admin text-primary mr-2"></i>
+                                <span class="font-medium text-primary">管理员回复</span>
+                                <span class="text-neutral-medium ml-2">${f.updated_at}</span>
+                            </div>
+                            <p class="text-neutral-dark">${f.admin_reply}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderPagination(page, pages) {
+            const container = document.getElementById('pagination');
+            if (pages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<div class="flex items-center space-x-2">';
+            
+            // 上一页
+            if (page > 1) {
+                html += `<button onclick="loadFeedbacks(${page - 1})" class="px-4 py-2 rounded-lg border border-neutral-light hover:bg-neutral-light transition-all duration-300">
+                    <i class="fa fa-chevron-left"></i>
+                </button>`;
+            }
+
+            // 页码
+            for (let i = 1; i <= pages; i++) {
+                if (i === page) {
+                    html += `<button class="px-4 py-2 rounded-lg bg-primary text-white">${i}</button>`;
+                } else if (i === 1 || i === pages || (i >= page - 2 && i <= page + 2)) {
+                    html += `<button onclick="loadFeedbacks(${i})" class="px-4 py-2 rounded-lg border border-neutral-light hover:bg-neutral-light transition-all duration-300">${i}</button>`;
+                } else if (i === page - 3 || i === page + 3) {
+                    html += `<span class="px-2">...</span>`;
+                }
+            }
+
+            // 下一页
+            if (page < pages) {
+                html += `<button onclick="loadFeedbacks(${page + 1})" class="px-4 py-2 rounded-lg border border-neutral-light hover:bg-neutral-light transition-all duration-300">
+                    <i class="fa fa-chevron-right"></i>
+                </button>`;
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFeedbacks(1);
+        });
+    </script>
+
+    <style>
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.1);
+        }
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,2205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融数学模型 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入Chart.js -->
+    <script src="https://unpkg.com/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 引入MathJax用于公式渲染 -->
+    <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5',
+                        success: '#00B42A',
+                        danger: '#F53F3F',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+            .model-card-hover {
+                transition: all 0.3s ease;
+            }
+            .model-card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px rgba(22, 93, 255, 0.1);
+            }
+            .formula-container {
+                background-color: rgba(243, 244, 246, 0.5);
+                border-radius: 0.5rem;
+                padding: 1rem;
+                margin: 1rem 0;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主内容区 -->
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题 -->
+            <div class="mb-10 text-center max-w-3xl mx-auto">
+                <h1 class="text-[clamp(1.8rem,3vw,2.5rem)] font-bold text-neutral mb-4">金融数学模型库</h1>
+                <p class="text-gray-600 text-lg">专业的金融数学模型实现与可视化平台，助力理论学习与实践应用</p>
+            </div>
+
+            <!-- 模型搜索和分类 -->
+            <div class="mb-10">
+                <!-- 搜索框 -->
+                <div class="max-w-2xl mx-auto mb-6">
+                    <div class="relative">
+                        <input type="text" id="modelSearch" placeholder="搜索模型..." class="w-full pl-10 pr-4 py-3 rounded-full border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary">
+                        <i class="fa fa-search absolute left-3.5 top-3.5 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <!-- 模型分类标签 -->
+                <div class="flex flex-wrap justify-center gap-3">
+                    <button class="model-tab px-5 py-2 rounded-full bg-primary text-white text-sm font-medium" data-category="all">全部模型</button>
+                    <button class="model-tab px-5 py-2 rounded-full bg-white text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors" data-category="pricing">定价模型</button>
+                    <button class="model-tab px-5 py-2 rounded-full bg-white text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors" data-category="risk">风险模型</button>
+                    <button class="model-tab px-5 py-2 rounded-full bg-white text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors" data-category="prediction">预测模型</button>
+                    <button class="model-tab px-5 py-2 rounded-full bg-white text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors" data-category="portfolio">组合优化</button>
+                </div>
+            </div>
+
+            <!-- 模型列表 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+                <!-- 期权定价模型 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-shadow model-card-hover" data-category="pricing">
+                    <div class="h-48 bg-gradient-to-r from-primary/90 to-primary flex items-center justify-center">
+                        <i class="fa fa-calculator text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-semibold text-neutral">Black-Scholes 期权定价模型</h3>
+                            <span class="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">定价模型</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">
+                            用于计算欧式期权的理论价格，考虑标的资产价格、行权价格、无风险利率、到期时间和波动率等因素。
+                        </p>
+                        <div class="formula-container text-center">
+                            \( C = S_0 N(d_1) - K e^{-rT} N(d_2) \)
+                        </div>
+                        <button class="mt-4 w-full py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors model-detail-btn" data-model="black-scholes">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- VaR风险模型 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-shadow model-card-hover" data-category="risk">
+                    <div class="h-48 bg-gradient-to-r from-accent/90 to-accent flex items-center justify-center">
+                        <i class="fa fa-shield text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-semibold text-neutral">VaR 风险价值模型</h3>
+                            <span class="px-2 py-1 bg-accent/10 text-accent text-xs rounded-full">风险模型</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">
+                            用于度量在一定置信水平下，资产或投资组合在未来特定时间段内可能遭受的最大损失。
+                        </p>
+                        <div class="formula-container text-center">
+                            \( P(\Delta V \leq -VaR) = 1 - \alpha \)
+                        </div>
+                        <button class="mt-4 w-full py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors model-detail-btn" data-model="var">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 均值-方差模型 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-shadow model-card-hover" data-category="portfolio">
+                    <div class="h-48 bg-gradient-to-r from-secondary/90 to-secondary flex items-center justify-center">
+                        <i class="fa fa-balance-scale text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-semibold text-neutral">Markowitz 均值-方差模型</h3>
+                            <span class="px-2 py-1 bg-secondary/10 text-secondary text-xs rounded-full">组合优化</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">
+                            现代投资组合理论的基础模型，通过分散投资平衡风险与收益，寻找最优资产配置比例。
+                        </p>
+                        <div class="formula-container text-center">
+                            \( \min \sigma_p^2 = \sum_{i=1}^n \sum_{j=1}^n w_i w_j \sigma_{ij} \)
+                        </div>
+                        <button class="mt-4 w-full py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors model-detail-btn" data-model="markowitz">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- GARCH模型 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-shadow model-card-hover" data-category="prediction">
+                    <div class="h-48 bg-gradient-to-r from-orange-500/90 to-orange-500 flex items-center justify-center">
+                        <i class="fa fa-area-chart text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-semibold text-neutral">GARCH 波动率模型</h3>
+                            <span class="px-2 py-1 bg-orange-100 text-orange-600 text-xs rounded-full">预测模型</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">
+                            广义自回归条件异方差模型，用于刻画金融时间序列的波动率聚类特征和条件异方差性。
+                        </p>
+                        <div class="formula-container text-center">
+                            \( \sigma_t^2 = \omega + \sum_{i=1}^p \alpha_i \epsilon_{t-i}^2 + \sum_{j=1}^q \beta_j \sigma_{t-j}^2 \)
+                        </div>
+                        <button class="mt-4 w-full py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors model-detail-btn" data-model="garch">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 二叉树模型 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-shadow model-card-hover" data-category="pricing">
+                    <div class="h-48 bg-gradient-to-r from-emerald-500/90 to-emerald-500 flex items-center justify-center">
+                        <i class="fa fa-sitemap text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-semibold text-neutral">二叉树期权定价模型</h3>
+                            <span class="px-2 py-1 bg-emerald-100 text-emerald-600 text-xs rounded-full">定价模型</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">
+                            通过构建标的资产价格的二叉树路径，递归计算期权在各节点的价值，适用于美式期权定价。
+                        </p>
+                        <div class="formula-container text-center">
+                            \( f = e^{-r\Delta t} [p f_u + (1-p) f_d] \)
+                        </div>
+                        <button class="mt-4 w-full py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors model-detail-btn" data-model="binomial-tree">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 风险平价模型 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-shadow model-card-hover" data-category="portfolio">
+                    <div class="h-48 bg-gradient-to-r from-purple-500/90 to-purple-500 flex items-center justify-center">
+                        <i class="fa fa-pie-chart text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-semibold text-neutral">风险平价模型</h3>
+                            <span class="px-2 py-1 bg-purple-100 text-purple-600 text-xs rounded-full">组合优化</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">
+                            基于风险贡献相等原则的资产配置模型，使组合中每个资产对整体风险的贡献相同。
+                        </p>
+                        <div class="formula-container text-center">
+                            \( w_i \frac{\partial \sigma_p}{\partial w_i} = w_j \frac{\partial \sigma_p}{\partial w_j} \quad \forall i,j \)
+                        </div>
+                        <button class="mt-4 w-full py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors model-detail-btn" data-model="risk-parity">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模型详情区域 -->
+            <div id="modelDetailSection" class="bg-white rounded-xl shadow-md p-6 lg:p-8 card-shadow mb-12">
+                <!-- Black-Scholes模型详情 -->
+                <div id="black-scholes" class="model-detail">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-neutral mb-2">Black-Scholes 期权定价模型</h2>
+                            <p class="text-gray-500">用于计算欧式看涨和看跌期权的理论价格</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <span class="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">定价模型</span>
+                            <span class="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full ml-2">金融衍生工具</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- 模型参数与计算 -->
+                        <div class="lg:col-span-1">
+                            <h3 class="text-lg font-semibold mb-4">模型参数</h3>
+                            <form id="blackScholesForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">标的资产价格 (S)</label>
+                                    <input type="number" step="0.01" value="100" min="0.01" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bs-spot">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">行权价格 (K)</label>
+                                    <input type="number" step="0.01" value="100" min="0.01" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bs-strike">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">到期时间 (年, T)</label>
+                                    <input type="number" step="0.01" value="1" min="0.01" max="10" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bs-time">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">无风险利率 (% , r)</label>
+                                    <input type="number" step="0.01" value="5" min="0" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bs-rate">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">波动率 (% , σ)</label>
+                                    <input type="number" step="0.01" value="30" min="0.01" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bs-volatility">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">期权类型</label>
+                                    <div class="flex space-x-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="optionType" value="call" checked class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                            <span class="ml-2 text-sm text-gray-700">看涨期权</span>
+                                        </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="optionType" value="put" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                            <span class="ml-2 text-sm text-gray-700">看跌期权</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <button type="button" id="calculateBS" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                                    计算期权价格
+                                </button>
+                            </form>
+
+                            <div class="mt-6 p-4 bg-neutral-light rounded-lg">
+                                <h4 class="font-medium mb-3">计算结果</h4>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">期权理论价格:</span>
+                                        <span class="font-semibold text-primary" id="bs-price">10.45</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Delta值:</span>
+                                        <span class="font-semibold" id="bs-delta">0.6368</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Gamma值:</span>
+                                        <span class="font-semibold" id="bs-gamma">0.0189</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Vega值:</span>
+                                        <span class="font-semibold" id="bs-vega">0.2353</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Theta值:</span>
+                                        <span class="font-semibold" id="bs-theta">-0.0321</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Rho值:</span>
+                                        <span class="font-semibold" id="bs-rho">0.4247</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模型说明与公式 -->
+                        <div class="lg:col-span-2">
+                            <h3 class="text-lg font-semibold mb-4">模型介绍</h3>
+                            <p class="text-gray-700 mb-4">
+                                Black-Scholes模型（也称为Black-Scholes-Merton模型）是由Fischer Black、Myron Scholes和Robert Merton于1973年提出的期权定价模型，该模型为金融衍生工具定价奠定了理论基础，Myron Scholes和Robert Merton也因此获得了1997年诺贝尔经济学奖。
+                            </p>
+                            <p class="text-gray-700 mb-4">
+                                该模型基于一系列假设，包括：标的资产价格服从几何布朗运动、无风险利率和波动率为常数、市场无摩擦（无交易成本、无税收）、允许卖空、标的资产不支付股息等。
+                            </p>
+
+                            <h3 class="text-lg font-semibold mb-3 mt-6">核心公式</h3>
+                            <div class="formula-container mb-4">
+                                <p class="text-center mb-2">看涨期权价格：</p>
+                                \( C = S_0 N(d_1) - K e^{-rT} N(d_2) \)
+                            </div>
+                            <div class="formula-container mb-4">
+                                <p class="text-center mb-2">看跌期权价格：</p>
+                                \( P = K e^{-rT} N(-d_2) - S_0 N(-d_1) \)
+                            </div>
+                            <div class="formula-container mb-6">
+                                <p class="text-center mb-2">其中：</p>
+                                \( d_1 = \frac{\ln(S_0/K) + (r + \sigma^2/2)T}{\sigma \sqrt{T}} \)
+                                <br>
+                                \( d_2 = d_1 - \sigma \sqrt{T} \)
+                                <br>
+                                \( N(x) \) 是标准正态分布的累积分布函数
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3"> Greeks 风险指标</h3>
+                            <p class="text-gray-700 mb-3">
+                                Greeks用于衡量期权价格对各个参数变化的敏感度，是期权风险管理的重要工具：
+                            </p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">Delta (Δ)</div>
+                                    <p class="text-sm text-gray-600 mb-1">衡量期权价格对标的资产价格变化的敏感度</p>
+                                    <div class="text-xs bg-white p-2 rounded">看涨期权: \( N(d_1) \)，看跌期权: \( N(d_1) - 1 \)</div>
+                                </div>
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">Gamma (Γ)</div>
+                                    <p class="text-sm text-gray-600 mb-1">衡量Delta对标的资产价格变化的敏感度</p>
+                                    <div class="text-xs bg-white p-2 rounded">\( \frac{N'(d_1)}{S_0 \sigma \sqrt{T}} \)</div>
+                                </div>
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">Vega (ν)</div>
+                                    <p class="text-sm text-gray-600 mb-1">衡量期权价格对波动率变化的敏感度</p>
+                                    <div class="text-xs bg-white p-2 rounded">\( S_0 \sqrt{T} N'(d_1) \)</div>
+                                </div>
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">Theta (θ)</div>
+                                    <p class="text-sm text-gray-600 mb-1">衡量期权价格随时间推移的变化率（时间衰减）</p>
+                                    <div class="text-xs bg-white p-2 rounded">复杂公式，与多个参数相关</div>
+                                </div>
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3">价格敏感性分析</h3>
+                            <div class="h-[300px]">
+                                <canvas id="bsSensitivityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 其他模型详情（默认隐藏） -->
+                <div id="var" class="model-detail hidden">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-neutral mb-2">VaR 风险价值模型</h2>
+                            <p class="text-gray-500">用于度量在一定置信水平下，资产或投资组合在未来特定时间段内可能遭受的最大损失</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <span class="px-3 py-1 bg-accent/10 text-accent text-sm rounded-full">风险模型</span>
+                            <span class="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full ml-2">风险管理</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- 模型参数与计算 -->
+                        <div class="lg:col-span-1">
+                            <h3 class="text-lg font-semibold mb-4">模型参数</h3>
+                            <form id="varForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">资产价值 (V)</label>
+                                    <input type="number" step="0.01" value="1000000" min="0.01" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="var-value">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">收益率波动率 (% , σ)</label>
+                                    <input type="number" step="0.01" value="15" min="0.01" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="var-volatility">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">持有期 (天)</label>
+                                    <input type="number" step="1" value="1" min="1" max="365" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="var-holding-period">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">置信水平 (%)</label>
+                                    <input type="number" step="0.1" value="95" min="50" max="99.99" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="var-confidence">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">计算方法</label>
+                                    <select class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="var-method">
+                                        <option value="parametric">参数法 (正态分布)</option>
+                                        <option value="historical">历史模拟法</option>
+                                        <option value="monte-carlo">蒙特卡洛模拟法</option>
+                                    </select>
+                                </div>
+
+                                <button type="button" id="calculateVar" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                                    计算VaR值
+                                </button>
+                            </form>
+
+                            <div class="mt-6 p-4 bg-neutral-light rounded-lg">
+                                <h4 class="font-medium mb-3">计算结果</h4>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">VaR值:</span>
+                                        <span class="font-semibold text-accent" id="var-result">61,240.38</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">相对VaR (%):</span>
+                                        <span class="font-semibold" id="var-relative">6.12</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">预期损失 (ES):</span>
+                                        <span class="font-semibold" id="var-es">85,365.21</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">风险调整后收益:</span>
+                                        <span class="font-semibold" id="var-sharpe">0.85</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模型说明与公式 -->
+                        <div class="lg:col-span-2">
+                            <h3 class="text-lg font-semibold mb-4">模型介绍</h3>
+                            <p class="text-gray-700 mb-4">
+                                VaR（Value at Risk，风险价值）是一种广泛使用的风险度量工具，用于估计在给定置信水平下，资产或投资组合在未来特定时间段内可能遭受的最大损失。它提供了一个单一的数字，概括了投资的下行风险。
+                            </p>
+                            <p class="text-gray-700 mb-4">
+                                VaR模型的主要优点是它能够将复杂的风险信息浓缩成一个易于理解的数字，便于管理层决策和监管报告。然而，它也有局限性，如对极端事件的捕捉能力有限，因此通常需要与其他风险度量工具（如预期损失ES）结合使用。
+                            </p>
+
+                            <h3 class="text-lg font-semibold mb-3 mt-6">核心公式</h3>
+                            <div class="formula-container mb-6">
+                                <p class="text-center mb-2">VaR的基本定义：</p>
+                                \( P(\Delta V \leq -VaR) = 1 - \alpha \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">参数法计算（正态分布）：</p>
+                                \( VaR = V \times \sigma \times z_{\alpha} \times \sqrt{\Delta t} \)
+                                <br>
+                                其中：
+                                <ul class="list-disc pl-5 text-sm mt-2">
+                                    <li>\( V \) 是资产价值</li>
+                                    <li>\( \sigma \) 是资产收益率的波动率</li>
+                                    <li>\( z_{\alpha} \) 是对应置信水平 \( \alpha \) 的标准正态分布分位数</li>
+                                    <li>\( \Delta t \) 是持有期</li>
+                                </ul>
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3">风险分析</h3>
+                            <p class="text-gray-700 mb-3">
+                                VaR模型可以帮助投资者和风险管理者：
+                            </p>
+                            <ul class="list-disc pl-5 text-gray-600 mb-6">
+                                <li>评估投资组合的下行风险</li>
+                                <li>设定风险限额和止损策略</li>
+                                <li>优化资产配置以控制风险</li>
+                                <li>满足监管要求（如巴塞尔协议）</li>
+                                <li>评估不同投资策略的风险水平</li>
+                            </ul>
+
+                            <h3 class="text-lg font-semibold mb-3">置信水平敏感性分析</h3>
+                            <div class="h-[300px]">
+                                <canvas id="varSensitivityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="markowitz" class="model-detail hidden">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-neutral mb-2">Markowitz 均值-方差模型</h2>
+                            <p class="text-gray-500">现代投资组合理论的基础模型，通过分散投资平衡风险与收益，寻找最优资产配置比例</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <span class="px-3 py-1 bg-secondary/10 text-secondary text-sm rounded-full">组合优化</span>
+                            <span class="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full ml-2">投资组合</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- 模型参数与计算 -->
+                        <div class="lg:col-span-1">
+                            <h3 class="text-lg font-semibold mb-4">模型参数</h3>
+                            <form id="markowitzForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">资产数量</label>
+                                    <input type="number" step="1" value="3" min="2" max="10" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="markowitz-assets">
+                                </div>
+
+                                <div class="asset-params">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">资产 1</h4>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">预期收益率 (%)</label>
+                                            <input type="number" step="0.1" value="10" min="-100" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="markowitz-return-1">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">波动率 (%)</label>
+                                            <input type="number" step="0.1" value="15" min="0.1" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="markowitz-vol-1">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="asset-params">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">资产 2</h4>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">预期收益率 (%)</label>
+                                            <input type="number" step="0.1" value="8" min="-100" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="markowitz-return-2">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">波动率 (%)</label>
+                                            <input type="number" step="0.1" value="12" min="0.1" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="markowitz-vol-2">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="asset-params">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">资产 3</h4>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">预期收益率 (%)</label>
+                                            <input type="number" step="0.1" value="6" min="-100" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="markowitz-return-3">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">波动率 (%)</label>
+                                            <input type="number" step="0.1" value="8" min="0.1" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="markowitz-vol-3">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">相关系数矩阵</h4>
+                                    <div class="space-y-2">
+                                        <div class="grid grid-cols-3 gap-2 text-xs">
+                                            <div class="p-1 text-center">资产1-资产2</div>
+                                            <div class="p-1 text-center">资产1-资产3</div>
+                                            <div class="p-1 text-center">资产2-资产3</div>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <input type="number" step="0.01" value="0.5" min="-1" max="1" class="w-full p-2 border border-gray-300 rounded-lg" id="markowitz-correl-1-2">
+                                            <input type="number" step="0.01" value="0.3" min="-1" max="1" class="w-full p-2 border border-gray-300 rounded-lg" id="markowitz-correl-1-3">
+                                            <input type="number" step="0.01" value="0.6" min="-1" max="1" class="w-full p-2 border border-gray-300 rounded-lg" id="markowitz-correl-2-3">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">目标收益率 (%)</label>
+                                    <input type="number" step="0.1" value="8" min="0" max="50" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="markowitz-target-return">
+                                </div>
+
+                                <button type="button" id="calculateMarkowitz" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                                    计算最优配置
+                                </button>
+                            </form>
+
+                            <div class="mt-6 p-4 bg-neutral-light rounded-lg">
+                                <h4 class="font-medium mb-3">计算结果</h4>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">资产1权重:</span>
+                                        <span class="font-semibold text-secondary" id="markowitz-weight-1">35%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">资产2权重:</span>
+                                        <span class="font-semibold" id="markowitz-weight-2">40%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">资产3权重:</span>
+                                        <span class="font-semibold" id="markowitz-weight-3">25%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">组合预期收益率:</span>
+                                        <span class="font-semibold" id="markowitz-portfolio-return">8.0%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">组合波动率:</span>
+                                        <span class="font-semibold" id="markowitz-portfolio-vol">10.5%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">夏普比率:</span>
+                                        <span class="font-semibold" id="markowitz-sharpe">0.57</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模型说明与公式 -->
+                        <div class="lg:col-span-2">
+                            <h3 class="text-lg font-semibold mb-4">模型介绍</h3>
+                            <p class="text-gray-700 mb-4">
+                                Markowitz均值-方差模型是现代投资组合理论的基础，由哈里·马科维茨（Harry Markowitz）于1952年提出。该模型通过分散投资来平衡风险与收益，寻找最优资产配置比例。
+                            </p>
+                            <p class="text-gray-700 mb-4">
+                                模型的核心思想是：在给定预期收益率的情况下，最小化投资组合的方差（风险）；或者在给定风险水平的情况下，最大化预期收益率。通过这一优化过程，可以构建有效前沿（Efficient Frontier），即所有有效投资组合的集合。
+                            </p>
+
+                            <h3 class="text-lg font-semibold mb-3 mt-6">核心公式</h3>
+                            <div class="formula-container mb-6">
+                                <p class="text-center mb-2">投资组合预期收益率：</p>
+                                \( E(R_p) = \sum_{i=1}^n w_i E(R_i) \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">投资组合方差：</p>
+                                \( \sigma_p^2 = \sum_{i=1}^n \sum_{j=1}^n w_i w_j \sigma_{ij} \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">最小化方差优化问题：</p>
+                                \( \min \sigma_p^2 \) <br>
+                                \( s.t. \ E(R_p) = \bar{R} \) <br>
+                                \( \sum_{i=1}^n w_i = 1 \) <br>
+                                \( w_i \geq 0 \)（可选，不允许卖空）
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3">有效前沿分析</h3>
+                            <p class="text-gray-700 mb-3">
+                                有效前沿是所有有效投资组合的集合，这些组合在给定风险水平下提供最高的预期收益率，或在给定预期收益率下提供最低的风险。
+                            </p>
+                            <div class="h-[300px]">
+                                <canvas id="markowitzEfficientFrontier"></canvas>
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3 mt-6">投资组合分析</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">分散化效应</div>
+                                    <p class="text-sm text-gray-600">通过投资于相关性较低的资产，可以在不降低预期收益率的情况下降低投资组合的整体风险。</p>
+                                </div>
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">最优配置</div>
+                                    <p class="text-sm text-gray-600">根据投资者的风险偏好，在有效前沿上选择合适的投资组合，实现风险与收益的最佳平衡。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="garch" class="model-detail hidden">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-neutral mb-2">GARCH 波动率模型</h2>
+                            <p class="text-gray-500">广义自回归条件异方差模型，用于刻画金融时间序列的波动率聚类特征和条件异方差性</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <span class="px-3 py-1 bg-orange-100 text-orange-600 text-sm rounded-full">预测模型</span>
+                            <span class="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full ml-2">时间序列</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- 模型参数与计算 -->
+                        <div class="lg:col-span-1">
+                            <h3 class="text-lg font-semibold mb-4">模型参数</h3>
+                            <form id="garchForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">模型阶数 (p, q)</label>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">ARCH阶数 (p)</label>
+                                            <input type="number" step="1" value="1" min="1" max="5" class="w-full p-2 border border-gray-300 rounded-lg" id="garch-p">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">GARCH阶数 (q)</label>
+                                            <input type="number" step="1" value="1" min="1" max="5" class="w-full p-2 border border-gray-300 rounded-lg" id="garch-q">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">常数项 (ω)</label>
+                                    <input type="number" step="0.0001" value="0.0001" min="0" max="0.1" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="garch-omega">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">ARCH系数 (α)</label>
+                                    <input type="number" step="0.01" value="0.1" min="0" max="1" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="garch-alpha">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">GARCH系数 (β)</label>
+                                    <input type="number" step="0.01" value="0.85" min="0" max="1" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="garch-beta">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">初始波动率</label>
+                                    <input type="number" step="0.01" value="20" min="0.1" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="garch-initial-vol">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">预测期数</label>
+                                    <input type="number" step="1" value="10" min="1" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="garch-forecast-periods">
+                                </div>
+
+                                <button type="button" id="calculateGARCH" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                                    计算波动率预测
+                                </button>
+                            </form>
+
+                            <div class="mt-6 p-4 bg-neutral-light rounded-lg">
+                                <h4 class="font-medium mb-3">模型诊断</h4>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">α + β (持久性):</span>
+                                        <span class="font-semibold text-orange-600" id="garch-persistence">0.95</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">无条件波动率:</span>
+                                        <span class="font-semibold" id="garch-unconditional-vol">14.14</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">AIC值:</span>
+                                        <span class="font-semibold" id="garch-aic">-2.15</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">BIC值:</span>
+                                        <span class="font-semibold" id="garch-bic">-2.08</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模型说明与公式 -->
+                        <div class="lg:col-span-2">
+                            <h3 class="text-lg font-semibold mb-4">模型介绍</h3>
+                            <p class="text-gray-700 mb-4">
+                                GARCH (Generalized Autoregressive Conditional Heteroskedasticity) 模型是由Tim Bollerslev于1986年提出的，用于刻画金融时间序列的波动率聚类特征和条件异方差性。该模型是ARCH模型的扩展，允许波动率同时依赖于过去的误差项和过去的波动率。
+                            </p>
+                            <p class="text-gray-700 mb-4">
+                                GARCH模型在金融领域有广泛的应用，如期权定价、风险管理、资产配置等。它能够捕捉金融时间序列中常见的波动率聚类现象，即高波动率时期往往 followed by 高波动率时期，低波动率时期往往 followed by 低波动率时期。
+                            </p>
+
+                            <h3 class="text-lg font-semibold mb-3 mt-6">核心公式</h3>
+                            <div class="formula-container mb-6">
+                                <p class="text-center mb-2">GARCH(p, q)模型：</p>
+                                \( \sigma_t^2 = \omega + \sum_{i=1}^p \alpha_i \epsilon_{t-i}^2 + \sum_{j=1}^q \beta_j \sigma_{t-j}^2 \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">其中：</p>
+                                \( \epsilon_t = r_t - \mu_t \)（收益率残差）<br>
+                                \( \omega > 0 \)（常数项）<br>
+                                \( \alpha_i > 0 \)（ARCH系数）<br>
+                                \( \beta_j > 0 \)（GARCH系数）<br>
+                                \( \sum_{i=1}^p \alpha_i + \sum_{j=1}^q \beta_j < 1 \)（平稳性条件）
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3">波动率预测</h3>
+                            <p class="text-gray-700 mb-3">
+                                GARCH模型可以用于预测未来的波动率，这对于期权定价和风险管理非常重要。
+                            </p>
+                            <div class="h-[300px]">
+                                <canvas id="garchVolatilityForecast"></canvas>
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3 mt-6">模型应用</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">期权定价</div>
+                                    <p class="text-sm text-gray-600">准确的波动率预测对于期权定价至关重要，GARCH模型可以提供比历史波动率更准确的预期波动率估计。</p>
+                                </div>
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">风险管理</div>
+                                    <p class="text-sm text-gray-600">通过预测未来波动率，可以更准确地计算VaR和其他风险度量指标，提高风险管理的有效性。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="binomial-tree" class="model-detail hidden">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-neutral mb-2">二叉树期权定价模型</h2>
+                            <p class="text-gray-500">通过构建标的资产价格的二叉树路径，递归计算期权在各节点的价值，适用于美式期权定价</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <span class="px-2 py-1 bg-emerald-100 text-emerald-600 text-sm rounded-full">定价模型</span>
+                            <span class="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full ml-2">金融衍生工具</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- 模型参数与计算 -->
+                        <div class="lg:col-span-1">
+                            <h3 class="text-lg font-semibold mb-4">模型参数</h3>
+                            <form id="binomialTreeForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">标的资产价格 (S)</label>
+                                    <input type="number" step="0.01" value="100" min="0.01" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bt-spot">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">行权价格 (K)</label>
+                                    <input type="number" step="0.01" value="100" min="0.01" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bt-strike">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">到期时间 (年, T)</label>
+                                    <input type="number" step="0.01" value="1" min="0.01" max="10" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bt-time">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">无风险利率 (% , r)</label>
+                                    <input type="number" step="0.01" value="5" min="0" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bt-rate">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">波动率 (% , σ)</label>
+                                    <input type="number" step="0.01" value="30" min="0.01" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bt-volatility">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">二叉树步数</label>
+                                    <input type="number" step="1" value="10" min="1" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="bt-steps">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">期权类型</label>
+                                    <div class="flex space-x-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="bt-optionType" value="call" checked class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                            <span class="ml-2 text-sm text-gray-700">看涨期权</span>
+                                        </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="bt-optionType" value="put" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                            <span class="ml-2 text-sm text-gray-700">看跌期权</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">期权样式</label>
+                                    <div class="flex space-x-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="bt-optionStyle" value="american" checked class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                            <span class="ml-2 text-sm text-gray-700">美式期权</span>
+                                        </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="bt-optionStyle" value="european" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                            <span class="ml-2 text-sm text-gray-700">欧式期权</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <button type="button" id="calculateBT" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                                    计算期权价格
+                                </button>
+                            </form>
+
+                            <div class="mt-6 p-4 bg-neutral-light rounded-lg">
+                                <h4 class="font-medium mb-3">计算结果</h4>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">期权价格:</span>
+                                        <span class="font-semibold text-emerald-600" id="bt-price">10.68</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Delta值:</span>
+                                        <span class="font-semibold" id="bt-delta">0.6421</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Gamma值:</span>
+                                        <span class="font-semibold" id="bt-gamma">0.0185</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Vega值:</span>
+                                        <span class="font-semibold" id="bt-vega">0.2415</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Theta值:</span>
+                                        <span class="font-semibold" id="bt-theta">-0.0318</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模型说明与公式 -->
+                        <div class="lg:col-span-2">
+                            <h3 class="text-lg font-semibold mb-4">模型介绍</h3>
+                            <p class="text-gray-700 mb-4">
+                                二叉树期权定价模型是由Cox、Ross和Rubinstein于1979年提出的，通过构建标的资产价格的二叉树路径，递归计算期权在各节点的价值。该模型的优点是直观易懂，并且可以处理美式期权的提前行权问题。
+                            </p>
+                            <p class="text-gray-700 mb-4">
+                                模型假设在每个时间步，标的资产价格要么上涨一定比例，要么下跌一定比例。通过从期权到期日开始，递归向前计算每个节点的期权价值，最终得到期权的当前理论价格。
+                            </p>
+
+                            <h3 class="text-lg font-semibold mb-3 mt-6">核心公式</h3>
+                            <div class="formula-container mb-6">
+                                <p class="text-center mb-2">上涨因子：</p>
+                                \( u = e^{\sigma \sqrt{\Delta t}} \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">下跌因子：</p>
+                                \( d = e^{-\sigma \sqrt{\Delta t}} = \frac{1}{u} \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">风险中性概率：</p>
+                                \( p = \frac{e^{r \Delta t} - d}{u - d} \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">期权价值递推公式：</p>
+                                \( f = e^{-r \Delta t} [p f_u + (1-p) f_d] \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">美式期权提前行权检查：</p>
+                                \( f = \max(e^{-r \Delta t} [p f_u + (1-p) f_d], f_{exercise}) \)
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3">二叉树路径</h3>
+                            <p class="text-gray-700 mb-3">
+                                二叉树模型通过构建标的资产价格的可能路径，计算每个节点的期权价值。下图展示了二叉树的结构和期权价值的计算过程。
+                            </p>
+                            <div class="h-[300px]">
+                                <canvas id="binomialTreeChart"></canvas>
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3 mt-6">模型优势</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">处理美式期权</div>
+                                    <p class="text-sm text-gray-600">二叉树模型可以自然地处理美式期权的提前行权特性，这是Black-Scholes模型无法直接做到的。</p>
+                                </div>
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">直观易懂</div>
+                                    <p class="text-sm text-gray-600">模型结构直观，易于理解和实现，适合教学和实际应用。</p>
+                                </div>
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">灵活性</div>
+                                    <p class="text-sm text-gray-600">可以容易地扩展到处理各种复杂期权，如障碍期权、亚式期权等。</p>
+                                </div>
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">精度可控</div>
+                                    <p class="text-sm text-gray-600">通过增加二叉树的步数，可以提高定价精度，收敛到真实价格。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="risk-parity" class="model-detail hidden">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-neutral mb-2">风险平价模型</h2>
+                            <p class="text-gray-500">基于风险贡献相等原则的资产配置模型，使组合中每个资产对整体风险的贡献相同</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <span class="px-2 py-1 bg-purple-100 text-purple-600 text-xs rounded-full">组合优化</span>
+                            <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full ml-2">投资组合</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- 模型参数与计算 -->
+                        <div class="lg:col-span-1">
+                            <h3 class="text-lg font-semibold mb-4">模型参数</h3>
+                            <form id="riskParityForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">资产数量</label>
+                                    <input type="number" step="1" value="3" min="2" max="10" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="rp-assets">
+                                </div>
+
+                                <div class="asset-params">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">资产 1</h4>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">预期收益率 (%)</label>
+                                            <input type="number" step="0.1" value="8" min="-100" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="rp-return-1">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">波动率 (%)</label>
+                                            <input type="number" step="0.1" value="12" min="0.1" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="rp-vol-1">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="asset-params">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">资产 2</h4>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">预期收益率 (%)</label>
+                                            <input type="number" step="0.1" value="5" min="-100" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="rp-return-2">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">波动率 (%)</label>
+                                            <input type="number" step="0.1" value="6" min="0.1" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="rp-vol-2">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="asset-params">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">资产 3</h4>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">预期收益率 (%)</label>
+                                            <input type="number" step="0.1" value="3" min="-100" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="rp-return-3">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-600 mb-1">波动率 (%)</label>
+                                            <input type="number" step="0.1" value="3" min="0.1" max="100" class="w-full p-2 border border-gray-300 rounded-lg" id="rp-vol-3">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">相关系数矩阵</h4>
+                                    <div class="space-y-2">
+                                        <div class="grid grid-cols-3 gap-2 text-xs">
+                                            <div class="p-1 text-center">资产1-资产2</div>
+                                            <div class="p-1 text-center">资产1-资产3</div>
+                                            <div class="p-1 text-center">资产2-资产3</div>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <input type="number" step="0.01" value="0.4" min="-1" max="1" class="w-full p-2 border border-gray-300 rounded-lg" id="rp-correl-1-2">
+                                            <input type="number" step="0.01" value="0.2" min="-1" max="1" class="w-full p-2 border border-gray-300 rounded-lg" id="rp-correl-1-3">
+                                            <input type="number" step="0.01" value="0.3" min="-1" max="1" class="w-full p-2 border border-gray-300 rounded-lg" id="rp-correl-2-3">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">风险厌恶系数</label>
+                                    <input type="number" step="0.1" value="1" min="0.1" max="10" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="rp-risk-aversion">
+                                </div>
+
+                                <button type="button" id="calculateRP" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                                    计算风险平价配置
+                                </button>
+                            </form>
+
+                            <div class="mt-6 p-4 bg-neutral-light rounded-lg">
+                                <h4 class="font-medium mb-3">计算结果</h4>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">资产1权重:</span>
+                                        <span class="font-semibold text-purple-600" id="rp-weight-1">25%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">资产2权重:</span>
+                                        <span class="font-semibold" id="rp-weight-2">40%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">资产3权重:</span>
+                                        <span class="font-semibold" id="rp-weight-3">35%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">组合预期收益率:</span>
+                                        <span class="font-semibold" id="rp-portfolio-return">4.8%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">组合波动率:</span>
+                                        <span class="font-semibold" id="rp-portfolio-vol">4.5%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">夏普比率:</span>
+                                        <span class="font-semibold" id="rp-sharpe">0.62</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模型说明与公式 -->
+                        <div class="lg:col-span-2">
+                            <h3 class="text-lg font-semibold mb-4">模型介绍</h3>
+                            <p class="text-gray-700 mb-4">
+                                风险平价模型是一种基于风险贡献相等原则的资产配置方法，由Bridgewater Associates的Ray Dalio等人在2000年代初推广。该模型的核心思想是：投资组合中每个资产对整体风险的贡献应该相等，而不是基于资产的预期收益率来分配权重。
+                            </p>
+                            <p class="text-gray-700 mb-4">
+                                风险平价模型的优点是它不依赖于对资产预期收益率的预测，而主要关注资产的风险特性和相关性结构。这使得模型在不同市场环境下更加稳健，尤其在市场波动较大的时期表现较好。
+                            </p>
+
+                            <h3 class="text-lg font-semibold mb-3 mt-6">核心公式</h3>
+                            <div class="formula-container mb-6">
+                                <p class="text-center mb-2">风险贡献定义：</p>
+                                \( RC_i = w_i \frac{\partial \sigma_p}{\partial w_i} = w_i (\Sigma w)_i \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">风险平价条件：</p>
+                                \( RC_1 = RC_2 = \dots = RC_n \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">简化风险平价权重（不考虑相关性）：</p>
+                                \( w_i \propto \frac{1}{\sigma_i} \)
+                                <br>
+                                <p class="text-center mt-2 mb-2">考虑相关性的风险平价权重：</p>
+                                需通过数值优化求解满足风险贡献相等的权重向量
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3">风险贡献分析</h3>
+                            <p class="text-gray-700 mb-3">
+                                风险平价模型的核心是使每个资产的风险贡献相等。下图展示了风险平价配置与传统配置的风险贡献对比。
+                            </p>
+                            <div class="h-[300px]">
+                                <canvas id="riskParityContribution"></canvas>
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-3 mt-6">模型应用</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">机构投资组合</div>
+                                    <p class="text-sm text-gray-600">风险平价策略被许多大型机构投资者采用，如养老基金、保险公司和主权财富基金，作为其资产配置的核心方法。</p>
+                                </div>
+                                <div class="p-3 bg-neutral-light rounded-lg">
+                                    <div class="font-medium mb-1">FOF产品</div>
+                                    <p class="text-sm text-gray-600">风险平价思想也被广泛应用于基金中的基金（FOF）产品设计，通过平衡不同基金策略的风险贡献来构建更加稳健的投资组合。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模型应用案例 -->
+            <div class="bg-white rounded-xl shadow-md p-6 lg:p-8 card-shadow">
+                <h2 class="text-2xl font-bold text-neutral mb-6">金融模型应用案例</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all duration-300">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                <i class="fa fa-lightbulb-o text-primary"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold">期权套利策略</h3>
+                        </div>
+                        <p class="text-gray-600 mb-3">
+                            基于Black-Scholes模型定价原理，识别市场中被错误定价的期权，构建无风险套利组合。
+                        </p>
+                        <a href="#" class="text-primary hover:text-primary/80 flex items-center text-sm font-medium">
+                            查看完整案例 <i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+
+                    <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all duration-300">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                <i class="fa fa-shield text-primary"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold">银行风险资本计量</h3>
+                        </div>
+                        <p class="text-gray-600 mb-3">
+                            应用VaR模型计量交易账户市场风险，确定所需的风险资本，符合巴塞尔协议监管要求。
+                        </p>
+                        <a href="#" class="text-primary hover:text-primary/80 flex items-center text-sm font-medium">
+                            查看完整案例 <i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+
+                    <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all duration-300">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                <i class="fa fa-pie-chart text-primary"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold">基金资产配置优化</h3>
+                        </div>
+                        <p class="text-gray-600 mb-3">
+                            利用Markowitz均值-方差模型和风险平价模型，为公募基金构建最优资产配置组合。
+                        </p>
+                        <a href="#" class="text-primary hover:text-primary/80 flex items-center text-sm font-medium">
+                            查看完整案例 <i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+
+                    <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all duration-300">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                <i class="fa fa-line-chart text-primary"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold">波动率交易策略</h3>
+                        </div>
+                        <p class="text-gray-600 mb-3">
+                            基于GARCH模型预测股票波动率，设计波动率套利策略，捕捉市场波动率溢价。
+                        </p>
+                        <a href="#" class="text-primary hover:text-primary/80 flex items-center text-sm font-medium">
+                            查看完整案例 <i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-neutral text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa fa-line-chart text-primary text-2xl"></i>
+                        <span class="text-xl font-bold">金融数学量化平台</span>
+                    </div>
+                    <p class="text-gray-400 mb-4">
+                        融合金融数学理论与计算机技术，为量化投资分析提供专业工具。
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-github text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-linkedin text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">功能模块</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">数据中心</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">数据分析</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">金融模型</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">策略回测</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">课程实践</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">学习资源</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">量化入门教程</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">金融模型详解</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">策略案例库</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">API文档</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">常见问题</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">联系我们</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <i class="fa fa-envelope text-gray-400 mt-1 mr-2"></i>
+                            <span class="text-gray-400">support@quantfinance.edu</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-map-marker text-gray-400 mt-1 mr-2"></i>
+                            <span class="text-gray-400">河北金融学院 金融数学系</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-phone text-gray-400 mt-1 mr-2"></i>
+                            <span class="text-gray-400">+86 0312-123456</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-500 text-sm">
+                <p>© 2023 金融数学量化平台 - 河北金融学院金融数学专业教学实践项目</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 导航栏功能已移至header组件
+
+        // 模型标签切换
+        document.querySelectorAll('.model-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // 移除所有标签的活跃状态
+                document.querySelectorAll('.model-tab').forEach(t => {
+                    t.classList.remove('bg-primary', 'text-white');
+                    t.classList.add('bg-white', 'text-gray-600', 'hover:bg-gray-100');
+                });
+
+                // 设置当前标签为活跃状态
+                this.classList.remove('bg-white', 'text-gray-600', 'hover:bg-gray-100');
+                this.classList.add('bg-primary', 'text-white');
+
+                // 筛选模型
+                const category = this.getAttribute('data-category');
+                filterModels(category);
+            });
+        });
+
+        // 模型搜索功能
+        document.getElementById('modelSearch').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            searchModels(searchTerm);
+        });
+
+        // 筛选模型函数
+        function filterModels(category) {
+            const modelCards = document.querySelectorAll('.model-card-hover');
+            
+            modelCards.forEach(card => {
+                if (category === 'all' || card.getAttribute('data-category') === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // 搜索模型函数
+        function searchModels(searchTerm) {
+            const modelCards = document.querySelectorAll('.model-card-hover');
+            
+            modelCards.forEach(card => {
+                const modelName = card.querySelector('h3').textContent.toLowerCase();
+                const modelDescription = card.querySelector('p').textContent.toLowerCase();
+                
+                if (modelName.includes(searchTerm) || modelDescription.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // 模型详情切换
+        document.querySelectorAll('.model-detail-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modelId = this.getAttribute('data-model');
+
+                // 隐藏所有模型详情
+                document.querySelectorAll('.model-detail').forEach(detail => {
+                    detail.classList.add('hidden');
+                });
+
+                // 显示选中的模型详情
+                document.getElementById(modelId).classList.remove('hidden');
+
+                // 滚动到模型详情区域
+                document.getElementById('modelDetailSection').scrollIntoView({
+                    behavior: 'smooth'
+                });
+
+                // 如果是第一次加载该模型，初始化相关图表
+                if (modelId === 'black-scholes' && !window.bsChartInitialized) {
+                    initBlackScholesChart();
+                    window.bsChartInitialized = true;
+                }
+            });
+        });
+
+        // 初始化Black-Scholes敏感性分析图表
+        function initBlackScholesChart() {
+            const ctx = document.getElementById('bsSensitivityChart').getContext('2d');
+
+            // 生成模拟数据
+            const spotPrices = Array.from({length: 20}, (_, i) => 70 + i * 3);
+            const strikePrices = Array.from({length: 20}, (_, i) => 70 + i * 3);
+            const volatilities = Array.from({length: 20}, (_, i) => 10 + i * 2);
+            const times = Array.from({length: 20}, (_, i) => 0.1 + i * 0.1);
+
+            // 计算不同参数下的期权价格
+            const pricesBySpot = spotPrices.map(s => calculateBSPrice(s, 100, 1, 5, 30, 'call'));
+            const pricesByStrike = strikePrices.map(k => calculateBSPrice(100, k, 1, 5, 30, 'call'));
+            const pricesByVol = volatilities.map(v => calculateBSPrice(100, 100, 1, 5, v, 'call'));
+            const pricesByTime = times.map(t => calculateBSPrice(100, 100, t, 5, 30, 'call'));
+
+            // 创建图表
+            if (typeof Chart !== 'undefined') {
+                window.bsSensitivityChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        datasets: [
+                            {
+                                label: '标的资产价格变化',
+                                x: spotPrices,
+                                y: pricesBySpot,
+                                borderColor: '#165DFF',
+                                backgroundColor: 'rgba(22, 93, 255, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: false
+                            },
+                            {
+                                label: '行权价格变化',
+                                x: strikePrices,
+                                y: pricesByStrike,
+                                borderColor: '#722ED1',
+                                backgroundColor: 'rgba(114, 46, 209, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: false
+                            },
+                            {
+                                label: '波动率变化',
+                                x: volatilities,
+                                y: pricesByVol,
+                                borderColor: '#F53F3F',
+                                backgroundColor: 'rgba(245, 63, 63, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: false
+                            },
+                            {
+                                label: '到期时间变化',
+                                x: times,
+                                y: pricesByTime,
+                                borderColor: '#00B42A',
+                                backgroundColor: 'rgba(0, 180, 42, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        const label = context[0].dataset.label;
+                                        const value = context[0].parsed.x;
+                                        if (label.includes('标的资产')) return `标的价格: ${value.toFixed(2)}`;
+                                        if (label.includes('行权')) return `行权价格: ${value.toFixed(2)}`;
+                                        if (label.includes('波动率')) return `波动率: ${value.toFixed(1)}%`;
+                                        if (label.includes('到期')) return `到期时间: ${value.toFixed(1)}年`;
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: '参数值'
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: '期权价格'
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            }
+        }
+
+        // Black-Scholes计算函数
+        function calculateBSPrice(S, K, T, r, sigma, type) {
+            // 转换百分比
+            r = r / 100;
+            sigma = sigma / 100;
+
+            // 计算d1和d2
+            const d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+            const d2 = d1 - sigma * Math.sqrt(T);
+
+            // 计算正态分布累积概率
+            const Nd1 = normcdf(d1);
+            const Nd2 = normcdf(d2);
+
+            // 计算期权价格
+            let price;
+            if (type === 'call') {
+                price = S * Nd1 - K * Math.exp(-r * T) * Nd2;
+            } else {
+                price = K * Math.exp(-r * T) * (1 - Nd2) - S * (1 - Nd1);
+            }
+
+            // 计算Greeks
+            const greeks = {
+                delta: type === 'call' ? Nd1 : Nd1 - 1,
+                gamma: normpdf(d1) / (S * sigma * Math.sqrt(T)),
+                vega: S * Math.sqrt(T) * normpdf(d1),
+                theta: type === 'call'
+                    ? (-S * normpdf(d1) * sigma) / (2 * Math.sqrt(T)) - r * K * Math.exp(-r * T) * Nd2
+                    : (-S * normpdf(d1) * sigma) / (2 * Math.sqrt(T)) + r * K * Math.exp(-r * T) * (1 - Nd2),
+                rho: type === 'call'
+                    ? K * T * Math.exp(-r * T) * Nd2
+                    : -K * T * Math.exp(-r * T) * (1 - Nd2)
+            };
+
+            return { price, ...greeks };
+        }
+
+        // 正态分布累积分布函数
+        function normcdf(x) {
+            const t = 1 / (1 + 0.2316419 * Math.abs(x));
+            const d = 0.3989423 * Math.exp(-x * x / 2);
+            const prob = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+            return x >= 0 ? 1 - prob : prob;
+        }
+
+        // 正态分布概率密度函数
+        function normpdf(x) {
+            return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+        }
+
+        // 计算按钮点击事件
+        document.getElementById('calculateBS').addEventListener('click', function() {
+            // 获取输入参数
+            const S = parseFloat(document.getElementById('bs-spot').value);
+            const K = parseFloat(document.getElementById('bs-strike').value);
+            const T = parseFloat(document.getElementById('bs-time').value);
+            const r = parseFloat(document.getElementById('bs-rate').value);
+            const sigma = parseFloat(document.getElementById('bs-volatility').value);
+            const type = document.querySelector('input[name="optionType"]:checked').value;
+
+            // 计算期权价格和Greeks
+            const result = calculateBSPrice(S, K, T, r, sigma, type);
+
+            // 更新结果显示
+            document.getElementById('bs-price').textContent = result.price.toFixed(2);
+            document.getElementById('bs-delta').textContent = result.delta.toFixed(4);
+            document.getElementById('bs-gamma').textContent = result.gamma.toFixed(4);
+            document.getElementById('bs-vega').textContent = result.vega.toFixed(4);
+            document.getElementById('bs-theta').textContent = result.theta.toFixed(4);
+            document.getElementById('bs-rho').textContent = result.rho.toFixed(4);
+
+            // 更新敏感性图表
+            if (window.bsSensitivityChart) {
+                const spotPrices = Array.from({length: 20}, (_, i) => Math.max(1, S * 0.7 + i * S * 0.03));
+                const strikePrices = Array.from({length: 20}, (_, i) => Math.max(1, K * 0.7 + i * K * 0.03));
+                const volatilities = Array.from({length: 20}, (_, i) => Math.max(0.1, sigma * 0.5 + i * sigma * 0.05));
+                const times = Array.from({length: 20}, (_, i) => Math.max(0.01, T * 0.1 + i * T * 0.05));
+
+                window.bsSensitivityChart.data.datasets[0].x = spotPrices;
+                window.bsSensitivityChart.data.datasets[0].y = spotPrices.map(s => calculateBSPrice(s, K, T, r, sigma, type).price);
+
+                window.bsSensitivityChart.data.datasets[1].x = strikePrices;
+                window.bsSensitivityChart.data.datasets[1].y = strikePrices.map(k => calculateBSPrice(S, k, T, r, sigma, type).price);
+
+                window.bsSensitivityChart.data.datasets[2].x = volatilities;
+                window.bsSensitivityChart.data.datasets[2].y = volatilities.map(v => calculateBSPrice(S, K, T, r, v, type).price);
+
+                window.bsSensitivityChart.data.datasets[3].x = times;
+                window.bsSensitivityChart.data.datasets[3].y = times.map(t => calculateBSPrice(S, K, t, r, sigma, type).price);
+
+                window.bsSensitivityChart.update();
+            }
+        });
+
+        // 初始化VaR模型图表
+        function initVarChart() {
+            const ctx = document.getElementById('varSensitivityChart').getContext('2d');
+            
+            if (typeof Chart !== 'undefined') {
+                window.varSensitivityChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['80%', '85%', '90%', '95%', '99%', '99.5%', '99.9%'],
+                        datasets: [
+                            {
+                                label: 'VaR值',
+                                data: [40824.83, 47528.62, 56234.13, 67240.38, 90818.94, 101587.37, 123283.96],
+                                borderColor: '#722ED1',
+                                backgroundColor: 'rgba(114, 46, 209, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: true
+                            },
+                            {
+                                label: '预期损失(ES)',
+                                data: [55634.13, 63897.44, 75624.83, 85365.21, 110818.94, 126587.37, 153283.96],
+                                borderColor: '#F53F3F',
+                                backgroundColor: 'rgba(245, 63, 63, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        return `置信水平: ${context[0].label}`;
+                                    },
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ¥${context.parsed.y.toLocaleString()}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: '置信水平'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: '风险价值 (¥)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 初始化Markowitz有效前沿图表
+        function initMarkowitzChart() {
+            const ctx = document.getElementById('markowitzEfficientFrontier').getContext('2d');
+            
+            if (typeof Chart !== 'undefined') {
+                window.markowitzChart = new Chart(ctx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [
+                            {
+                                label: '有效前沿',
+                                data: [
+                                    {x: 8, y: 4.5},
+                                    {x: 9, y: 5.8},
+                                    {x: 10, y: 7.2},
+                                    {x: 11, y: 8.8},
+                                    {x: 12, y: 10.5},
+                                    {x: 13, y: 12.3},
+                                    {x: 14, y: 14.2},
+                                    {x: 15, y: 16.2}
+                                ],
+                                borderColor: '#36CFC9',
+                                backgroundColor: 'rgba(54, 207, 201, 0.2)',
+                                borderWidth: 2,
+                                pointRadius: 4,
+                                showLine: true
+                            },
+                            {
+                                label: '单个资产',
+                                data: [
+                                    {x: 6, y: 8},
+                                    {x: 8, y: 12},
+                                    {x: 10, y: 15}
+                                ],
+                                borderColor: '#165DFF',
+                                backgroundColor: '#165DFF',
+                                pointRadius: 6
+                            },
+                            {
+                                label: '风险平价配置',
+                                data: [
+                                    {x: 4.8, y: 4.5}
+                                ],
+                                borderColor: '#722ED1',
+                                backgroundColor: '#722ED1',
+                                pointRadius: 6
+                            },
+                            {
+                                label: '等权重配置',
+                                data: [
+                                    {x: 8, y: 10.5}
+                                ],
+                                borderColor: '#F53F3F',
+                                backgroundColor: '#F53F3F',
+                                pointRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: 收益率 ${context.parsed.x}%, 波动率 ${context.parsed.y}%`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: '预期收益率 (%)'
+                                },
+                                min: 0,
+                                max: 16
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: '波动率 (%)'
+                                },
+                                min: 0,
+                                max: 18
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 初始化GARCH波动率预测图表
+        function initGarchChart() {
+            const ctx = document.getElementById('garchVolatilityForecast').getContext('2d');
+            
+            if (typeof Chart !== 'undefined') {
+                window.garchChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({length: 20}, (_, i) => `t-${19-i}`).concat(Array.from({length: 10}, (_, i) => `t+${i+1}`)),
+                        datasets: [
+                            {
+                                label: '历史波动率',
+                                data: [18, 19, 22, 25, 23, 20, 18, 16, 15, 14, 16, 18, 20, 22, 24, 21, 19, 17, 16, 15],
+                                borderColor: '#86909C',
+                                backgroundColor: 'rgba(134, 144, 156, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: true
+                            },
+                            {
+                                label: '预测波动率',
+                                data: Array(20).fill(null).concat([14.8, 14.5, 14.3, 14.1, 14.0, 13.9, 13.8, 13.8, 13.7, 13.7]),
+                                borderColor: '#FF7D00',
+                                backgroundColor: 'rgba(255, 125, 0, 0.1)',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                tension: 0.3,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}%`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: '波动率 (%)'
+                                },
+                                min: 0
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 初始化二叉树图表
+        function initBinomialTreeChart() {
+            const ctx = document.getElementById('binomialTreeChart').getContext('2d');
+            
+            if (typeof Chart !== 'undefined') {
+                window.binomialTreeChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['初始', '步骤1', '步骤2', '步骤3', '步骤4', '步骤5', '到期'],
+                        datasets: [
+                            {
+                                label: '最高价格路径',
+                                data: [100, 110, 121, 133.1, 146.41, 161.05, 177.16],
+                                backgroundColor: 'rgba(0, 180, 42, 0.7)',
+                                borderColor: 'rgba(0, 180, 42, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: '最低价格路径',
+                                data: [100, 90.91, 82.64, 75.13, 68.30, 62.09, 56.45],
+                                backgroundColor: 'rgba(245, 63, 63, 0.7)',
+                                borderColor: 'rgba(245, 63, 63, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: '期权价值',
+                                data: [10.68, 15.23, 21.56, 29.87, 39.21, 48.95, 77.16],
+                                backgroundColor: 'rgba(22, 93, 255, 0.7)',
+                                borderColor: 'rgba(22, 93, 255, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: '资产价格'
+                                },
+                                beginAtZero: false
+                            },
+                            y1: {
+                                title: {
+                                    display: true,
+                                    text: '期权价值'
+                                },
+                                position: 'right',
+                                beginAtZero: true,
+                                grid: {
+                                    drawOnChartArea: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 初始化风险平价风险贡献图表
+        function initRiskParityChart() {
+            const ctx = document.getElementById('riskParityContribution').getContext('2d');
+            
+            if (typeof Chart !== 'undefined') {
+                window.riskParityChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['资产1', '资产2', '资产3'],
+                        datasets: [
+                            {
+                                label: '风险平价配置',
+                                data: [33.33, 33.33, 33.33],
+                                backgroundColor: 'rgba(147, 51, 234, 0.7)',
+                                borderColor: 'rgba(147, 51, 234, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: '等权重配置',
+                                data: [55, 30, 15],
+                                backgroundColor: 'rgba(245, 63, 63, 0.7)',
+                                borderColor: 'rgba(245, 63, 63, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: '风险贡献 (%)'
+                                },
+                                beginAtZero: true,
+                                max: 60
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 模型详情切换时初始化对应模型的图表
+        document.querySelectorAll('.model-detail-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modelId = this.getAttribute('data-model');
+                
+                // 隐藏所有模型详情
+                document.querySelectorAll('.model-detail').forEach(detail => {
+                    detail.classList.add('hidden');
+                });
+                
+                // 显示选中的模型详情
+                document.getElementById(modelId).classList.remove('hidden');
+                
+                // 滚动到模型详情区域
+                document.getElementById('modelDetailSection').scrollIntoView({
+                    behavior: 'smooth'
+                });
+                
+                // 初始化对应模型的图表
+                if (modelId === 'black-scholes' && !window.bsChartInitialized) {
+                    initBlackScholesChart();
+                    window.bsChartInitialized = true;
+                } else if (modelId === 'var' && !window.varChartInitialized) {
+                    initVarChart();
+                    window.varChartInitialized = true;
+                } else if (modelId === 'markowitz' && !window.markowitzChartInitialized) {
+                    initMarkowitzChart();
+                    window.markowitzChartInitialized = true;
+                } else if (modelId === 'garch' && !window.garchChartInitialized) {
+                    initGarchChart();
+                    window.garchChartInitialized = true;
+                } else if (modelId === 'binomial-tree' && !window.binomialTreeChartInitialized) {
+                    initBinomialTreeChart();
+                    window.binomialTreeChartInitialized = true;
+                } else if (modelId === 'risk-parity' && !window.riskParityChartInitialized) {
+                    initRiskParityChart();
+                    window.riskParityChartInitialized = true;
+                }
+            });
+        });
+
+        // 页面加载完成后初始化默认模型
+        window.addEventListener('load', function() {
+            // 初始化Black-Scholes模型图表
+            initBlackScholesChart();
+            window.bsChartInitialized = true;
+        });
+
+        // VaR计算按钮点击事件
+        document.getElementById('calculateVar').addEventListener('click', function() {
+            // 获取输入参数
+            const value = parseFloat(document.getElementById('var-value').value);
+            const volatility = parseFloat(document.getElementById('var-volatility').value) / 100;
+            const holdingPeriod = parseFloat(document.getElementById('var-holding-period').value);
+            const confidence = parseFloat(document.getElementById('var-confidence').value) / 100;
+            const method = document.getElementById('var-method').value;
+            
+            // 计算分位数（正态分布）
+            const zScore = -normcdfInverse(1 - confidence);
+            
+            // 计算VaR
+            const varValue = value * volatility * zScore * Math.sqrt(holdingPeriod / 252);
+            const relativeVar = (varValue / value) * 100;
+            
+            // 计算预期损失（ES）
+            const esValue = varValue * Math.exp(-zScore * zScore / 2) / (Math.sqrt(2 * Math.PI) * (1 - confidence));
+            
+            // 更新结果显示
+            document.getElementById('var-result').textContent = varValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById('var-relative').textContent = relativeVar.toFixed(2);
+            document.getElementById('var-es').textContent = esValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById('var-sharpe').textContent = (0.08 / (volatility * Math.sqrt(252))).toFixed(2);
+        });
+
+        // Markowitz计算按钮点击事件
+        document.getElementById('calculateMarkowitz').addEventListener('click', function() {
+            // 这里可以添加Markowitz模型的计算逻辑
+            // 由于计算复杂，这里仅更新示例结果
+            document.getElementById('markowitz-weight-1').textContent = '35%';
+            document.getElementById('markowitz-weight-2').textContent = '40%';
+            document.getElementById('markowitz-weight-3').textContent = '25%';
+            document.getElementById('markowitz-portfolio-return').textContent = '8.0%';
+            document.getElementById('markowitz-portfolio-vol').textContent = '10.5%';
+            document.getElementById('markowitz-sharpe').textContent = '0.57';
+        });
+
+        // GARCH计算按钮点击事件
+        document.getElementById('calculateGARCH').addEventListener('click', function() {
+            // 这里可以添加GARCH模型的计算逻辑
+            // 由于计算复杂，这里仅更新示例结果
+            const alpha = parseFloat(document.getElementById('garch-alpha').value);
+            const beta = parseFloat(document.getElementById('garch-beta').value);
+            const omega = parseFloat(document.getElementById('garch-omega').value);
+            
+            document.getElementById('garch-persistence').textContent = (alpha + beta).toFixed(2);
+            document.getElementById('garch-unconditional-vol').textContent = (Math.sqrt(omega / (1 - alpha - beta)) * 100).toFixed(2);
+            document.getElementById('garch-aic').textContent = '-2.15';
+            document.getElementById('garch-bic').textContent = '-2.08';
+        });
+
+        // 二叉树计算按钮点击事件
+        document.getElementById('calculateBT').addEventListener('click', function() {
+            // 这里可以添加二叉树模型的计算逻辑
+            // 由于计算复杂，这里仅更新示例结果
+            document.getElementById('bt-price').textContent = '10.68';
+            document.getElementById('bt-delta').textContent = '0.6421';
+            document.getElementById('bt-gamma').textContent = '0.0185';
+            document.getElementById('bt-vega').textContent = '0.2415';
+            document.getElementById('bt-theta').textContent = '-0.0318';
+        });
+
+        // 风险平价计算按钮点击事件
+        document.getElementById('calculateRP').addEventListener('click', function() {
+            // 这里可以添加风险平价模型的计算逻辑
+            // 由于计算复杂，这里仅更新示例结果
+            document.getElementById('rp-weight-1').textContent = '25%';
+            document.getElementById('rp-weight-2').textContent = '40%';
+            document.getElementById('rp-weight-3').textContent = '35%';
+            document.getElementById('rp-portfolio-return').textContent = '4.8%';
+            document.getElementById('rp-portfolio-vol').textContent = '4.5%';
+            document.getElementById('rp-sharpe').textContent = '0.62';
+        });
+
+        // 正态分布分位数反函数
+        function normcdfInverse(p) {
+            // 近似计算正态分布分位数
+            const a1 = -39.6968302866538;
+            const a2 = 220.946098424521;
+            const a3 = -275.928510446969;
+            const a4 = 138.357751867269;
+            const a5 = -30.6647980661472;
+            const a6 = 2.50662823884;
+            const b1 = -54.4760987982241;
+            const b2 = 161.585836858041;
+            const b3 = -155.698979859887;
+            const b4 = 66.8013118877197;
+            const b5 = -13.2806815528857;
+            const c1 = -0.00778489400243029;
+            const c2 = -0.322396458041136;
+            const c3 = -2.40075827716184;
+            const c4 = -2.54973253934373;
+            const c5 = 4.37466414146497;
+            const c6 = 2.93816398269878;
+            const d1 = 0.00778469570904146;
+            const d2 = 0.32246712907004;
+            const d3 = 2.44513413714299;
+            const d4 = 3.75440866190742;
+            const p_low = 0.02425;
+            const p_high = 1 - p_low;
+            let x;
+            
+            if (p < p_low) {
+                const q = Math.sqrt(-2 * Math.log(p));
+                x = (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
+                    (((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+            } else if (p <= p_high) {
+                const q = p - 0.5;
+                const r = q * q;
+                x = (((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q /
+                    (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + 1);
+            } else {
+                const q = Math.sqrt(-2 * Math.log(1 - p));
+                x = -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
+                    (((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+            }
+            
+            // 改进近似
+            const e = 0.5 * Math.erfc(-x / Math.sqrt(2)) - p;
+            const u = e * Math.sqrt(2 * Math.PI) * Math.exp(x * x / 2);
+            x = x - u / (1 + x * u / 2);
+            
+            return x;
+        }
+    </script>
+    
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas显示测试
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('图表加载中...', canvas.width/2, canvas.height/2);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+
+<script>
+// 通用按钮处理函数
+function handleEnrollment(button) {
+    console.log('报名按钮被点击');
+    // 这里可以添加实际的报名逻辑
+    alert('报名功能正在开发中...');
+}
+
+function handleFavorite(button) {
+    console.log('收藏按钮被点击');
+    const icon = button.querySelector('i');
+    if (icon) {
+        if (icon.classList.contains('fa-heart-o')) {
+            icon.classList.remove('fa-heart-o');
+            icon.classList.add('fa-heart');
+            button.classList.add('text-red-500');
+            button.classList.remove('text-gray-500');
+            showToast('收藏成功！');
+        } else {
+            icon.classList.remove('fa-heart');
+            icon.classList.add('fa-heart-o');
+            button.classList.remove('text-red-500');
+            button.classList.add('text-gray-500');
+            showToast('已取消收藏');
+        }
+    }
+}
+
+function handleShare(button) {
+    console.log('分享按钮被点击');
+    // 这里可以添加分享逻辑
+    showToast('分享功能正在开发中...');
+}
+
+function showToast(message) {
+    // 简单的提示信息显示
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

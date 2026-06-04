@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略模板 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5',
+                        success: '#00B42A',
+                        danger: '#F53F3F',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题和面包屑 -->
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-neutral-dark mb-2">策略模板</h1>
+                        <p class="text-gray-600">选择预定义的交易策略模板，快速开始回测分析</p>
+                    </div>
+                    <nav class="flex mt-4 md:mt-0" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="{{ url_for('main.index') }}" class="text-gray-700 hover:text-primary text-sm font-medium">首页</a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <a href="{{ url_for('backtest.backtest_index') }}" class="ml-1 text-gray-700 hover:text-primary text-sm font-medium">策略回测</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="ml-1 text-gray-500 font-medium text-sm">策略模板</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- 策略筛选和搜索 -->
+            <div class="mb-8">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                        <h2 class="text-lg font-semibold mb-4 md:mb-0">策略筛选</h2>
+                        <div class="relative w-full md:w-64">
+                            <input type="text" id="strategy-search" placeholder="搜索策略..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <i class="fa fa-search text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 策略分类标签 -->
+                    <div class="flex flex-wrap gap-2">
+                        <button class="strategy-tab px-4 py-2 bg-primary text-white rounded-md" data-category="all">全部策略</button>
+                        <button class="strategy-tab px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" data-category="trend">趋势跟踪</button>
+                        <button class="strategy-tab px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" data-category="mean-reversion">均值回归</button>
+                        <button class="strategy-tab px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" data-category="momentum">动量策略</button>
+                        <button class="strategy-tab px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" data-category="volatility">波动率策略</button>
+                        <button class="strategy-tab px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" data-category="multi-factor">多因子策略</button>
+                        <button class="strategy-tab px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" data-category="seasonal">季节性策略</button>
+                        <button class="strategy-tab px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" data-category="arbitrage">套利策略</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 策略模板卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 趋势跟踪策略 -->
+                <div class="strategy-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 card-hover" data-category="trend">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-neutral-dark">双均线策略</h3>
+                            <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">趋势跟踪</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">基于短期和长期移动平均线的交叉信号进行交易，捕捉市场趋势。</p>
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">主要参数</h4>
+                            <ul class="text-xs text-gray-500 space-y-1">
+                                <li>短期均线周期: 20日</li>
+                                <li>长期均线周期: 60日</li>
+                                <li>交易信号: 金叉买入，死叉卖出</li>
+                            </ul>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">适合市场: 趋势明显</span>
+                            <button class="use-strategy-btn bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">使用此策略</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 均值回归策略 -->
+                <div class="strategy-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 card-hover" data-category="mean-reversion">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-neutral-dark">布林带策略</h3>
+                            <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">均值回归</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">基于价格围绕均值波动的特性，当价格突破布林带边界时进行反向交易。</p>
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">主要参数</h4>
+                            <ul class="text-xs text-gray-500 space-y-1">
+                                <li>移动平均线周期: 20日</li>
+                                <li>标准差倍数: 2</li>
+                                <li>交易信号: 下轨买入，上轨卖出</li>
+                            </ul>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">适合市场: 区间震荡</span>
+                            <button class="use-strategy-btn bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">使用此策略</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 动量策略 -->
+                <div class="strategy-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 card-hover" data-category="momentum">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-neutral-dark">相对强弱策略</h3>
+                            <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">动量策略</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">基于股票相对强弱指标(RSI)的超买超卖信号进行交易。</p>
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">主要参数</h4>
+                            <ul class="text-xs text-gray-500 space-y-1">
+                                <li>RSI周期: 14日</li>
+                                <li>超买阈值: 70</li>
+                                <li>超卖阈值: 30</li>
+                            </ul>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">适合市场: 波动较大</span>
+                            <button class="use-strategy-btn bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">使用此策略</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 波动率策略 -->
+                <div class="strategy-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 card-hover" data-category="volatility">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-neutral-dark">波动率突破策略</h3>
+                            <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">波动率策略</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">基于历史波动率的突破进行交易，捕捉市场波动性扩大带来的机会。</p>
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">主要参数</h4>
+                            <ul class="text-xs text-gray-500 space-y-1">
+                                <li>波动率计算周期: 20日</li>
+                                <li>突破阈值: 1.5倍标准差</li>
+                                <li>交易信号: 突破上限买入，突破下限卖出</li>
+                            </ul>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">适合市场: 波动性大</span>
+                            <button class="use-strategy-btn bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">使用此策略</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 多因子策略 -->
+                <div class="strategy-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 card-hover" data-category="multi-factor">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-neutral-dark">Fama-French三因子策略</h3>
+                            <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">多因子策略</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">基于市场、规模和价值三个因子构建投资组合，追求超额收益。</p>
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">主要参数</h4>
+                            <ul class="text-xs text-gray-500 space-y-1">
+                                <li>市场因子权重: 50%</li>
+                                <li>规模因子权重: 25%</li>
+                                <li>价值因子权重: 25%</li>
+                            </ul>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">适合市场: 长期投资</span>
+                            <button class="use-strategy-btn bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">使用此策略</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 趋势跟踪策略 -->
+                <div class="strategy-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 card-hover" data-category="trend">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-neutral-dark">MACD策略</h3>
+                            <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">趋势跟踪</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">基于MACD指标的交叉信号和柱状图变化进行交易，识别市场趋势的强弱。</p>
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">主要参数</h4>
+                            <ul class="text-xs text-gray-500 space-y-1">
+                                <li>快线周期: 12日</li>
+                                <li>慢线周期: 26日</li>
+                                <li>信号线周期: 9日</li>
+                            </ul>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">适合市场: 趋势明显</span>
+                            <button class="use-strategy-btn bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">使用此策略</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 季节性策略 -->
+                <div class="strategy-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 card-hover" data-category="seasonal">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-neutral-dark">季节性效应策略</h3>
+                            <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">季节性策略</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">基于市场季节性模式进行交易，如一月效应、年末效应等。</p>
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">主要参数</h4>
+                            <ul class="text-xs text-gray-500 space-y-1">
+                                <li>一月效应: 12月买入，1月卖出</li>
+                                <li>年末效应: 11月买入，12月卖出</li>
+                                <li>夏季效应: 5月卖出，10月买入</li>
+                            </ul>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">适合市场: 周期性明显</span>
+                            <button class="use-strategy-btn bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">使用此策略</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 套利策略 -->
+                <div class="strategy-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 card-hover" data-category="arbitrage">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-neutral-dark">配对交易策略</h3>
+                            <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">套利策略</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">基于两只相关性高的股票之间的价格偏离进行配对交易，捕捉回归机会。</p>
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">主要参数</h4>
+                            <ul class="text-xs text-gray-500 space-y-1">
+                                <li>相关性阈值: 0.85以上</li>
+                                <li>偏离阈值: 2倍标准差</li>
+                                <li>交易信号: 偏离扩大时建仓，回归时平仓</li>
+                            </ul>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">适合市场: 相关性高</span>
+                            <button class="use-strategy-btn bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">使用此策略</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 动量策略 -->
+                <div class="strategy-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 card-hover" data-category="momentum">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-neutral-dark">海龟交易策略</h3>
+                            <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">动量策略</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">基于突破和趋势跟踪的经典交易策略，由理查德·丹尼斯创立。</p>
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">主要参数</h4>
+                            <ul class="text-xs text-gray-500 space-y-1">
+                                <li>突破周期: 20日高点</li>
+                                <li>止损周期: 10日低点</li>
+                                <li>仓位管理: 按ATR调整仓位</li>
+                            </ul>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">适合市场: 趋势明显</span>
+                            <button class="use-strategy-btn bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">使用此策略</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 用户策略管理 -->
+            <div class="mt-10" id="my-strategies-section">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold text-neutral-dark">我的策略</h2>
+                        <button id="create-new-strategy-btn" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                            <i class="fa fa-plus mr-2"></i>新建策略
+                        </button>
+                    </div>
+                    
+                    <!-- 策略筛选 -->
+                    <div class="mb-4">
+                        <div class="flex flex-col md:flex-row md:items-center gap-4">
+                            <input type="text" id="my-strategy-search" placeholder="搜索我的策略..." class="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                    </div>
+                    
+                    <!-- 策略列表 -->
+                    <div id="my-strategies-list" class="space-y-4">
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fa fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p>加载中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 自定义策略 -->
+            <div class="mt-10">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-semibold text-neutral-dark mb-4">创建自定义策略</h2>
+                    <p class="text-gray-600 text-sm mb-6">如果预定义策略不能满足您的需求，可以创建自定义策略。</p>
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="bg-neutral-light rounded-lg p-4">
+                                <h3 class="text-md font-medium text-neutral-dark mb-2">自定义策略功能</h3>
+                                <ul class="text-sm text-gray-600 space-y-2">
+                                    <li class="flex items-center">
+                                        <i class="fa fa-check-circle text-success mr-2"></i>
+                                        支持多种技术指标组合
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fa fa-check-circle text-success mr-2"></i>
+                                        自定义交易信号逻辑
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fa fa-check-circle text-success mr-2"></i>
+                                        高级仓位管理策略
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fa fa-check-circle text-success mr-2"></i>
+                                        支持多市场、多品种
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-3">
+                            <button id="create-strategy-btn" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center font-medium">
+                                <i class="fa fa-plus mr-2"></i> 创建自定义策略
+                            </button>
+                            <button id="import-strategy-btn" class="bg-white text-primary border border-primary px-6 py-3 rounded-lg hover:bg-primary/5 transition-colors flex items-center justify-center font-medium">
+                                <i class="fa fa-upload mr-2"></i> 导入策略
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- 创建策略弹窗 -->
+    <div id="create-strategy-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="modal-title">新建策略</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="strategy-form">
+                <input type="hidden" id="strategy-id" value="">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">策略名称 *</label>
+                    <input type="text" id="strategy-name-input" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">策略类型 *</label>
+                    <select id="strategy-type-input" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <option value="">请选择</option>
+                        <option value="ma_cross">均线交叉策略</option>
+                        <option value="rsi">RSI策略</option>
+                        <option value="macd">MACD策略</option>
+                        <option value="bollinger">布林带策略</option>
+                        <option value="custom">自定义策略</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">策略描述</label>
+                    <textarea id="strategy-desc-input" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">策略代码 *</label>
+                    <textarea id="strategy-code-input" rows="10" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary font-mono text-sm" placeholder="输入策略代码..."></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">版本说明</label>
+                    <input type="text" id="version-desc-input" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="描述此版本的变更...">
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" id="cancel-modal-btn" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 版本历史弹窗 -->
+    <div id="version-history-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">版本历史</h3>
+                <button id="close-version-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div id="version-history-content" class="text-center text-gray-500 py-8">
+                <i class="fa fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>加载中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 策略模板脚本 -->
+    <script>
+    let myStrategies = [];
+
+    function loadMyStrategies() {
+        fetch('/api/strategies')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    myStrategies = data.strategies;
+                    renderMyStrategies();
+                }
+            })
+            .catch(err => {
+                console.error('加载策略失败:', err);
+                document.getElementById('my-strategies-list').innerHTML = '<div class="text-center text-danger py-8">加载失败</div>';
+            });
+    }
+
+    function renderMyStrategies() {
+        const container = document.getElementById('my-strategies-list');
+        
+        if (myStrategies.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-500 py-8"><i class="fa fa-inbox text-4xl mb-2"></i><p>暂无策略，点击上方按钮创建</p></div>';
+            return;
+        }
+        
+        container.innerHTML = myStrategies.map(s => `
+            <div class="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors" data-id="${s.id}">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-neutral-dark">${escapeHtml(s.name)}</h3>
+                        <p class="text-sm text-gray-500 mt-1">${s.type} | 创建于 ${formatDate(s.created_at)}</p>
+                        <p class="text-sm text-gray-600 mt-2 line-clamp-2">${escapeHtml(s.description || '无描述')}</p>
+                    </div>
+                    <div class="flex gap-2 ml-4">
+                        <button class="edit-strategy-btn px-3 py-1 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20" data-id="${s.id}">
+                            <i class="fa fa-edit mr-1"></i>编辑
+                        </button>
+                        <button class="version-history-btn px-3 py-1 text-sm bg-success/10 text-success rounded hover:bg-success/20" data-id="${s.id}">
+                            <i class="fa fa-history mr-1"></i>版本
+                        </button>
+                        <button class="delete-strategy-btn px-3 py-1 text-sm bg-danger/10 text-danger rounded hover:bg-danger/20" data-id="${s.id}">
+                            <i class="fa fa-trash mr-1"></i>删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        // 绑定事件
+        container.querySelectorAll('.edit-strategy-btn').forEach(btn => {
+            btn.addEventListener('click', () => editStrategy(parseInt(btn.dataset.id)));
+        });
+        
+        container.querySelectorAll('.version-history-btn').forEach(btn => {
+            btn.addEventListener('click', () => showVersionHistory(parseInt(btn.dataset.id)));
+        });
+        
+        container.querySelectorAll('.delete-strategy-btn').forEach(btn => {
+            btn.addEventListener('click', () => deleteStrategy(parseInt(btn.dataset.id)));
+        });
+    }
+
+    function editStrategy(id) {
+        const strategy = myStrategies.find(s => s.id === id);
+        if (!strategy) return;
+        
+        document.getElementById('modal-title').textContent = '编辑策略';
+        document.getElementById('strategy-id').value = id;
+        document.getElementById('strategy-name-input').value = strategy.name;
+        document.getElementById('strategy-type-input').value = strategy.type;
+        document.getElementById('strategy-desc-input').value = strategy.description || '';
+        document.getElementById('strategy-code-input').value = strategy.code || '';
+        document.getElementById('version-desc-input').value = '';
+        document.getElementById('create-strategy-modal').classList.remove('hidden');
+    }
+
+    async function showVersionHistory(id) {
+        window.location.href = `/backtest/version-history/${id}`;
+    }
+
+    async function deleteStrategy(id) {
+        if (!confirm('确定要删除这个策略吗？此操作不可恢复。')) return;
+        
+        try {
+            const res = await fetch(`/api/strategies/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            
+            if (data.success) {
+                alert('删除成功');
+                loadMyStrategies();
+            } else {
+                alert('删除失败: ' + data.error);
+            }
+        } catch (err) {
+            alert('删除失败');
+        }
+    }
+
+    function showCreateModal() {
+        document.getElementById('modal-title').textContent = '新建策略';
+        document.getElementById('strategy-id').value = '';
+        document.getElementById('strategy-name-input').value = '';
+        document.getElementById('strategy-type-input').value = '';
+        document.getElementById('strategy-desc-input').value = '';
+        document.getElementById('strategy-code-input').value = '';
+        document.getElementById('version-desc-input').value = '';
+        document.getElementById('create-strategy-modal').classList.remove('hidden');
+    }
+
+    function hideModal() {
+        document.getElementById('create-strategy-modal').classList.add('hidden');
+    }
+
+    async function submitStrategy(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('strategy-id').value;
+        const name = document.getElementById('strategy-name-input').value.trim();
+        const type = document.getElementById('strategy-type-input').value;
+        const description = document.getElementById('strategy-desc-input').value.trim();
+        const code = document.getElementById('strategy-code-input').value.trim();
+        const versionDesc = document.getElementById('version-desc-input').value.trim();
+        
+        if (!name || !type || !code) {
+            alert('请填写必填项');
+            return;
+        }
+        
+        try {
+            if (id) {
+                // 更新现有策略
+                const res = await fetch(`/api/strategies/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, type, description, code })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    // 创建新版本
+                    await fetch(`/api/strategies/${id}/versions`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code, description: versionDesc || '更新策略' })
+                    });
+                    alert('策略更新成功');
+                    hideModal();
+                    loadMyStrategies();
+                } else {
+                    alert('更新失败: ' + data.error);
+                }
+            } else {
+                // 创建新策略
+                const res = await fetch('/api/strategies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, type, description })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    const strategyId = data.strategy_id;
+                    // 创建第一个版本
+                    await fetch(`/api/strategies/${strategyId}/versions`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code, description: versionDesc || '初始版本' })
+                    });
+                    alert('策略创建成功');
+                    hideModal();
+                    loadMyStrategies();
+                } else {
+                    alert('创建失败: ' + data.error);
+                }
+            }
+        } catch (err) {
+            alert('操作失败');
+        }
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 搜索我的策略
+    document.getElementById('my-strategy-search').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const cards = document.querySelectorAll('#my-strategies-list .border');
+        
+        cards.forEach(card => {
+            const name = card.querySelector('h3').textContent.toLowerCase();
+            const desc = card.querySelector('p.text-gray-600').textContent.toLowerCase();
+            
+            if (name.includes(searchTerm) || desc.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+    // 绑定按钮事件
+    document.getElementById('create-new-strategy-btn').addEventListener('click', showCreateModal);
+    document.getElementById('close-modal-btn').addEventListener('click', hideModal);
+    document.getElementById('cancel-modal-btn').addEventListener('click', hideModal);
+    document.getElementById('strategy-form').addEventListener('submit', submitStrategy);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 策略分类标签切换
+        const strategyTabs = document.querySelectorAll('.strategy-tab');
+        const strategyCards = document.querySelectorAll('.strategy-card');
+        
+        strategyTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                // 更新标签样式
+                strategyTabs.forEach(t => {
+                    t.classList.remove('bg-primary', 'text-white');
+                    t.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                this.classList.remove('bg-gray-200', 'text-gray-700');
+                this.classList.add('bg-primary', 'text-white');
+                
+                // 筛选策略卡片
+                const category = this.getAttribute('data-category');
+                strategyCards.forEach(card => {
+                    if (category === 'all' || card.getAttribute('data-category') === category) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+        
+        // 策略搜索功能
+        const strategySearch = document.getElementById('strategy-search');
+        if (strategySearch) {
+            strategySearch.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                strategyCards.forEach(card => {
+                    const strategyName = card.querySelector('h3').textContent.toLowerCase();
+                    const strategyDesc = card.querySelector('p').textContent.toLowerCase();
+                    
+                    if (strategyName.includes(searchTerm) || strategyDesc.includes(searchTerm)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // 使用策略按钮
+        const useStrategyBtns = document.querySelectorAll('.use-strategy-btn');
+        useStrategyBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const strategyName = this.closest('.strategy-card').querySelector('h3').textContent;
+                // 跳转到回测页面，传递策略参数
+                window.location.href = `/backtest?strategy=${encodeURIComponent(strategyName)}`;
+            });
+        });
+        
+        // 创建自定义策略按钮
+        const createStrategyBtn = document.getElementById('create-strategy-btn');
+        if (createStrategyBtn) {
+            createStrategyBtn.addEventListener('click', function() {
+                showCreateModal();
+            });
+        }
+        
+        // 导入策略按钮
+        const importStrategyBtn = document.getElementById('import-strategy-btn');
+        if (importStrategyBtn) {
+            importStrategyBtn.addEventListener('click', function() {
+                alert('策略导入功能开发中...');
+            });
+        }
+        
+        // 加载我的策略
+        loadMyStrategies();
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建投资组合 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 配置Tailwind颜色方案 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-16">
+        <!-- 页面标题 -->
+        <div class="mb-8 animate-fade-in">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-neutral-dark mb-2">创建投资组合</h1>
+                    <p class="text-neutral-medium">设置您的投资目标和风险偏好</p>
+                </div>
+                <a href="{{ url_for('portfolio.portfolio_index') }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:border-primary hover:text-primary transition-colors">
+                    返回列表
+                </a>
+            </div>
+        </div>
+
+        <!-- 创建投资组合表单 -->
+        <section class="max-w-3xl mx-auto animate-slide-up">
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <!-- 显示消息 -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="mb-6 p-4 rounded-lg {{ 'bg-green-100 text-green-700' if category == 'success' else 'bg-red-100 text-red-700' }} animate-fade-in">
+                                <div class="flex items-center">
+                                    <i class="fa {{ 'fa-check-circle' if category == 'success' else 'fa-exclamation-circle' }} mr-2"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" class="space-y-6">
+
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-2">投资组合名称</label>
+                        <input type="text" id="name" name="name" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                        <p class="text-xs text-neutral-medium mt-1">为您的投资组合起一个有意义的名称</p>
+                    </div>
+
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">投资组合描述</label>
+                        <textarea id="description" name="description" rows="3"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300"></textarea>
+                        <p class="text-xs text-neutral-medium mt-1">描述您的投资目标和策略</p>
+                    </div>
+
+                    <div>
+                        <label for="risk_level" class="block text-sm font-medium text-gray-700 mb-2">风险偏好</label>
+                        <select id="risk_level" name="risk_level" required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                            <option value="low">低风险</option>
+                            <option value="medium">中等风险</option>
+                            <option value="high">高风险</option>
+                        </select>
+                        <p class="text-xs text-neutral-medium mt-1">选择与您风险承受能力相匹配的级别</p>
+                    </div>
+
+                    <div>
+                        <label for="initial_balance" class="block text-sm font-medium text-gray-700 mb-2">初始资金</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-500">¥</span>
+                            <input type="number" id="initial_balance" name="initial_balance" min="0" step="0.01" required
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                        </div>
+                        <p class="text-xs text-neutral-medium mt-1">您计划投入的初始资金金额</p>
+                    </div>
+
+                    <div class="pt-4">
+                        <button type="submit" class="w-full px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-1">
+                            创建投资组合
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- 投资组合类型指南 -->
+        <section class="mt-16 animate-slide-up" style="animation-delay: 0.2s">
+            <h2 class="text-2xl font-semibold mb-8 text-center">投资组合类型指南</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover border-t-4 border-blue-500">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-500 text-2xl mb-4">
+                        <i class="fa fa-shield"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-3">保守型投资组合</h3>
+                    <p class="text-neutral-medium text-sm mb-4">适合风险承受能力较低的投资者，以资本保值为主要目标。</p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-start">
+                            <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>低风险资产占比高（债券、现金等）</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>预期年化收益率：4%-8%</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>波动性较低，适合长期持有</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover border-t-4 border-yellow-500">
+                    <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-500 text-2xl mb-4">
+                        <i class="fa fa-balance-scale"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-3">平衡型投资组合</h3>
+                    <p class="text-neutral-medium text-sm mb-4">适合风险承受能力中等的投资者，平衡资本增值和收益稳定性。</p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-start">
+                            <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>股票和债券均衡配置</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>预期年化收益率：8%-15%</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>适度波动性，适合中长期投资</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover border-t-4 border-red-500">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-500 text-2xl mb-4">
+                        <i class="fa fa-line-chart"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-3">进取型投资组合</h3>
+                    <p class="text-neutral-medium text-sm mb-4">适合风险承受能力较高的投资者，追求资本快速增值。</p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-start">
+                            <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>高风险资产占比高（股票、另类投资等）</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>预期年化收益率：15%+</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>波动性较高，适合短期至中期投资</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // 页面加载完成后执行
+        window.addEventListener('DOMContentLoaded', function() {
+            // 表单验证
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(e) {
+                const name = document.getElementById('name').value;
+                const initialBalance = document.getElementById('initial_balance').value;
+                
+                if (!name.trim()) {
+                    e.preventDefault();
+                    alert('请输入投资组合名称');
+                    return;
+                }
+                
+                if (parseFloat(initialBalance) <= 0) {
+                    e.preventDefault();
+                    alert('初始资金必须大于0');
+                    return;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

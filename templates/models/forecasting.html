@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+
+{% block title %}预测模型 - 股票分析与量化投资平台{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">预测模型</h1>
+        <p class="text-gray-600">使用ARIMA和GARCH等时间序列模型进行预测分析</p>
+        <div class="mt-4">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                    <li class="inline-flex items-center">
+                        <a href="{{ url_for('main.index') }}" class="text-gray-700 hover:text-blue-600 text-sm font-medium">首页</a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            <a href="{{ url_for('models.models_index') }}" class="ml-1 text-gray-700 hover:text-blue-600 text-sm font-medium">金融模型</a>
+                        </div>
+                    </li>
+                    <li aria-current="page">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="ml-1 text-gray-500 font-medium text-sm">预测模型</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 左侧控制面板 -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">模型参数</h2>
+                
+                <!-- 模型选择 -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-medium mb-2">选择模型</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button id="arima-btn" class="model-btn bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">ARIMA</button>
+                        <button id="garch-btn" class="model-btn bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">GARCH</button>
+                    </div>
+                </div>
+                
+                <!-- ARIMA模型参数 -->
+                <div id="arima-params" class="model-params">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">ARIMA参数</h3>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2">预测步数</label>
+                        <input type="number" id="arima-steps" min="1" max="20" value="5" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2">模型阶数 (p, d, q)</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="number" id="arima-p" min="0" max="5" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="number" id="arima-d" min="0" max="2" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="number" id="arima-q" min="0" max="5" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">留空将自动选择最优参数</p>
+                    </div>
+                </div>
+                
+                <!-- GARCH模型参数 -->
+                <div id="garch-params" class="model-params hidden">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">GARCH参数</h3>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2">预测步数</label>
+                        <input type="number" id="garch-steps" min="1" max="20" value="5" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2">模型阶数 (p, q)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="garch-p" min="1" max="3" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="number" id="garch-q" min="1" max="3" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">留空将自动选择最优参数</p>
+                    </div>
+                </div>
+                
+                <!-- 数据输入 -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-medium mb-2">数据输入</label>
+                    <textarea id="data-input" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="输入时间序列数据，每行一个数值...">{{ sample_data }}</textarea>
+                    <div class="mt-2 flex justify-between">
+                        <button id="load-sample" class="text-sm text-blue-600 hover:text-blue-800">加载示例数据</button>
+                        <button id="clear-data" class="text-sm text-red-600 hover:text-red-800">清空</button>
+                    </div>
+                </div>
+                
+                <!-- 执行按钮 -->
+                <button id="run-model" class="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 transition-colors font-medium">运行模型</button>
+            </div>
+        </div>
+        
+        <!-- 右侧结果展示 -->
+        <div class="lg:col-span-2">
+            <!-- 图表展示 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">预测结果</h2>
+                <div class="h-80">
+                    <canvas id="forecast-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 模型摘要 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">模型摘要</h2>
+                <div id="model-summary" class="bg-gray-50 p-4 rounded-md overflow-auto max-h-80">
+                    <p class="text-gray-500 text-center py-8">运行模型以查看摘要</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js 和相关插件 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+
+<script>
+    // 示例数据
+    const sampleStockData = [
+        100.0, 102.5, 105.3, 103.8, 106.2, 108.7, 110.2, 109.5, 112.1, 114.8,
+        113.2, 115.6, 118.3, 116.9, 119.5, 122.1, 120.8, 123.4, 126.1, 124.7
+    ];
+    
+    const sampleReturnData = [
+        0.025, 0.027, -0.014, 0.023, 0.024, 0.014, -0.006, 0.024, 0.024,
+        -0.014, 0.021, 0.023, -0.012, 0.022, 0.022, -0.011, 0.021, 0.022, -0.011
+    ];
+    
+    // 模型选择
+    let currentModel = 'arima';
+    
+    document.getElementById('arima-btn').addEventListener('click', function() {
+        setActiveModel('arima');
+    });
+    
+    document.getElementById('garch-btn').addEventListener('click', function() {
+        setActiveModel('garch');
+    });
+    
+    function setActiveModel(model) {
+        currentModel = model;
+        
+        // 更新按钮样式
+        document.querySelectorAll('.model-btn').forEach(btn => {
+            btn.classList.remove('bg-blue-600', 'text-white', 'bg-gray-200', 'text-gray-800');
+            btn.classList.add('bg-gray-200', 'text-gray-800');
+        });
+        
+        document.getElementById(`${model}-btn`).classList.remove('bg-gray-200', 'text-gray-800');
+        document.getElementById(`${model}-btn`).classList.add('bg-blue-600', 'text-white');
+        
+        // 显示/隐藏参数面板
+        document.querySelectorAll('.model-params').forEach(panel => {
+            panel.classList.add('hidden');
+        });
+        
+        document.getElementById(`${model}-params`).classList.remove('hidden');
+        
+        // 更新示例数据
+        if (model === 'arima') {
+            document.getElementById('data-input').value = sampleStockData.join('\n');
+        } else {
+            document.getElementById('data-input').value = sampleReturnData.join('\n');
+        }
+    }
+    
+    // 加载示例数据
+    document.getElementById('load-sample').addEventListener('click', function() {
+        if (currentModel === 'arima') {
+            document.getElementById('data-input').value = sampleStockData.join('\n');
+        } else {
+            document.getElementById('data-input').value = sampleReturnData.join('\n');
+        }
+    });
+    
+    // 清空数据
+    document.getElementById('clear-data').addEventListener('click', function() {
+        document.getElementById('data-input').value = '';
+    });
+    
+    // 初始化图表
+    let forecastChart;
+    function initChart() {
+        const ctx = document.getElementById('forecast-chart').getContext('2d');
+        
+        if (forecastChart) {
+            forecastChart.destroy();
+        }
+        
+        forecastChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: '历史数据',
+                        data: [],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        tension: 0.1
+                    },
+                    {
+                        label: '预测数据',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        tension: 0.1
+                    },
+                    {
+                        label: '置信区间上限',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 0.3)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        fill: '+1',
+                        tension: 0.1
+                    },
+                    {
+                        label: '置信区间下限',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 0.3)',
+                        backgroundColor: 'transparent',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        borderWidth: 1,
+                        padding: 10,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw.toFixed(4);
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                    },
+                    zoom: {
+                        pan: {
+                            enabled: true,
+                            mode: 'x'
+                        },
+                        zoom: {
+                            wheel: {
+                                enabled: true
+                            },
+                            pinch: {
+                                enabled: true
+                            },
+                            mode: 'x'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '值'
+                        },
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+    }
+    
+    // 运行模型
+    document.getElementById('run-model').addEventListener('click', function() {
+        const button = this;
+        const originalText = button.textContent;
+        button.textContent = '运行中...';
+        button.disabled = true;
+        
+        // 准备数据
+        const dataInput = document.getElementById('data-input').value;
+        const dataArray = dataInput.split('\n')
+            .map(item => item.trim())
+            .filter(item => item !== '')
+            .map(Number)
+            .filter(item => !isNaN(item));
+        
+        if (dataArray.length < 10) {
+            alert('数据长度不足，至少需要10个数据点');
+            button.textContent = originalText;
+            button.disabled = false;
+            return;
+        }
+        
+        // 准备请求参数
+        let url, params;
+        
+        if (currentModel === 'arima') {
+            url = '{{ url_for('models.forecast_arima') }}';
+            const p = document.getElementById('arima-p').value;
+            const d = document.getElementById('arima-d').value;
+            const q = document.getElementById('arima-q').value;
+            const forecastSteps = document.getElementById('arima-steps').value;
+            
+            params = {
+                data: dataArray,
+                forecast_steps: forecastSteps
+            };
+            
+            // 如果用户指定了阶数
+            if (p && d && q) {
+                params.order = [parseInt(p), parseInt(d), parseInt(q)];
+            }
+        } else {
+            url = '{{ url_for('models.forecast_garch') }}';
+            const p = document.getElementById('garch-p').value;
+            const q = document.getElementById('garch-q').value;
+            const forecastSteps = document.getElementById('garch-steps').value;
+            
+            params = {
+                returns: dataArray,
+                data: dataArray, // 用于绘图
+                forecast_steps: forecastSteps
+            };
+            
+            // 如果用户指定了阶数
+            if (p && q) {
+                params.params = [parseInt(p), parseInt(q)];
+            }
+        }
+        
+        // 发送请求
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(params)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 更新图表
+                updateChart(dataArray, data);
+                
+                // 更新模型摘要
+                updateModelSummary(data);
+            } else {
+                alert('模型运行失败: ' + data.error);
+                console.error('模型运行失败:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('请求错误:', error);
+            alert('请求错误: ' + error.message);
+        })
+        .finally(() => {
+            button.textContent = originalText;
+            button.disabled = false;
+        });
+    });
+    
+    // 更新图表
+    function updateChart(historicalData, forecastData) {
+        const labels = Array.from({length: historicalData.length + forecastData.forecast_steps}, (_, i) => i + 1);
+        
+        // 准备预测数据
+        let forecastValues, upperBound, lowerBound;
+        
+        if (currentModel === 'arima') {
+            forecastValues = forecastData.forecast;
+            // 计算置信区间
+            const ci = forecastData.confidence_interval;
+            upperBound = forecastValues.map(value => value + ci);
+            lowerBound = forecastValues.map(value => value - ci);
+        } else {
+            forecastValues = forecastData.volatility_forecast;
+            // 对于GARCH，使用简单的置信区间
+            const ci = forecastValues[0] * 0.1;
+            upperBound = forecastValues.map(value => value + ci);
+            lowerBound = forecastValues.map(value => value - ci);
+        }
+        
+        // 准备完整数据集
+        const fullData = [...historicalData, ...forecastValues];
+        const fullUpperBound = [...Array(historicalData.length).fill(null), ...upperBound];
+        const fullLowerBound = [...Array(historicalData.length).fill(null), ...lowerBound];
+        
+        // 更新图表
+        forecastChart.data.labels = labels;
+        forecastChart.data.datasets[0].data = historicalData;
+        forecastChart.data.datasets[1].data = [...Array(historicalData.length).fill(null), ...forecastValues];
+        forecastChart.data.datasets[2].data = fullUpperBound;
+        forecastChart.data.datasets[3].data = fullLowerBound;
+        
+        // 更新图表标题
+        forecastChart.options.plugins.title = {
+            display: true,
+            text: currentModel === 'arima' ? 'ARIMA预测结果' : 'GARCH波动率预测结果'
+        };
+        
+        forecastChart.update();
+    }
+    
+    // 更新模型摘要
+    function updateModelSummary(data) {
+        const summaryDiv = document.getElementById('model-summary');
+        
+        let summaryHTML = '';
+        
+        if (currentModel === 'arima') {
+            summaryHTML = `
+                <div class="mb-4">
+                    <h4 class="font-semibold text-gray-800 mb-2">模型信息</h4>
+                    <p><strong>阶数 (p, d, q):</strong> ${data.order.join(', ')}</p>
+                    <p><strong>AIC:</strong> ${data.aic.toFixed(4)}</p>
+                    <p><strong>BIC:</strong> ${data.bic.toFixed(4)}</p>
+                    <p><strong>平稳性:</strong> ${data.stationarity.is_stationary ? '平稳' : '非平稳'}</p>
+                    ${data.stationarity.is_stationary ? '' : `<p><strong>ADF统计量:</strong> ${data.stationarity.adf_statistic.toFixed(4)}</p>`}
+                    ${data.stationarity.is_stationary ? '' : `<p><strong>p值:</strong> ${data.stationarity.p_value.toFixed(4)}</p>`}
+                </div>
+                <div class="mb-4">
+                    <h4 class="font-semibold text-gray-800 mb-2">预测结果</h4>
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr>
+                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50">步骤</th>
+                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50">预测值</th>
+                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50">置信区间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.forecast.map((value, index) => `
+                                <tr>
+                                    <td class="py-2 px-4 border-b border-gray-200">${index + 1}</td>
+                                    <td class="py-2 px-4 border-b border-gray-200">${value.toFixed(4)}</td>
+                                    <td class="py-2 px-4 border-b border-gray-200">±${data.confidence_interval.toFixed(4)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ${data.acf_pacf_plot ? `
+                    <div class="mt-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">ACF和PACF图</h4>
+                        <img src="data:image/png;base64,${data.acf_pacf_plot}" class="max-w-full h-auto rounded">
+                    </div>
+                ` : ''}
+            `;
+        } else {
+            summaryHTML = `
+                <div class="mb-4">
+                    <h4 class="font-semibold text-gray-800 mb-2">模型信息</h4>
+                    <p><strong>阶数 (p, q):</strong> ${data.params.join(', ')}</p>
+                    <p><strong>AIC:</strong> ${data.aic.toFixed(4)}</p>
+                    <p><strong>BIC:</strong> ${data.bic.toFixed(4)}</p>
+                </div>
+                <div class="mb-4">
+                    <h4 class="font-semibold text-gray-800 mb-2">波动率预测</h4>
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr>
+                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50">步骤</th>
+                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50">预测波动率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.volatility_forecast.map((value, index) => `
+                                <tr>
+                                    <td class="py-2 px-4 border-b border-gray-200">${index + 1}</td>
+                                    <td class="py-2 px-4 border-b border-gray-200">${value.toFixed(4)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ${data.volatility_plot ? `
+                    <div class="mt-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">波动率图</h4>
+                        <img src="data:image/png;base64,${data.volatility_plot}" class="max-w-full h-auto rounded">
+                    </div>
+                ` : ''}
+            `;
+        }
+        
+        summaryDiv.innerHTML = summaryHTML;
+    }
+    
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        initChart();
+        // 加载示例数据
+        document.getElementById('data-input').value = sampleStockData.join('\n');
+    });
+</script>
+{% endblock %}

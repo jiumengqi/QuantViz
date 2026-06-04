@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if strategy %}{{ strategy.name }}{% else %}策略原理{% endif %} - 量化知识库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .markdown-content h1 { font-size: 1.75rem; font-weight: bold; margin: 1.5rem 0 1rem; }
+        .markdown-content h2 { font-size: 1.5rem; font-weight: bold; margin: 1.25rem 0 0.75rem; }
+        .markdown-content h3 { font-size: 1.25rem; font-weight: bold; margin: 1rem 0 0.5rem; }
+        .markdown-content p { margin: 0.75rem 0; line-height: 1.8; }
+        .markdown-content ul, .markdown-content ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+        .markdown-content li { margin: 0.5rem 0; line-height: 1.8; }
+        .markdown-content code { background: #f3f4f6; padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-family: monospace; }
+        .markdown-content pre { background: #1f2937; color: #f3f4f6; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin: 1rem 0; }
+        .markdown-content pre code { background: transparent; padding: 0; color: inherit; }
+        .markdown-content strong { font-weight: bold; color: #1D2129; }
+    </style>
+</head>
+<body class="bg-neutral-light font-sans text-neutral-dark">
+    {% include 'components/header.html' %}
+
+    <main class="container mx-auto px-4 pt-24 pb-16">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- 侧边栏 -->
+            <aside class="lg:w-64 flex-shrink-0">
+                <div class="bg-white rounded-xl shadow-md p-4 sticky top-24">
+                    <h3 class="font-semibold text-lg mb-4">策略列表</h3>
+                    <nav class="space-y-1">
+                        {% for s in strategies %}
+                        <a href="{{ url_for('knowledge.strategy_detail', strategy_id=s.id) }}" 
+                           class="block px-3 py-2 rounded-lg text-sm transition-colors
+                           {% if strategy and strategy.id == s.id %}bg-primary text-white{% else %}text-neutral-dark hover:bg-neutral-light{% endif %}">
+                            {{ s.name }}
+                        </a>
+                        {% endfor %}
+                    </nav>
+                </div>
+            </aside>
+
+            <!-- 主内容 -->
+            <div class="flex-1">
+                {% if strategy %}
+                <!-- 策略详情 -->
+                <article class="bg-white rounded-xl shadow-md p-6 lg:p-8">
+                    <div class="mb-6">
+                        <div class="flex items-center mb-3">
+                            <span class="text-xs px-2 py-1 rounded-full 
+                                {% if strategy.difficulty == '入门' %}bg-green-100 text-green-600
+                                {% elif strategy.difficulty == '进阶' %}bg-yellow-100 text-yellow-600
+                                {% else %}bg-red-100 text-red-600{% endif %}">
+                                {{ strategy.difficulty }}
+                            </span>
+                            <span class="text-xs text-neutral-medium ml-2">{{ strategy.category }}</span>
+                        </div>
+                        <h1 class="text-2xl lg:text-3xl font-bold text-neutral-dark">{{ strategy.name }}</h1>
+                        <p class="text-neutral-medium mt-2">{{ strategy.description }}</p>
+                    </div>
+
+                    <!-- 策略原理 -->
+                    <div class="mb-6">
+                        <h2 class="text-lg font-semibold mb-3 flex items-center">
+                            <i class="fa fa-file-text-o text-primary mr-2"></i>策略原理
+                        </h2>
+                        <div class="markdown-content bg-gray-50 rounded-lg p-4">
+                            {{ strategy.principle | safe }}
+                        </div>
+                    </div>
+
+                    <!-- 参数说明 -->
+                    <div class="mb-6">
+                        <h2 class="text-lg font-semibold mb-3 flex items-center">
+                            <i class="fa fa-sliders text-primary mr-2"></i>参数说明
+                        </h2>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full border border-gray-200 rounded-lg">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">参数名</th>
+                                        <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">默认值</th>
+                                        <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    {% for param in strategy.parameters %}
+                                    <tr>
+                                        <td class="px-4 py-2 text-sm">{{ param.name }}</td>
+                                        <td class="px-4 py-2 text-sm text-primary font-medium">{{ param.default }}</td>
+                                        <td class="px-4 py-2 text-sm text-neutral-medium">{{ param.description }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 优缺点 -->
+                    <div class="mb-6">
+                        <h2 class="text-lg font-semibold mb-3 flex items-center">
+                            <i class="fa fa-balance-scale text-primary mr-2"></i>优缺点分析
+                        </h2>
+                        <div class="markdown-content bg-gray-50 rounded-lg p-4">
+                            {{ strategy.pros_cons | safe }}
+                        </div>
+                    </div>
+
+                    <!-- 代码示例 -->
+                    {% if strategy.code_example %}
+                    <div class="mb-6">
+                        <h2 class="text-lg font-semibold mb-3 flex items-center">
+                            <i class="fa fa-code text-primary mr-2"></i>Python实现
+                        </h2>
+                        <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code>{{ strategy.code_example }}</code></pre>
+                    </div>
+                    {% endif %}
+
+                    <div class="flex justify-between items-center mt-8 pt-6 border-t">
+                        <a href="{{ url_for('knowledge.strategies') }}" class="text-primary hover:text-primary/80 font-medium">
+                            <i class="fa fa-arrow-left mr-1"></i>返回策略列表
+                        </a>
+                        <a href="{{ url_for('knowledge.risk_warning') }}" class="text-primary hover:text-primary/80 font-medium">
+                            了解风险提示<i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </article>
+                {% else %}
+                <!-- 策略列表 -->
+                <div class="bg-white rounded-xl shadow-md p-6 lg:p-8">
+                    <h1 class="text-2xl font-bold text-neutral-dark mb-6">经典量化策略</h1>
+                    <p class="text-neutral-medium mb-8">深入了解各种经典量化投资策略的原理、优缺点和实现方法。</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {% for s in strategies %}
+                        <a href="{{ url_for('knowledge.strategy_detail', strategy_id=s.id) }}" class="border border-gray-200 rounded-xl p-5 card-hover">
+                            <div class="flex items-start mb-3">
+                                <div class="w-12 h-12 rounded-lg bg-purple-50 flex items-center justify-center mr-3 flex-shrink-0">
+                                    <i class="fa fa-rocket text-purple-500 text-xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-2">
+                                        <h3 class="font-semibold">{{ s.name }}</h3>
+                                        <span class="text-xs px-2 py-1 rounded-full ml-2
+                                            {% if s.difficulty == '入门' %}bg-green-100 text-green-600
+                                            {% elif s.difficulty == '进阶' %}bg-yellow-100 text-yellow-600
+                                            {% else %}bg-red-100 text-red-600{% endif %}">
+                                            {{ s.difficulty }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-neutral-medium mb-2">{{ s.category }}</p>
+                                    <p class="text-sm text-neutral-medium">{{ s.description }}</p>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+</body>
+</html>

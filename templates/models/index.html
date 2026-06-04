@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融模型 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <!-- 自定义CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+    <style>
+        .model-card {
+            transition: all 0.3s ease;
+        }
+        .model-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12">
+            <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-neutral mb-4">金融模型</h1>
+            <p class="text-neutral-light max-w-3xl mx-auto">强大的金融计算工具，帮助您进行投资决策分析</p>
+        </div>
+
+        <!-- 模型分类 -->
+        <section class="mb-16">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 期权定价模型 -->
+                <div class="bg-white rounded-lg card-shadow overflow-hidden model-card">
+                    <div class="h-48 bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+                        <i class="fa fa-calculator text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h2 class="text-xl font-semibold mb-3">期权定价模型</h2>
+                        <p class="text-neutral-light mb-4">使用经典的期权定价公式计算期权理论价值，包括Black-Scholes模型等。</p>
+                        <ul class="space-y-2 mb-6">
+                            <li class="flex items-start">
+                                <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                                <span class="text-sm">Black-Scholes模型</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                                <span class="text-sm">二叉树模型</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                                <span class="text-sm">希腊字母分析</span>
+                            </li>
+                        </ul>
+                        <a href="/models/black-scholes" class="inline-flex items-center justify-center w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom">
+                            开始使用
+                            <i class="fa fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 投资组合优化 -->
+                <div class="bg-white rounded-lg card-shadow overflow-hidden model-card">
+                    <div class="h-48 bg-gradient-to-r from-accent to-secondary flex items-center justify-center">
+                        <i class="fa fa-pie-chart text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h2 class="text-xl font-semibold mb-3">投资组合优化</h2>
+                        <p class="text-neutral-light mb-4">基于现代投资组合理论，帮助您构建最优投资组合，最大化收益或最小化风险。</p>
+                        <ul class="space-y-2 mb-6">
+                            <li class="flex items-start">
+                                <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                                <span class="text-sm">马科维茨最优组合</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                                <span class="text-sm">风险平价模型</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                                <span class="text-sm">有效前沿分析</span>
+                            </li>
+                        </ul>
+                        <a href="/models/markowitz" class="inline-flex items-center justify-center w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom">
+                            开始使用
+                            <i class="fa fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 风险度量模型 -->
+                <div class="bg-white rounded-lg card-shadow overflow-hidden model-card">
+                    <div class="h-48 bg-gradient-to-r from-neutral to-primary flex items-center justify-center">
+                        <i class="fa fa-exclamation-triangle text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h2 class="text-xl font-semibold mb-3">风险度量模型</h2>
+                        <p class="text-neutral-light mb-4">量化评估投资组合的风险水平，包括VaR、CVaR等风险指标的计算。</p>
+                        <ul class="space-y-2 mb-6">
+                            <li class="flex items-start">
+                                <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                                <span class="text-sm">Value at Risk (VaR)</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                                <span class="text-sm">条件风险价值(CVaR)</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                                <span class="text-sm">风险分解分析</span>
+                            </li>
+                        </ul>
+                        <a href="/models/var" class="inline-flex items-center justify-center w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom">
+                            开始使用
+                            <i class="fa fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 模型应用场景 -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-semibold mb-8 text-center">模型应用场景</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white rounded-lg card-shadow p-6">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 bg-blue-100 p-3 rounded-full">
+                            <i class="fa fa-line-chart text-primary text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium mb-2">投资决策支持</h3>
+                            <p class="text-neutral-light">利用金融模型进行投资机会评估、风险分析和收益预测，为投资决策提供科学依据。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg card-shadow p-6">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 bg-blue-100 p-3 rounded-full">
+                            <i class="fa fa-shield text-primary text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium mb-2">风险管理</h3>
+                            <p class="text-neutral-light">通过风险度量模型识别、量化和管理投资风险，制定相应的风险控制策略。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg card-shadow p-6">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 bg-blue-100 p-3 rounded-full">
+                            <i class="fa fa-random text-primary text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium mb-2">衍生品定价</h3>
+                            <p class="text-neutral-light">使用期权定价模型为各种金融衍生品确定合理价格，评估市场定价是否合理。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg card-shadow p-6">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 bg-blue-100 p-3 rounded-full">
+                            <i class="fa fa-balance-scale text-primary text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium mb-2">资产配置</h3>
+                            <p class="text-neutral-light">基于投资组合优化模型，实现资产间的最优配置，平衡风险与收益。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 使用示例 -->
+        <section>
+            <h2 class="text-2xl font-semibold mb-8 text-center">使用示例</h2>
+            <div class="bg-white rounded-lg card-shadow p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-medium mb-4">Black-Scholes期权定价示例</h3>
+                        <p class="text-neutral-light mb-6">以下是使用Black-Scholes模型计算欧式看涨期权价格的示例：</p>
+                        <div class="bg-gray-50 p-4 rounded-md mb-4">
+                            <pre class="text-sm text-gray-800 whitespace-pre-wrap">// 输入参数
+标的资产价格(S) = 100元
+行权价格(K) = 105元
+无风险利率(r) = 3% (年化)
+波动率(σ) = 25% (年化)
+到期时间(T) = 0.5年 (6个月)
+
+// 计算结果
+看涨期权价格 = 3.27元
+看跌期权价格 = 5.74元
+
+// 希腊字母
+Delta = 0.42
+Gamma = 0.05
+Vega = 22.45
+Theta = -4.32
+Rho = 20.87</pre>
+                        </div>
+                        <a href="/models/black-scholes" class="inline-flex items-center text-primary hover:text-primary/80 font-medium">
+                            查看详细计算过程
+                            <i class="fa fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                    <div class="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+                        <canvas id="option-visualization"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 自定义JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+    <script>
+        // 期权价值可视化图表
+        const ctx = document.getElementById('option-visualization').getContext('2d');
+        
+        // 模拟期权价值曲线
+        const spotPrices = Array.from({length: 20}, (_, i) => 80 + i * 2);
+        const callPrices = spotPrices.map(S => Math.max(0, S - 105) * 0.8 + (Math.random() - 0.5) * 2);
+        const putPrices = spotPrices.map(S => Math.max(0, 105 - S) * 0.7 + (Math.random() - 0.5) * 2);
+
+        const optionChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: spotPrices,
+                datasets: [{
+                    label: '看涨期权价值',
+                    data: callPrices,
+                    borderColor: '#3b82f6',
+                    backgroundColor: '#3b82f620',
+                    borderWidth: 2,
+                    tension: 0.2
+                }, {
+                    label: '看跌期权价值',
+                    data: putPrices,
+                    borderColor: '#ef4444',
+                    backgroundColor: '#ef444420',
+                    borderWidth: 2,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '标的资产价格 (元)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '期权价值 (元)'
+                        },
+                        beginAtZero: true
+                    }
+                },
+                animation: false
+            }
+        });
+    </script>
+    
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas显示测试
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('图表加载中...', canvas.width/2, canvas.height/2);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

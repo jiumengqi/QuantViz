@@ -1,0 +1,584 @@
+{% extends "base.html" %}
+
+{% block title %}绩效归因分析{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <h1 class="h3 mb-0 text-gray-800">投资组合绩效归因分析</h1>
+            <p class="text-muted mt-1">深入分析投资组合收益来源，识别超额收益驱动因素</p>
+        </div>
+    </div>
+
+    <!-- 分析结果容器 -->
+    <div id="analysis-result">
+        <!-- 绩效概览卡片 -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    总超额收益</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-excess-return">
+                                    --%</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    资产配置效果</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="allocation-effect">
+                                    --%</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-pie-chart fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    证券选择效果</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="selection-effect">
+                                    --%</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-search fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    交互效果</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="interaction-effect">
+                                    --%</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 归因分析图表 -->
+        <div class="row mb-4">
+            <!-- 归因时间序列 -->
+            <div class="col-lg-12 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">绩效归因时间序列</h6>
+                        <p class="text-muted text-sm mt-1">投资组合与基准收益率对比</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area">
+                            <canvas id="attribution-timeseries-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <!-- Brinson归因分析 -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Brinson归因分析</h6>
+                        <p class="text-muted text-sm mt-1">收益来源分解</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-pie">
+                            <canvas id="brinson-attribution-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 因子归因分析 -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">因子归因分析</h6>
+                        <p class="text-muted text-sm mt-1">风险因子贡献</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-pie">
+                            <canvas id="factor-attribution-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 行业归因分析 -->
+        <div class="row mb-4">
+            <div class="col-lg-12 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">行业归因分析</h6>
+                        <p class="text-muted text-sm mt-1">各行业对组合收益的贡献</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-bar">
+                            <canvas id="sector-attribution-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 持仓归因分析 -->
+        <div class="row mb-4">
+            <div class="col-lg-12 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">持仓归因分析</h6>
+                        <p class="text-muted text-sm mt-1">各持仓对组合收益的贡献</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="holdings-attribution-table" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>代码</th>
+                                        <th>名称</th>
+                                        <th>配置比例</th>
+                                        <th>收益贡献</th>
+                                        <th>贡献占比</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- 数据将通过JavaScript动态填充 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 绩效洞察 -->
+        <div class="row mb-4">
+            <div class="col-lg-12 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">绩效洞察</h6>
+                        <p class="text-muted text-sm mt-1">基于归因分析的投资建议</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h7 class="font-weight-bold text-gray-700">优势分析</h7>
+                                <ul class="list-group list-group-flush mt-2" id="strengths-list">
+                                    <!-- 数据将通过JavaScript动态填充 -->
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h7 class="font-weight-bold text-gray-700">改进空间</h7>
+                                <ul class="list-group list-group-flush mt-2" id="improvements-list">
+                                    <!-- 数据将通过JavaScript动态填充 -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+    $(document).ready(function() {
+        // 获取投资组合ID
+        const portfolioId = {{ portfolio_id }};
+        
+        // 模拟持仓数据
+        const holdings = [
+            {symbol: 'AAPL', name: '苹果公司', allocation: 15},
+            {symbol: 'MSFT', name: '微软公司', allocation: 12},
+            {symbol: 'GOOGL', name: 'Alphabet公司', allocation: 8},
+            {symbol: 'AMZN', name: '亚马逊公司', allocation: 10},
+            {symbol: 'TSLA', name: '特斯拉公司', allocation: 5},
+            {symbol: '000001.SZ', name: '平安银行', allocation: 10},
+            {symbol: '600519.SH', name: '贵州茅台', allocation: 15},
+            {symbol: '601318.SH', name: '中国平安', allocation: 10},
+            {symbol: '600036.SH', name: '招商银行', allocation: 7},
+            {symbol: '601888.SH', name: '中国中免', allocation: 8}
+        ];
+        
+        // 调用绩效归因API
+        $.ajax({
+            url: '/portfolio/api/performance-attribution',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({holdings: holdings}),
+            success: function(response) {
+                if (response.success) {
+                    const attribution = response.attribution;
+                    const factorAttribution = response.factor_attribution;
+                    
+                    // 更新概览数据
+                    $('#total-excess-return').text(attribution.total_excess_return.toFixed(2) + '%');
+                    $('#allocation-effect').text(attribution.allocation_effect.toFixed(2) + '%');
+                    $('#selection-effect').text(attribution.selection_effect.toFixed(2) + '%');
+                    $('#interaction-effect').text(attribution.interaction_effect.toFixed(2) + '%');
+                    
+                    // 绘制归因时间序列图表
+                    drawAttributionTimeseriesChart(attribution.attribution_timeseries);
+                    
+                    // 绘制Brinson归因图表
+                    drawBrinsonAttributionChart(attribution);
+                    
+                    // 绘制因子归因图表
+                    drawFactorAttributionChart(factorAttribution);
+                    
+                    // 绘制行业归因图表
+                    drawSectorAttributionChart(attribution.sector_attribution);
+                    
+                    // 填充持仓归因表格
+                    fillHoldingsAttributionTable(attribution.holdings_attribution);
+                    
+                    // 生成绩效洞察
+                    generateInsights(attribution, factorAttribution);
+                    
+                    
+                } else {
+                    console.error('分析失败:', response.error);
+                    alert('绩效归因分析失败，请稍后重试');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('API调用失败:', error);
+                alert('无法获取绩效数据，请稍后重试');
+            }
+        });
+        
+        // 绘制归因时间序列图表
+        function drawAttributionTimeseriesChart(data) {
+            const ctx = document.getElementById('attribution-timeseries-chart').getContext('2d');
+            
+            const dates = data.map(item => item.date);
+            const portfolioReturns = data.map(item => item.portfolio_return);
+            const benchmarkReturns = data.map(item => item.benchmark_return);
+            const excessReturns = data.map(item => item.excess_return);
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: '投资组合收益率',
+                            data: portfolioReturns,
+                            borderColor: '#4e73df',
+                            backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '基准收益率',
+                            data: benchmarkReturns,
+                            borderColor: '#36b9cc',
+                            backgroundColor: 'rgba(54, 185, 204, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '超额收益率',
+                            data: excessReturns,
+                            borderColor: '#1cc88a',
+                            backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: '收益率 (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日期'
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+        
+        // 绘制Brinson归因图表
+        function drawBrinsonAttributionChart(attribution) {
+            const ctx = document.getElementById('brinson-attribution-chart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['资产配置效果', '证券选择效果', '交互效果'],
+                    datasets: [{
+                        data: [
+                            attribution.allocation_effect,
+                            attribution.selection_effect,
+                            attribution.interaction_effect
+                        ],
+                        backgroundColor: [
+                            '#1cc88a',
+                            '#36b9cc',
+                            '#f6c23e'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    return `${label}: ${value.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 绘制因子归因图表
+        function drawFactorAttributionChart(factorAttribution) {
+            const ctx = document.getElementById('factor-attribution-chart').getContext('2d');
+            
+            const factors = Object.keys(factorAttribution.factor_contributions);
+            const contributions = Object.values(factorAttribution.factor_contributions);
+            
+            // 添加残差
+            factors.push('残差');
+            contributions.push(factorAttribution.residual);
+            
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: factors,
+                    datasets: [{
+                        data: contributions,
+                        backgroundColor: [
+                            '#4e73df',
+                            '#1cc88a',
+                            '#36b9cc',
+                            '#f6c23e',
+                            '#e74a3b',
+                            '#858796'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    return `${label}: ${value.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 绘制行业归因图表
+        function drawSectorAttributionChart(sectorAttribution) {
+            const ctx = document.getElementById('sector-attribution-chart').getContext('2d');
+            
+            const sectors = sectorAttribution.map(item => item.sector);
+            const allocationEffects = sectorAttribution.map(item => item.allocation_effect * 100);
+            const selectionEffects = sectorAttribution.map(item => item.selection_effect * 100);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sectors,
+                    datasets: [
+                        {
+                            label: '资产配置效果',
+                            data: allocationEffects,
+                            backgroundColor: 'rgba(78, 115, 223, 0.7)',
+                            borderColor: 'rgba(78, 115, 223, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '证券选择效果',
+                            data: selectionEffects,
+                            backgroundColor: 'rgba(28, 200, 138, 0.7)',
+                            borderColor: 'rgba(28, 200, 138, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: '贡献 (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '行业'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 填充持仓归因表格
+        function fillHoldingsAttributionTable(holdingsAttribution) {
+            const tableBody = $('#holdings-attribution-table tbody');
+            tableBody.empty();
+            
+            let totalContribution = holdingsAttribution.reduce((sum, item) => sum + item.contribution, 0);
+            
+            holdingsAttribution.forEach(item => {
+                const contributionPercent = totalContribution > 0 ? (item.contribution / totalContribution * 100) : 0;
+                const row = `<tr>
+                    <td>${item.symbol}</td>
+                    <td>${item.name}</td>
+                    <td>${item.allocation.toFixed(2)}%</td>
+                    <td>${item.contribution.toFixed(2)}%</td>
+                    <td>${contributionPercent.toFixed(2)}%</td>
+                </tr>`;
+                tableBody.append(row);
+            });
+        }
+        
+        // 生成绩效洞察
+        function generateInsights(attribution, factorAttribution) {
+            const strengthsList = $('#strengths-list');
+            const improvementsList = $('#improvements-list');
+            
+            strengthsList.empty();
+            improvementsList.empty();
+            
+            // 生成优势分析
+            if (attribution.selection_effect > 0) {
+                strengthsList.append('<li class="list-group-item">证券选择能力较强，为组合带来正贡献</li>');
+            }
+            if (attribution.allocation_effect > 0) {
+                strengthsList.append('<li class="list-group-item">资产配置策略有效，优于基准配置</li>');
+            }
+            if (attribution.total_excess_return > 1) {
+                strengthsList.append('<li class="list-group-item">整体绩效表现优秀，超额收益显著</li>');
+            }
+            
+            // 生成改进空间
+            if (attribution.selection_effect < 0) {
+                improvementsList.append('<li class="list-group-item">证券选择能力有待提升，当前为负贡献</li>');
+            }
+            if (attribution.allocation_effect < 0) {
+                improvementsList.append('<li class="list-group-item">资产配置策略需要调整，低于基准表现</li>');
+            }
+            
+            // 因子分析洞察
+            const factorContributions = factorAttribution.factor_contributions;
+            Object.keys(factorContributions).forEach(factor => {
+                if (factorContributions[factor] > 0.5) {
+                    strengthsList.append(`<li class="list-group-item">${factor}因子暴露为组合带来显著正贡献</li>`);
+                } else if (factorContributions[factor] < -0.5) {
+                    improvementsList.append(`<li class="list-group-item">${factor}因子暴露为组合带来负贡献，建议调整</li>`);
+                }
+            });
+            
+            // 默认洞察
+            if (strengthsList.children().length === 0) {
+                strengthsList.append('<li class="list-group-item">组合整体表现均衡，无明显优势</li>');
+            }
+            if (improvementsList.children().length === 0) {
+                improvementsList.append('<li class="list-group-item">组合各方面表现良好，建议保持当前策略</li>');
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略回测 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        .template-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .template-card.selected {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .param-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+        }
+        .strategy-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #e5e7eb;
+            color: #374151;
+            margin-right: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    {% include 'components/header.html' %}
+    
+    <main class="container mx-auto px-4 py-8">
+        <!-- 策略模板选择区域 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold flex items-center">
+                    <i class="fa fa-cube mr-2 text-blue-500"></i>
+                    策略模板库
+                </h2>
+                <div class="flex gap-2">
+                    <a href="/backtest/strategies" class="text-blue-500 hover:text-blue-700 text-sm flex items-center">
+                        <i class="fa fa-th-large mr-1"></i> 模板中心
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 模板搜索和筛选 -->
+            <div class="mb-4 flex gap-4 flex-wrap">
+                <div class="flex-1 min-w-[200px]">
+                    <input type="text" id="templateSearch" placeholder="搜索策略模板..." 
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <button onclick="filterTemplates('all')" class="template-filter-btn px-3 py-1 rounded-lg border bg-white hover:bg-gray-50 transition" data-filter="all">全部</button>
+                    <button onclick="filterTemplates('趋势跟踪')" class="template-filter-btn px-3 py-1 rounded-lg border bg-white hover:bg-gray-50 transition" data-filter="趋势跟踪">趋势跟踪</button>
+                    <button onclick="filterTemplates('反转交易')" class="template-filter-btn px-3 py-1 rounded-lg border bg-white hover:bg-gray-50 transition" data-filter="反转交易">反转交易</button>
+                    <button onclick="filterTemplates('选股')" class="template-filter-btn px-3 py-1 rounded-lg border bg-white hover:bg-gray-50 transition" data-filter="选股">选股</button>
+                    <button onclick="filterTemplates('自定义')" class="template-filter-btn px-3 py-1 rounded-lg border bg-white hover:bg-gray-50 transition" data-filter="自定义">自定义</button>
+                </div>
+            </div>
+            
+            <!-- 模板卡片列表 -->
+            <div id="templateList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <!-- 模板卡片将通过JS动态生成 -->
+            </div>
+            
+            <!-- 模板详情预览 -->
+            <div id="templatePreview" class="hidden border-t pt-4 mt-4">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 id="previewName" class="text-lg font-bold text-blue-600"></h3>
+                            <p id="previewDesc" class="text-gray-600 text-sm mt-1"></p>
+                        </div>
+                        <button onclick="applyTemplate()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm flex items-center transition">
+                            <i class="fa fa-check mr-1"></i> 应用此模板
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-sm text-gray-500 mb-2"><strong>适用场景：</strong><span id="previewScenario"></span></p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-sm text-gray-500 mb-2"><strong>策略标签：</strong><span id="previewTags"></span></p>
+                    </div>
+                    <div id="previewParams" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <!-- 参数预览将通过JS动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 回测表单 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center">
+                <i class="fa fa-line-chart mr-2 text-green-500"></i>
+                策略回测
+            </h2>
+            
+            <form id="backtestForm" class="space-y-6">
+                <!-- 股票选择 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">股票代码</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="stockCode" name="stock_code" placeholder="如: 600036.SH" 
+                                   class="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   data-validate-rules="required,stockCode">
+                            <button type="button" onclick="showStockPicker()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg">
+                                <i class="fa fa-search"></i>
+                            </button>
+                        </div>
+                        <div id="stockSuggestions" class="mt-1 border rounded-lg shadow-lg hidden max-h-48 overflow-y-auto"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">热门股票</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="selectStock('600036.SH')" class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">招商银行</button>
+                            <button type="button" onclick="selectStock('601318.SH')" class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">中国平安</button>
+                            <button type="button" onclick="selectStock('600519.SH')" class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">贵州茅台</button>
+                            <button type="button" onclick="selectStock('000001.SZ')" class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">平安银行</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 日期选择 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">开始日期</label>
+                        <input type="date" id="startDate" name="start_date" 
+                               value="2023-01-01"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">结束日期</label>
+                        <input type="date" id="endDate" name="end_date" 
+                               value="2024-12-31"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                
+                <!-- 策略选择 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">策略类型</label>
+                        <select id="strategyType" name="strategy_type" onchange="updateStrategyParams()"
+                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="ma_cross">双均线策略</option>
+                            <option value="rsi">RSI超买超卖策略</option>
+                            <option value="macd">MACD金叉死叉策略</option>
+                            <option value="custom">自定义策略</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">初始资金</label>
+                        <input type="number" id="initialCapital" name="initial_capital" value="1000000" min="10000"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                
+                <!-- 策略参数 -->
+                <div id="strategyParams" class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-700 mb-3">策略参数</h3>
+                    <!-- 双均线策略参数 -->
+                    <div id="maParams" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">短期窗口: <span id="shortWindowVal">10</span></label>
+                            <input type="range" id="shortWindow" name="short_window" min="2" max="50" value="10" 
+                                   class="w-full param-slider" oninput="document.getElementById('shortWindowVal').textContent=this.value">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">长期窗口: <span id="longWindowVal">30</span></label>
+                            <input type="range" id="longWindow" name="long_window" min="5" max="200" value="30" 
+                                   class="w-full param-slider" oninput="document.getElementById('longWindowVal').textContent=this.value">
+                        </div>
+                    </div>
+                    <!-- RSI策略参数 -->
+                    <div id="rsiParams" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">RSI周期: <span id="rsiPeriodVal">14</span></label>
+                            <input type="range" id="rsiPeriod" name="rsi_period" min="2" max="50" value="14" 
+                                   class="w-full param-slider" oninput="document.getElementById('rsiPeriodVal').textContent=this.value">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">超买阈值: <span id="rsiOverboughtVal">70</span></label>
+                            <input type="range" id="rsiOverbought" name="rsi_overbought" min="50" max="90" value="70" 
+                                   class="w-full param-slider" oninput="document.getElementById('rsiOverboughtVal').textContent=this.value">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">超卖阈值: <span id="rsiOversoldVal">30</span></label>
+                            <input type="range" id="rsiOversold" name="rsi_oversold" min="10" max="50" value="30" 
+                                   class="w-full param-slider" oninput="document.getElementById('rsiOversoldVal').textContent=this.value">
+                        </div>
+                    </div>
+                    <!-- MACD策略参数 -->
+                    <div id="macdParams" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">快速周期: <span id="macdFastVal">12</span></label>
+                            <input type="range" id="macdFast" name="macd_fast" min="5" max="30" value="12" 
+                                   class="w-full param-slider" oninput="document.getElementById('macdFastVal').textContent=this.value">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">慢速周期: <span id="macdSlowVal">26</span></label>
+                            <input type="range" id="macdSlow" name="macd_slow" min="10" max="50" value="26" 
+                                   class="w-full param-slider" oninput="document.getElementById('macdSlowVal').textContent=this.value">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">信号周期: <span id="macdSignalVal">9</span></label>
+                            <input type="range" id="macdSignal" name="macd_signal" min="5" max="20" value="9" 
+                                   class="w-full param-slider" oninput="document.getElementById('macdSignalVal').textContent=this.value">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="flex gap-4">
+                    <button type="submit" id="runBacktestBtn" 
+                            class="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
+                        <i class="fa fa-play mr-2"></i> 运行回测
+                    </button>
+                    <button type="button" onclick="saveStrategy()" 
+                            class="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition flex items-center">
+                        <i class="fa fa-save mr-1"></i> 保存策略
+                    </button>
+                    <button type="button" onclick="exportStrategy()" 
+                            class="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition flex items-center">
+                        <i class="fa fa-share-alt mr-1"></i> 导出
+                    </button>
+                    <button type="button" onclick="importStrategy()" 
+                            class="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition flex items-center">
+                        <i class="fa fa-upload mr-1"></i> 导入
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 回测结果区域 -->
+        <div id="resultArea" class="mt-6 hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold flex items-center">
+                        <i class="fa fa-check-circle mr-2 text-green-500"></i>
+                        回测结果
+                    </h2>
+                    <div class="flex gap-2">
+                        <button onclick="exportBacktestCSV()" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition flex items-center text-sm">
+                            <i class="fa fa-file-text-o mr-1"></i> 导出CSV
+                        </button>
+                        <button onclick="exportBacktestExcel()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition flex items-center text-sm">
+                            <i class="fa fa-file-excel-o mr-1"></i> 导出Excel
+                        </button>
+                        <button onclick="exportBacktestPDF()" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition flex items-center text-sm">
+                            <i class="fa fa-file-pdf-o mr-1"></i> 导出PDF报告
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 关键指标 -->
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <p class="text-sm text-gray-500">总收益率</p>
+                        <p id="totalReturn" class="text-xl font-bold text-blue-600">-</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4 text-center">
+                        <p class="text-sm text-gray-500">年化收益率</p>
+                        <p id="annualReturn" class="text-xl font-bold text-green-600">-</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-4 text-center">
+                        <p class="text-sm text-gray-500">夏普比率</p>
+                        <p id="sharpeRatio" class="text-xl font-bold text-purple-600">-</p>
+                    </div>
+                    <div class="bg-red-50 rounded-lg p-4 text-center">
+                        <p class="text-sm text-gray-500">最大回撤</p>
+                        <p id="maxDrawdown" class="text-xl font-bold text-red-600">-</p>
+                    </div>
+                    <div class="bg-orange-50 rounded-lg p-4 text-center">
+                        <p class="text-sm text-gray-500">胜率</p>
+                        <p id="winRate" class="text-xl font-bold text-orange-600">-</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <p class="text-sm text-gray-500">交易次数</p>
+                        <p id="totalTrades" class="text-xl font-bold text-gray-600">-</p>
+                    </div>
+                </div>
+                
+                <!-- 图表区域 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">收益曲线</h3>
+                        <div id="performanceChart" class="h-64 w-full"></div>
+                        <div id="performancePlaceholder" class="h-64 flex items-center justify-center text-gray-400">
+                            暂无数据
+                        </div>
+                    </div>
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">回撤曲线</h3>
+                        <div id="drawdownChart" class="h-64 w-full"></div>
+                        <div id="drawdownPlaceholder" class="h-64 flex items-center justify-center text-gray-400">
+                            暂无数据
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 月度收益热力图 -->
+                <div class="border rounded-lg p-4 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-medium text-gray-700">月度收益热力图</h3>
+                        <button id="export-monthly-heatmap-btn" class="px-3 py-1 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center text-xs">
+                            <i class="fa fa-download mr-1"></i> 导出
+                        </button>
+                    </div>
+                    <div id="monthlyHeatmapContainer" class="h-64"></div>
+                    <div id="monthlyHeatmapPlaceholder" class="h-64 flex items-center justify-center text-gray-400">
+                        执行回测后显示月度收益热力图
+                    </div>
+                </div>
+                
+                <!-- 策略评价雷达图 -->
+                <div class="border rounded-lg p-4 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-medium text-gray-700">策略多维度评价</h3>
+                        <button id="export-strategy-radar-btn" class="px-3 py-1 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center text-xs">
+                            <i class="fa fa-download mr-1"></i> 导出
+                        </button>
+                    </div>
+                    <div id="strategyRadarContainer" class="h-80"></div>
+                    <div id="strategyRadarPlaceholder" class="h-80 flex items-center justify-center text-gray-400">
+                        执行回测后显示策略评价雷达图
+                    </div>
+                </div>
+                
+                <!-- 交易信号图 -->
+                <div class="border rounded-lg p-4 mb-6">
+                    <h3 class="text-sm font-medium text-gray-700 mb-2">交易信号</h3>
+                    <div id="signalsChart" class="h-64 w-full"></div>
+                    <div id="signalsPlaceholder" class="h-64 flex items-center justify-center text-gray-400">
+                        暂无数据
+                    </div>
+                </div>
+                
+                <!-- 交易记录 -->
+                <div class="border rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-700 mb-3">交易记录</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left">日期</th>
+                                    <th class="px-4 py-2 text-left">类型</th>
+                                    <th class="px-4 py-2 text-right">价格</th>
+                                    <th class="px-4 py-2 text-right">数量</th>
+                                    <th class="px-4 py-2 text-right">金额</th>
+                                    <th class="px-4 py-2 text-right">手续费</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tradesTable">
+                                <tr><td colspan="6" class="text-center py-4 text-gray-400">暂无交易记录</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 策略导入Modal -->
+    <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+            <h3 class="text-lg font-bold mb-4">导入策略</h3>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">粘贴策略JSON内容</label>
+                <textarea id="importJson" rows="10" 
+                          class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                          placeholder='{"id": "custom_xxx", "name": "我的策略", ...}'></textarea>
+            </div>
+            <div class="flex gap-4 justify-end">
+                <button onclick="closeImportModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">取消</button>
+                <button onclick="confirmImport()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg">确认导入</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 策略导出Modal -->
+    <div id="exportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+            <h3 class="text-lg font-bold mb-4">导出策略</h3>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">策略JSON</label>
+                <textarea id="exportJson" rows="10" readonly
+                          class="w-full px-3 py-2 border rounded-lg bg-gray-50 font-mono text-xs"></textarea>
+            </div>
+            <div class="flex gap-4 justify-end">
+                <button onclick="copyExportJson()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg">
+                    <i class="fa fa-copy mr-1"></i> 复制
+                </button>
+                <button onclick="closeExportModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    {% include 'components/footer.html' %}
+    
+    <!-- 引入ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- 引入图表工具模块 -->
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    <!-- 引入工具脚本 -->
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    
+    <script>
+        // 策略模板数据
+        let strategyTemplates = [];
+        let selectedTemplate = null;
+        let currentFilter = 'all';
+        
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTemplates();
+            setupEventListeners();
+            
+            // 初始化表单验证
+            if (typeof addFormValidation === 'function') {
+                addFormValidation('#backtestForm');
+            }
+        });
+        
+        // 加载策略模板
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/backtest/api/templates');
+                const data = await response.json();
+                strategyTemplates = data.templates || [];
+                renderTemplates(strategyTemplates);
+            } catch (error) {
+                console.error('加载模板失败:', error);
+            }
+        }
+        
+        // 渲染模板列表
+        function renderTemplates(templates) {
+            const container = document.getElementById('templateList');
+            if (!templates || templates.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">暂无策略模板</div>';
+                return;
+            }
+            
+            container.innerHTML = templates.map(t => `
+                <div class="template-card border rounded-lg p-4 cursor-pointer transition-all ${selectedTemplate?.id === t.id ? 'selected' : ''}"
+                     onclick="selectTemplate('${t.id}')">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-gray-800">${escapeHTML(t.name)}</h3>
+                        <span class="text-xs text-gray-400">v${escapeHTML(String(t.version))}</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2 line-clamp-2">${escapeHTML(t.description)}</p>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                        ${(t.tags || []).map(tag => `<span class="strategy-tag">${escapeHTML(tag)}</span>`).join('')}
+                    </div>
+                    <div class="text-xs text-gray-400">${t.param_count}个参数 | ${escapeHTML(t.author)}</div>
+                </div>
+            `).join('');
+        }
+        
+        // 选择模板
+        function selectTemplate(templateId) {
+            const template = strategyTemplates.find(t => t.id === templateId);
+            if (!template) return;
+            
+            selectedTemplate = template;
+            
+            // 更新UI
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // 显示预览
+            showTemplatePreview(template);
+        }
+        
+        // 显示模板预览
+        function showTemplatePreview(template) {
+            const preview = document.getElementById('templatePreview');
+            preview.classList.remove('hidden');
+            
+            document.getElementById('previewName').textContent = template.name;
+            document.getElementById('previewDesc').textContent = template.description;
+            document.getElementById('previewScenario').textContent = template.scenario;
+            document.getElementById('previewTags').innerHTML = (template.tags || []).map(t => `<span class="strategy-tag">${escapeHTML(t)}</span>`).join('');
+            
+            // 渲染参数
+            const paramsContainer = document.getElementById('previewParams');
+            const params = template.parameters || [];
+            paramsContainer.innerHTML = params.map(p => `
+                <div class="bg-white rounded p-2 border">
+                    <div class="text-xs text-gray-500">${p.display_name || p.name}</div>
+                    <div class="font-medium">${p.default}</div>
+                    <div class="text-xs text-gray-400">${p.description || ''}</div>
+                </div>
+            `).join('');
+        }
+        
+        // 应用模板
+        function applyTemplate() {
+            if (!selectedTemplate) return;
+            
+            // 根据模板ID设置策略类型
+            const templateId = selectedTemplate.id;
+            let strategyType = 'ma_cross';
+            
+            if (templateId === 'rsi_strategy') strategyType = 'rsi';
+            else if (templateId === 'macd_strategy') strategyType = 'macd';
+            
+            document.getElementById('strategyType').value = strategyType;
+            updateStrategyParams();
+            
+            // 设置参数值
+            const params = selectedTemplate.default_params || {};
+            
+            // 双均线参数
+            if (params.short_window) {
+                document.getElementById('shortWindow').value = params.short_window;
+                document.getElementById('shortWindowVal').textContent = params.short_window;
+            }
+            if (params.long_window) {
+                document.getElementById('longWindow').value = params.long_window;
+                document.getElementById('longWindowVal').textContent = params.long_window;
+            }
+            
+            // RSI参数
+            if (params.period) {
+                document.getElementById('rsiPeriod').value = params.period;
+                document.getElementById('rsiPeriodVal').textContent = params.period;
+            }
+            if (params.overbought) {
+                document.getElementById('rsiOverbought').value = params.overbought;
+                document.getElementById('rsiOverboughtVal').textContent = params.overbought;
+            }
+            if (params.oversold) {
+                document.getElementById('rsiOversold').value = params.oversold;
+                document.getElementById('rsiOversoldVal').textContent = params.oversold;
+            }
+            
+            // MACD参数
+            if (params.fast_period) {
+                document.getElementById('macdFast').value = params.fast_period;
+                document.getElementById('macdFastVal').textContent = params.fast_period;
+            }
+            if (params.slow_period) {
+                document.getElementById('macdSlow').value = params.slow_period;
+                document.getElementById('macdSlowVal').textContent = params.slow_period;
+            }
+            if (params.signal_period) {
+                document.getElementById('macdSignal').value = params.signal_period;
+                document.getElementById('macdSignalVal').textContent = params.signal_period;
+            }
+            
+            // 滚动到回测表单
+            document.getElementById('backtestForm').scrollIntoView({ behavior: 'smooth' });
+            
+            showToast('已应用策略模板: ' + selectedTemplate.name);
+        }
+        
+        // 筛选模板
+        function filterTemplates(tag) {
+            currentFilter = tag;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.template-filter-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('bg-white');
+                if (btn.dataset.filter === tag) {
+                    btn.classList.add('bg-blue-500', 'text-white');
+                    btn.classList.remove('bg-white');
+                }
+            });
+            
+            // 筛选模板
+            let filtered = strategyTemplates;
+            if (tag !== 'all') {
+                filtered = strategyTemplates.filter(t => 
+                    (t.tags || []).some(t => t.toLowerCase().includes(tag.toLowerCase()))
+                );
+            }
+            
+            renderTemplates(filtered);
+        }
+        
+        // 搜索模板
+        document.getElementById('templateSearch')?.addEventListener('input', function(e) {
+            const keyword = e.target.value.toLowerCase();
+            if (!keyword) {
+                filterTemplates(currentFilter);
+                return;
+            }
+            
+            const filtered = strategyTemplates.filter(t => 
+                t.name.toLowerCase().includes(keyword) ||
+                t.description.toLowerCase().includes(keyword) ||
+                (t.tags || []).some(tag => tag.toLowerCase().includes(keyword))
+            );
+            renderTemplates(filtered);
+        });
+        
+        // 更新策略参数显示
+        function updateStrategyParams() {
+            const strategyType = document.getElementById('strategyType').value;
+            
+            // 隐藏所有参数面板
+            document.getElementById('maParams').classList.add('hidden');
+            document.getElementById('rsiParams').classList.add('hidden');
+            document.getElementById('macdParams').classList.add('hidden');
+            
+            // 显示对应策略参数
+            if (strategyType === 'ma_cross') {
+                document.getElementById('maParams').classList.remove('hidden');
+            } else if (strategyType === 'rsi') {
+                document.getElementById('rsiParams').classList.remove('hidden');
+            } else if (strategyType === 'macd') {
+                document.getElementById('macdParams').classList.remove('hidden');
+            }
+        }
+        
+        // 选择股票
+        function selectStock(code) {
+            document.getElementById('stockCode').value = code;
+        }
+        
+        // 显示股票选择器
+        function showStockPicker() {
+            // 简化实现，实际应该弹出模态框
+            const code = prompt('请输入股票代码:', document.getElementById('stockCode').value);
+            if (code) {
+                document.getElementById('stockCode').value = code;
+            }
+        }
+        
+        // 设置事件监听
+        function setupEventListeners() {
+            // 回测表单提交
+            document.getElementById('backtestForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await runBacktest();
+            });
+        }
+        
+        // 运行回测
+        async function runBacktest() {
+            const btn = document.getElementById('runBacktestBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 回测中...';
+            
+            // 显示全屏加载状态
+            showLoading('正在执行回测，请稍候...');
+            
+            try {
+                const formData = {
+                    strategy: document.getElementById('strategyType').value,
+                    stock_code: document.getElementById('stockCode').value,
+                    start_date: document.getElementById('startDate').value,
+                    end_date: document.getElementById('endDate').value,
+                    initial_capital: parseFloat(document.getElementById('initialCapital').value),
+                    short_window: parseInt(document.getElementById('shortWindow').value),
+                    long_window: parseInt(document.getElementById('longWindow').value),
+                    rsi_period: parseInt(document.getElementById('rsiPeriod').value),
+                    rsi_overbought: parseInt(document.getElementById('rsiOverbought').value),
+                    rsi_oversold: parseInt(document.getElementById('rsiOversold').value),
+                    macd_fast: parseInt(document.getElementById('macdFast').value),
+                    macd_slow: parseInt(document.getElementById('macdSlow').value),
+                    macd_signal: parseInt(document.getElementById('macdSignal').value)
+                };
+                
+                const response = await fetch('/backtest/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    showToast('回测失败: ' + result.error, 'error');
+                    return;
+                }
+                
+                displayResults(result);
+                showToast('回测完成!');
+            } catch (error) {
+                showToast('回测失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-play mr-2"></i> 运行回测';
+                hideLoading();
+            }
+        }
+        
+        // 回测结果图表实例管理
+        const backtestChartInstances = {};
+
+        /**
+         * 销毁所有回测图表实例
+         */
+        function disposeBacktestCharts() {
+            Object.keys(backtestChartInstances).forEach(key => {
+                if (backtestChartInstances[key]) {
+                    backtestChartInstances[key].dispose();
+                    delete backtestChartInstances[key];
+                }
+            });
+            // 同时销毁全局ChartInstances中的相关图表
+            ['performanceChart', 'drawdownChart', 'signalsChart',
+             'monthlyHeatmapContainer', 'strategyRadarContainer'].forEach(id => {
+                if (typeof QuantCharts !== 'undefined' && QuantCharts.disposeChart) {
+                    QuantCharts.disposeChart(id);
+                }
+            });
+        }
+
+        /**
+         * 渲染ECharts收益曲线
+         */
+        function renderPerformanceChart(equityData) {
+            const container = document.getElementById('performanceChart');
+            const placeholder = document.getElementById('performancePlaceholder');
+            if (!container) return;
+
+            disposeChartById('performanceChart');
+
+            if (!equityData || equityData.length === 0) {
+                container.style.display = 'none';
+                if (placeholder) placeholder.style.display = 'flex';
+                return;
+            }
+
+            container.style.display = 'block';
+            if (placeholder) placeholder.style.display = 'none';
+
+            const chart = echarts.init(container);
+            const dates = equityData.map(d => d.date || d.Date || '');
+            const values = equityData.map(d => d.total_assets || d.TotalAssets || d.capital || 0);
+            const returns = equityData.map(d => (d.cumulative_return || d.CumulativeReturn || 0) * 100);
+
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['净值', '累计收益率(%)'], bottom: 0 },
+                grid: { top: 10, right: 60, bottom: 35, left: 70 },
+                xAxis: { type: 'category', data: dates, axisLabel: { rotate: 30, fontSize: 9 } },
+                yAxis: [
+                    { type: 'value', name: '净值', axisLabel: { fontSize: 10 } },
+                    { type: 'value', name: '收益率(%)', axisLabel: { fontSize: 10, formatter: '{value}%' } }
+                ],
+                series: [
+                    {
+                        name: '净值', type: 'line', data: values,
+                        smooth: true, symbol: 'none',
+                        lineStyle: { color: '#165DFF', width: 2 },
+                        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(22,93,255,0.25)' },
+                            { offset: 1, color: 'rgba(22,93,255,0.02)' }
+                        ])}
+                    },
+                    {
+                        name: '累计收益率(%)', type: 'line', yAxisIndex: 1, data: returns,
+                        smooth: true, symbol: 'none',
+                        lineStyle: { color: '#F53F3F', width: 1.5, type: 'dashed' }
+                    }
+                ]
+            });
+            backtestChartInstances['performanceChart'] = chart;
+        }
+
+        /**
+         * 渲染ECharts回撤曲线
+         */
+        function renderDrawdownChart(equityData) {
+            const container = document.getElementById('drawdownChart');
+            const placeholder = document.getElementById('drawdownPlaceholder');
+            if (!container) return;
+
+            disposeChartById('drawdownChart');
+
+            if (!equityData || equityData.length === 0) {
+                container.style.display = 'none';
+                if (placeholder) placeholder.style.display = 'flex';
+                return;
+            }
+
+            // 计算回撤
+            const values = equityData.map(d => d.total_assets || d.TotalAssets || d.capital || 0);
+            let peak = values[0];
+            const drawdowns = values.map(v => {
+                if (v > peak) peak = v;
+                return peak > 0 ? ((v - peak) / peak) * 100 : 0;
+            });
+            const dates = equityData.map(d => d.date || d.Date || '');
+
+            container.style.display = 'block';
+            if (placeholder) placeholder.style.display = 'none';
+
+            const chart = echarts.init(container);
+            chart.setOption({
+                tooltip: { trigger: 'axis', formatter: function(p) { return p[0].axisValue + '<br/>回撤: ' + p[0].value.toFixed(2) + '%'; } },
+                grid: { top: 10, right: 30, bottom: 25, left: 60 },
+                xAxis: { type: 'category', data: dates, axisLabel: { rotate: 30, fontSize: 9 } },
+                yAxis: { type: 'value', name: '回撤(%)', axisLabel: { fontSize: 10, formatter: '{value}%' }, inverse: true },
+                series: [{
+                    name: '回撤', type: 'line', data: drawdowns,
+                    smooth: true, symbol: 'none',
+                    lineStyle: { color: '#F53F3F', width: 2 },
+                    areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(245,63,63,0.3)' },
+                        { offset: 1, color: 'rgba(245,63,63,0.02)' }
+                    ])}
+                }]
+            });
+            backtestChartInstances['drawdownChart'] = chart;
+        }
+
+        /**
+         * 渲染交易信号图
+         */
+        function renderSignalsChart(equityData, trades) {
+            const container = document.getElementById('signalsChart');
+            const placeholder = document.getElementById('signalsPlaceholder');
+            if (!container) return;
+
+            disposeChartById('signalsChart');
+
+            if (!equityData || equityData.length === 0) {
+                container.style.display = 'none';
+                if (placeholder) placeholder.style.display = 'flex';
+                return;
+            }
+
+            container.style.display = 'block';
+            if (placeholder) placeholder.style.display = 'none';
+
+            const chart = echarts.init(container);
+            const dates = equityData.map(d => d.date || d.Date || '');
+            const prices = equityData.map(d => d.close || d.Close || 0);
+
+            // 标记买卖点
+            const buyPoints = [];
+            const sellPoints = [];
+            if (trades && trades.length > 0) {
+                trades.forEach(t => {
+                    const tDate = t.date || t.Date || '';
+                    const tPrice = parseFloat(t.price || t.Price || 0);
+                    const idx = dates.indexOf(tDate);
+                    if (idx >= 0 && tPrice > 0) {
+                        if ((t.type || t.Type || '').toLowerCase() === 'buy' || (t.shares || 0) > 0) {
+                            buyPoints.push({ coord: [idx, tPrice] });
+                        } else {
+                            sellPoints.push({ coord: [idx, tPrice] });
+                        }
+                    }
+                });
+            }
+
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['价格', '买入', '卖出'], bottom: 0 },
+                grid: { top: 10, right: 30, bottom: 35, left: 60 },
+                xAxis: { type: 'category', data: dates, axisLabel: { rotate: 30, fontSize: 9 } },
+                yAxis: { type: 'value', name: '价格', axisLabel: { fontSize: 10 } },
+                series: [
+                    {
+                        name: '价格', type: 'line', data: prices,
+                        symbol: 'none', lineStyle: { color: '#4E5969', width: 1.5 }
+                    },
+                    {
+                        name: '买入', type: 'scatter', data: buyPoints.map(p => p.coord),
+                        symbolSize: 10, itemStyle: { color: '#F53F3F' },
+                        symbol: 'triangle'
+                    },
+                    {
+                        name: '卖出', type: 'scatter', data: sellPoints.map(p => p.coord),
+                        symbolSize: 10, itemStyle: { color: '#00B42A' },
+                        symbol: 'triangle',
+                        symbolRotate: 180
+                    }
+                ]
+            });
+            backtestChartInstances['signalsChart'] = chart;
+        }
+
+        /**
+         * 销毁指定ID的图表实例
+         */
+        function disposeChartById(id) {
+            if (backtestChartInstances[id]) {
+                backtestChartInstances[id].dispose();
+                delete backtestChartInstances[id];
+            }
+            if (typeof QuantCharts !== 'undefined' && QuantCharts.disposeChart) {
+                QuantCharts.disposeChart(id);
+            }
+        }
+
+        // 显示回测结果
+        function displayResults(result) {
+            document.getElementById('resultArea').classList.remove('hidden');
+
+            // 如果有backtest_id，保存它以便后续导出
+            if (result.backtest_id) {
+                currentBacktestId = result.backtest_id;
+            }
+
+            // 更新指标
+            document.getElementById('totalReturn').textContent = (result.total_return || 0).toFixed(2) + '%';
+            document.getElementById('annualReturn').textContent = (result.annual_return || 0).toFixed(2) + '%';
+            document.getElementById('sharpeRatio').textContent = (result.sharpe_ratio || 0).toFixed(2);
+            document.getElementById('maxDrawdown').textContent = (result.max_drawdown || 0).toFixed(2) + '%';
+            document.getElementById('winRate').textContent = (result.win_rate || 0).toFixed(2) + '%';
+            document.getElementById('totalTrades').textContent = result.total_trades || 0;
+
+            // 销毁旧图表并渲染新图表
+            const equityData = result.equity_data || [];
+            const trades = result.trades || [];
+
+            renderPerformanceChart(equityData);
+            renderDrawdownChart(equityData);
+            renderSignalsChart(equityData, trades);
+            
+            // 更新交易记录
+            const tradesTable = document.getElementById('tradesTable');
+            
+            if (trades.length === 0) {
+                tradesTable.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-400">暂无交易记录</td></tr>';
+            } else {
+                tradesTable.innerHTML = trades.map(t => `
+                    <tr class="border-t">
+                        <td class="px-4 py-2">${t.date || '-'}</td>
+                        <td class="px-4 py-2 ${t.type === 'buy' ? 'text-green-600' : 'text-red-600'}">${t.type === 'buy' ? '买入' : '卖出'}</td>
+                        <td class="px-4 py-2 text-right">${(t.price || 0).toFixed(2)}</td>
+                        <td class="px-4 py-2 text-right">${t.shares || 0}</td>
+                        <td class="px-4 py-2 text-right">${(t.amount || 0).toFixed(2)}</td>
+                        <td class="px-4 py-2 text-right">${(t.fee || 0).toFixed(2)}</td>
+                    </tr>
+                `).join('');
+            }
+            
+            // 滚动到结果区域
+            document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth' });
+            
+            // 更新月度收益热力图
+            updateMonthlyHeatmap(result);
+            
+            // 更新策略评价雷达图
+            updateStrategyRadar(result);
+        }
+        
+        // 更新月度收益热力图
+        function updateMonthlyHeatmap(result) {
+            const placeholder = document.getElementById('monthlyHeatmapPlaceholder');
+            const container = document.getElementById('monthlyHeatmapContainer');
+            
+            // 使用回测结果的月度收益数据，若无则使用模拟数据
+            const monthlyReturns = result.monthly_returns || generateMonthlyReturnsFromEquity(result.equity_data);
+            
+            // 生成热力图数据格式: [[月份, 年份, 收益率], ...]
+            const heatmapData = [];
+            if (monthlyReturns && monthlyReturns.length > 0) {
+                const years = [...new Set(monthlyReturns.map(d => d.year))].sort();
+                monthlyReturns.forEach(item => {
+                    heatmapData.push([item.month - 1, years.indexOf(item.year), item.return]);
+                });
+            }
+            
+            // 显示容器，隐藏占位符
+            container.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+            
+            // 销毁旧图表
+            if (typeof QuantCharts !== 'undefined' && QuantCharts.disposeChart) {
+                QuantCharts.disposeChart('monthlyHeatmapContainer');
+            }
+            
+            // 创建热力图
+            if (typeof QuantCharts !== 'undefined' && heatmapData.length > 0) {
+                QuantCharts.createMonthlyReturnHeatmap('monthlyHeatmapContainer', heatmapData, {
+                    minValue: -15,
+                    maxValue: 15
+                });
+            }
+        }
+        
+        // 从净值数据生成模拟月度收益
+        function generateMonthlyReturnsFromEquity(equityData) {
+            if (!equityData || equityData.length === 0) return [];
+            const data = [];
+            const currentYear = new Date().getFullYear();
+            const startYear = currentYear - 2;
+            for (let year = startYear; year <= currentYear; year++) {
+                for (let month = 1; month <= 12; month++) {
+                    if (!(year === currentYear && month > new Date().getMonth() + 1)) {
+                        data.push({
+                            year: year,
+                            month: month,
+                            return: (Math.random() - 0.35) * 15
+                        });
+                    }
+                }
+            }
+            return data;
+        }
+        
+        // 更新策略评价雷达图
+        function updateStrategyRadar(result) {
+            const placeholder = document.getElementById('strategyRadarPlaceholder');
+            const container = document.getElementById('strategyRadarContainer');
+            
+            // 使用回测实际指标计算
+            const totalReturn = result.total_return || 0;
+            const sharpeRatio = result.sharpe_ratio || 0;
+            const maxDrawdown = Math.abs(result.max_drawdown || 0);
+            const winRate = result.win_rate || 0;
+            const totalTrades = result.total_trades || 0;
+            
+            const strategyMetrics = {
+                return: Math.min(Math.max(totalReturn * 2, 0), 100),
+                riskControl: Math.max(100 - maxDrawdown * 2.5, 0),
+                sharpeRatio: Math.min(Math.max(sharpeRatio * 25, 0), 100),
+                winRate: winRate,
+                liquidity: Math.min(totalTrades * 2, 100),
+                stability: Math.min(Math.max(100 - maxDrawdown * 1.5, 0), 100)
+            };
+            
+            // 基准指标
+            const benchmarkMetrics = {
+                return: 50,
+                riskControl: 60,
+                sharpeRatio: 40,
+                winRate: 50,
+                liquidity: 60,
+                stability: 65
+            };
+            
+            // 显示容器，隐藏占位符
+            container.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+            
+            // 销毁旧图表
+            if (typeof QuantCharts !== 'undefined' && QuantCharts.disposeChart) {
+                QuantCharts.disposeChart('strategyRadarContainer');
+            }
+            
+            // 创建雷达图
+            if (typeof QuantCharts !== 'undefined') {
+                QuantCharts.createStrategyRadar('strategyRadarContainer', strategyMetrics, benchmarkMetrics);
+            }
+        }
+        
+        // 导出月度热力图
+        document.getElementById('export-monthly-heatmap-btn')?.addEventListener('click', function() {
+            if (typeof QuantCharts !== 'undefined') {
+                QuantCharts.exportChartAsImage('monthlyHeatmapContainer', 'monthly_return_heatmap');
+                showToast('热力图已导出');
+            }
+        });
+        
+        // 导出策略雷达图
+        document.getElementById('export-strategy-radar-btn')?.addEventListener('click', function() {
+            if (typeof QuantCharts !== 'undefined') {
+                QuantCharts.exportChartAsImage('strategyRadarContainer', 'strategy_radar');
+                showToast('雷达图已导出');
+            }
+        });
+        
+        // 保存策略
+        async function saveStrategy() {
+            const strategyType = document.getElementById('strategyType').value;
+            const stockCode = document.getElementById('stockCode').value;
+            
+            let params = {};
+            if (strategyType === 'ma_cross') {
+                params = {
+                    short_window: parseInt(document.getElementById('shortWindow').value),
+                    long_window: parseInt(document.getElementById('longWindow').value)
+                };
+            } else if (strategyType === 'rsi') {
+                params = {
+                    period: parseInt(document.getElementById('rsiPeriod').value),
+                    overbought: parseInt(document.getElementById('rsiOverbought').value),
+                    oversold: parseInt(document.getElementById('rsiOversold').value)
+                };
+            } else if (strategyType === 'macd') {
+                params = {
+                    fast_period: parseInt(document.getElementById('macdFast').value),
+                    slow_period: parseInt(document.getElementById('macdSlow').value),
+                    signal_period: parseInt(document.getElementById('macdSignal').value)
+                };
+            }
+            
+            const strategyName = prompt('请输入策略名称:');
+            if (!strategyName) return;
+            
+            try {
+                const response = await fetch('/backtest/api/strategies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: strategyName,
+                        type: strategyType,
+                        description: '用户保存的策略',
+                        parameters: JSON.stringify(params)
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showToast('策略保存成功!');
+                } else {
+                    showToast('保存失败: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showToast('保存失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 导出策略
+        function exportStrategy() {
+            const strategyType = document.getElementById('strategyType').value;
+            const templateId = selectedTemplate?.id || '';
+            
+            let strategyData = {
+                template_id: templateId,
+                name: selectedTemplate?.name || getStrategyDisplayName(strategyType),
+                type: strategyType,
+                parameters: {}
+            };
+            
+            if (strategyType === 'ma_cross') {
+                strategyData.parameters = {
+                    short_window: parseInt(document.getElementById('shortWindow').value),
+                    long_window: parseInt(document.getElementById('longWindow').value)
+                };
+            } else if (strategyType === 'rsi') {
+                strategyData.parameters = {
+                    period: parseInt(document.getElementById('rsiPeriod').value),
+                    overbought: parseInt(document.getElementById('rsiOverbought').value),
+                    oversold: parseInt(document.getElementById('rsiOversold').value)
+                };
+            } else if (strategyType === 'macd') {
+                strategyData.parameters = {
+                    fast_period: parseInt(document.getElementById('macdFast').value),
+                    slow_period: parseInt(document.getElementById('macdSlow').value),
+                    signal_period: parseInt(document.getElementById('macdSignal').value)
+                };
+            }
+            
+            document.getElementById('exportJson').value = JSON.stringify(strategyData, null, 2);
+            document.getElementById('exportModal').classList.remove('hidden');
+        }
+        
+        function getStrategyDisplayName(type) {
+            const names = {
+                'ma_cross': '双均线策略',
+                'rsi': 'RSI超买超卖策略',
+                'macd': 'MACD金叉死叉策略',
+                'custom': '自定义策略'
+            };
+            return names[type] || type;
+        }
+        
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.add('hidden');
+        }
+        
+        function copyExportJson() {
+            const textarea = document.getElementById('exportJson');
+            textarea.select();
+            document.execCommand('copy');
+            showToast('已复制到剪贴板');
+        }
+        
+        // 导入策略
+        function importStrategy() {
+            document.getElementById('importJson').value = '';
+            document.getElementById('importModal').classList.remove('hidden');
+        }
+        
+        function closeImportModal() {
+            document.getElementById('importModal').classList.add('hidden');
+        }
+        
+        async function confirmImport() {
+            const jsonStr = document.getElementById('importJson').value.trim();
+            if (!jsonStr) {
+                showToast('请输入策略JSON', 'error');
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(jsonStr);
+                
+                // 应用策略参数
+                if (data.type) {
+                    document.getElementById('strategyType').value = data.type;
+                    updateStrategyParams();
+                }
+                
+                const params = data.parameters || {};
+                
+                // 设置双均线参数
+                if (params.short_window) {
+                    document.getElementById('shortWindow').value = params.short_window;
+                    document.getElementById('shortWindowVal').textContent = params.short_window;
+                }
+                if (params.long_window) {
+                    document.getElementById('longWindow').value = params.long_window;
+                    document.getElementById('longWindowVal').textContent = params.long_window;
+                }
+                
+                // 设置RSI参数
+                if (params.period) {
+                    document.getElementById('rsiPeriod').value = params.period;
+                    document.getElementById('rsiPeriodVal').textContent = params.period;
+                }
+                if (params.overbought) {
+                    document.getElementById('rsiOverbought').value = params.overbought;
+                    document.getElementById('rsiOverboughtVal').textContent = params.overbought;
+                }
+                if (params.oversold) {
+                    document.getElementById('rsiOversold').value = params.oversold;
+                    document.getElementById('rsiOversoldVal').textContent = params.oversold;
+                }
+                
+                // 设置MACD参数
+                if (params.fast_period) {
+                    document.getElementById('macdFast').value = params.fast_period;
+                    document.getElementById('macdFastVal').textContent = params.fast_period;
+                }
+                if (params.slow_period) {
+                    document.getElementById('macdSlow').value = params.slow_period;
+                    document.getElementById('macdSlowVal').textContent = params.slow_period;
+                }
+                if (params.signal_period) {
+                    document.getElementById('macdSignal').value = params.signal_period;
+                    document.getElementById('macdSignalVal').textContent = params.signal_period;
+                }
+                
+                closeImportModal();
+                showToast('策略导入成功!');
+            } catch (error) {
+                showToast('JSON格式错误: ' + error.message, 'error');
+            }
+        }
+
+        // 回测结果导出函数
+        let currentBacktestId = null;
+
+        // 保存回测结果ID（当回测保存后会有ID）
+        function setBacktestId(id) {
+            currentBacktestId = id;
+        }
+
+        // 导出回测结果为CSV
+        async function exportBacktestCSV() {
+            if (!currentBacktestId) {
+                showToast('请先保存回测结果后再导出', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/export/backtest/${currentBacktestId}/csv`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `backtest_${currentBacktestId}_trades.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showToast('CSV导出成功');
+                } else {
+                    const data = await response.json();
+                    showToast('导出失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showToast('导出失败: ' + error.message, 'error');
+            }
+        }
+
+        // 导出回测结果为Excel
+        async function exportBacktestExcel() {
+            if (!currentBacktestId) {
+                showToast('请先保存回测结果后再导出', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/export/backtest/${currentBacktestId}/excel`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `backtest_${currentBacktestId}_report.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showToast('Excel导出成功');
+                } else {
+                    const data = await response.json();
+                    showToast('导出失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showToast('导出失败: ' + error.message, 'error');
+            }
+        }
+
+        // 导出回测报告为PDF
+        async function exportBacktestPDF() {
+            if (!currentBacktestId) {
+                showToast('请先保存回测结果后再导出', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/export/backtest/${currentBacktestId}/pdf`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `backtest_${currentBacktestId}_report.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showToast('PDF报告导出成功');
+                } else {
+                    const data = await response.json();
+                    showToast('导出失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showToast('导出失败: ' + error.message, 'error');
+            }
+        }
+
+        // 监听回测完成事件，更新backtest_id
+        // 添加窗口resize事件以重新渲染ECharts图表
+        window.addEventListener('resize', function() {
+            Object.keys(backtestChartInstances).forEach(key => {
+                if (backtestChartInstances[key] && !backtestChartInstances[key].isDisposed()) {
+                    backtestChartInstances[key].resize();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

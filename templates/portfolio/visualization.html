@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投资组合可视化 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题 -->
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-neutral-dark mb-2">投资组合可视化</h1>
+                        <p class="text-gray-600">通过桑基图、雷达图等多维度展示投资组合构成与特征</p>
+                    </div>
+                    <nav class="flex mt-4 md:mt-0" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="{{ url_for('main.index') }}" class="text-gray-700 hover:text-primary text-sm font-medium">首页</a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                    <a href="{{ url_for('portfolio.portfolio_index') }}" class="ml-1 text-gray-700 hover:text-primary text-sm font-medium">投资组合</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                    <span class="ml-1 text-gray-500 font-medium text-sm">可视化</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- 投资组合选择 -->
+            <div class="bg-white rounded-xl shadow-md p-4 mb-8">
+                <div class="flex flex-col md:flex-row md:items-center gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">选择投资组合</label>
+                        <select id="portfolio-select" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            <option value="1">保守型投资组合</option>
+                            <option value="2">平衡型投资组合</option>
+                            <option value="3">进取型投资组合</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">日期范围</label>
+                        <div class="flex gap-2">
+                            <input type="date" id="viz-start-date" class="flex-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="{{ default_start }}">
+                            <input type="date" id="viz-end-date" class="flex-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="{{ today }}">
+                        </div>
+                    </div>
+                    <div class="self-end">
+                        <button onclick="updateVisualization()" class="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center">
+                            <i class="fa fa-refresh mr-2"></i>更新图表
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 可视化展示区域 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- 资金流向桑基图 -->
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold flex items-center">
+                            <i class="fa fa-random text-primary mr-2"></i>资金流向
+                        </h2>
+                        <div class="flex gap-2">
+                            <button onclick="exportChart('sankey')" class="px-3 py-1.5 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors text-xs flex items-center">
+                                <i class="fa fa-download mr-1"></i>导出
+                            </button>
+                        </div>
+                    </div>
+                    <div id="fundFlowSankeyContainer" class="h-80"></div>
+                    <div id="sankeyPlaceholder" class="h-80 flex items-center justify-center text-gray-400">
+                        <div class="text-center">
+                            <i class="fa fa-random text-4xl mb-2"></i>
+                            <p>资金流向桑基图</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 投资组合特征雷达图 -->
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold flex items-center">
+                            <i class="fa fa-tachometer text-primary mr-2"></i>组合特征
+                        </h2>
+                        <div class="flex gap-2">
+                            <button onclick="exportChart('radar')" class="px-3 py-1.5 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors text-xs flex items-center">
+                                <i class="fa fa-download mr-1"></i>导出
+                            </button>
+                        </div>
+                    </div>
+                    <div id="portfolioRadarContainer" class="h-80"></div>
+                    <div id="radarPlaceholder" class="h-80 flex items-center justify-center text-gray-400">
+                        <div class="text-center">
+                            <i class="fa fa-tachometer text-4xl mb-2"></i>
+                            <p>投资组合特征雷达图</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 投资组合构成桑基图 -->
+            <div class="bg-white rounded-xl shadow-md p-6 card-hover mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold flex items-center">
+                        <i class="fa fa-pie-chart text-primary mr-2"></i>投资组合构成
+                    </h2>
+                    <div class="flex gap-2">
+                        <button onclick="exportChart('composition')" class="px-3 py-1.5 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors text-xs flex items-center">
+                            <i class="fa fa-download mr-1"></i>导出
+                        </button>
+                    </div>
+                </div>
+                <div id="compositionSankeyContainer" class="h-96"></div>
+                <div id="compositionPlaceholder" class="h-96 flex items-center justify-center text-gray-400">
+                    <div class="text-center">
+                        <i class="fa fa-pie-chart text-4xl mb-2"></i>
+                        <p>投资组合构成桑基图</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 多维度指标对比 -->
+            <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold flex items-center">
+                        <i class="fa fa-balance-scale text-primary mr-2"></i>多维度指标对比
+                    </h2>
+                </div>
+                
+                <!-- 指标卡片 -->
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-600 mb-1" id="metric-return">24.6%</div>
+                        <div class="text-xs text-gray-500">收益率</div>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-green-600 mb-1" id="metric-sharpe">1.87</div>
+                        <div class="text-xs text-gray-500">夏普比率</div>
+                    </div>
+                    <div class="bg-red-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-red-600 mb-1" id="metric-maxdd">-12.3%</div>
+                        <div class="text-xs text-gray-500">最大回撤</div>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-purple-600 mb-1" id="metric-winrate">62.5%</div>
+                        <div class="text-xs text-gray-500">胜率</div>
+                    </div>
+                    <div class="bg-orange-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-orange-600 mb-1" id="metric-volatility">15.8%</div>
+                        <div class="text-xs text-gray-500">波动率</div>
+                    </div>
+                    <div class="bg-indigo-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-indigo-600 mb-1" id="metric-calmar">2.0</div>
+                        <div class="text-xs text-gray-500">卡尔玛比率</div>
+                    </div>
+                </div>
+
+                <!-- 股票特征雷达图 -->
+                <div id="stockFeatureRadarContainer" class="h-96"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- 引入图表工具模块 -->
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    
+    <script>
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化图表
+            initCharts();
+        });
+        
+        // 初始化所有图表
+        function initCharts() {
+            // 初始化资金流向桑基图
+            initFundFlowSankey();
+            // 初始化投资组合特征雷达图
+            initPortfolioRadar();
+            // 初始化投资组合构成桑基图
+            initCompositionSankey();
+            // 初始化股票特征雷达图
+            initStockFeatureRadar();
+        }
+        
+        // 初始化资金流向桑基图
+        function initFundFlowSankey() {
+            const sources = ['总资产', '工资收入', '投资收益', '其他收入'];
+            const targets = ['股票', '债券', '现金', '基金', '其他'];
+            const flowData = [
+                { source: '总资产', target: '股票', value: 300000 },
+                { source: '总资产', target: '债券', value: 200000 },
+                { source: '总资产', target: '现金', value: 150000 },
+                { source: '总资产', target: '基金', value: 100000 },
+                { source: '工资收入', target: '总资产', value: 400000 },
+                { source: '投资收益', target: '总资产', value: 200000 },
+                { source: '其他收入', target: '总资产', value: 150000 },
+                { source: '股票', target: 'A股', value: 180000 },
+                { source: '股票', target: '港股', value: 70000 },
+                { source: '股票', target: '美股', value: 50000 },
+                { source: '基金', target: '指数基金', value: 60000 },
+                { source: '基金', target: '主动基金', value: 40000 }
+            ];
+            
+            if (typeof QuantCharts !== 'undefined') {
+                document.getElementById('fundFlowSankeyContainer').classList.remove('hidden');
+                document.getElementById('sankeyPlaceholder').classList.add('hidden');
+                QuantCharts.createFundFlowSankey('fundFlowSankeyContainer', sources, targets, flowData);
+            }
+        }
+        
+        // 初始化投资组合特征雷达图
+        function initPortfolioRadar() {
+            const metrics = {
+                return: 75,
+                riskControl: 68,
+                sharpeRatio: 72,
+                winRate: 70,
+                liquidity: 80,
+                stability: 65
+            };
+            
+            const benchmark = {
+                return: 60,
+                riskControl: 65,
+                sharpeRatio: 55,
+                winRate: 58,
+                liquidity: 70,
+                stability: 62
+            };
+            
+            if (typeof QuantCharts !== 'undefined') {
+                document.getElementById('portfolioRadarContainer').classList.remove('hidden');
+                document.getElementById('radarPlaceholder').classList.add('hidden');
+                QuantCharts.createStrategyRadar('portfolioRadarContainer', metrics, benchmark);
+            }
+        }
+        
+        // 初始化投资组合构成桑基图
+        function initCompositionSankey() {
+            const portfolioData = {
+                assetClasses: [
+                    { name: '股票', value: 300000 },
+                    { name: '债券', value: 200000 },
+                    { name: '现金', value: 150000 },
+                    { name: '基金', value: 100000 },
+                    { name: '其他', value: 50000 }
+                ],
+                holdings: [
+                    { name: '招商银行', assetClass: '股票', value: 80000 },
+                    { name: '中国平安', assetClass: '股票', value: 70000 },
+                    { name: '贵州茅台', assetClass: '股票', value: 60000 },
+                    { name: '比亚迪', assetClass: '股票', value: 50000 },
+                    { name: '恒瑞医药', assetClass: '股票', value: 40000 },
+                    { name: '国债1号', assetClass: '债券', value: 120000 },
+                    { name: '企业债A', assetClass: '债券', value: 80000 },
+                    { name: '货币基金', assetClass: '现金', value: 100000 },
+                    { name: '定期存款', assetClass: '现金', value: 50000 },
+                    { name: '沪深300指数', assetClass: '基金', value: 60000 },
+                    { name: '主动股票基金', assetClass: '基金', value: 40000 },
+                    { name: '黄金ETF', assetClass: '其他', value: 30000 },
+                    { name: '原油期货', assetClass: '其他', value: 20000 }
+                ]
+            };
+            
+            if (typeof QuantCharts !== 'undefined') {
+                document.getElementById('compositionSankeyContainer').classList.remove('hidden');
+                document.getElementById('compositionPlaceholder').classList.add('hidden');
+                QuantCharts.createPortfolioSankey('compositionSankeyContainer', portfolioData);
+            }
+        }
+        
+        // 初始化股票特征雷达图
+        function initStockFeatureRadar() {
+            const stocks = [
+                {
+                    name: '招商银行',
+                    features: ['估值', '成长', '盈利', '运营', '财务', '市场'],
+                    maxValues: [100, 100, 100, 100, 100, 100],
+                    data: [75, 68, 82, 85, 78, 72]
+                },
+                {
+                    name: '中国平安',
+                    features: ['估值', '成长', '盈利', '运营', '财务', '市场'],
+                    maxValues: [100, 100, 100, 100, 100, 100],
+                    data: [65, 72, 75, 80, 70, 68]
+                },
+                {
+                    name: '贵州茅台',
+                    features: ['估值', '成长', '盈利', '运营', '财务', '市场'],
+                    maxValues: [100, 100, 100, 100, 100, 100],
+                    data: [45, 60, 95, 90, 88, 85]
+                }
+            ];
+            
+            if (typeof QuantCharts !== 'undefined') {
+                QuantCharts.createStockFeatureRadar('stockFeatureRadarContainer', stocks);
+            }
+        }
+        
+        // 更新可视化
+        function updateVisualization() {
+            const portfolioId = document.getElementById('portfolio-select').value;
+            
+            // 显示加载状态
+            showToast('正在更新图表...');
+            
+            setTimeout(() => {
+                // 重新初始化图表（模拟数据更新）
+                initCharts();
+                showToast('图表已更新');
+            }, 1000);
+        }
+        
+        // 导出图表
+        function exportChart(chartType) {
+            if (typeof QuantCharts !== 'undefined') {
+                const containerIds = {
+                    'sankey': 'fundFlowSankeyContainer',
+                    'radar': 'portfolioRadarContainer',
+                    'composition': 'compositionSankeyContainer'
+                };
+                
+                const containerId = containerIds[chartType];
+                if (containerId) {
+                    QuantCharts.exportChartAsImage(containerId, 'portfolio_' + chartType);
+                    showToast('图表已导出');
+                }
+            }
+        }
+        
+        // 显示提示消息
+        function showToast(message) {
+            const toastDiv = document.createElement('div');
+            toastDiv.className = 'fixed top-24 right-4 bg-primary text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in';
+            toastDiv.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+            document.body.appendChild(toastDiv);
+            
+            setTimeout(() => {
+                toastDiv.remove();
+            }, 3000);
+        }
+        
+        // 监听窗口大小变化，调整图表
+        window.addEventListener('resize', function() {
+            setTimeout(() => {
+                initCharts();
+            }, 100);
+        });
+    </script>
+</body>
+</html>

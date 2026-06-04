@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票分析 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- Chart.js Zoom Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <!-- 引入日期选择器 -->
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh.js"></script>
+
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5',
+                        success: '#00B42A',
+                        danger: '#F53F3F',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主内容区 -->
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题 -->
+            <div class="mb-8">
+                <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-neutral mb-2">金融数据分析</h1>
+                <p class="text-gray-600">深入分析股票的价格走势、技术指标和风险特征</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- 左侧参数设置 -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
+                        <h2 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fa fa-sliders text-primary mr-2"></i> 分析参数
+                        </h2>
+
+                        <form id="analysisForm" class="space-y-5">
+                            <!-- 股票选择 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">股票选择</label>
+                                <div class="relative">
+                                    <select id="stockSelect" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary appearance-none bg-white">
+                                        <option value="600036.SH">600036.SH - 招商银行</option>
+                                        <option value="000858.SZ">000858.SZ - 五粮液</option>
+                                        <option value="601318.SH">601318.SH - 中国平安</option>
+                                        <option value="600519.SH">600519.SH - 贵州茅台</option>
+                                        <option value="000001.SZ">000001.SZ - 平安银行</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                        <i class="fa fa-chevron-down text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 股票对比选择 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">对比股票</label>
+                                <div id="comparisonStocks" class="space-y-2">
+                                    <div class="relative">
+                                        <select class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary appearance-none bg-white">
+                                            <option value="">选择对比股票</option>
+                                            <option value="600036.SH">600036.SH - 招商银行</option>
+                                            <option value="000858.SZ">000858.SZ - 五粮液</option>
+                                            <option value="601318.SH">601318.SH - 中国平安</option>
+                                            <option value="600519.SH">600519.SH - 贵州茅台</option>
+                                            <option value="000001.SZ">000001.SZ - 平安银行</option>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                            <i class="fa fa-chevron-down text-gray-400"></i>
+                                        </div>
+                                    </div>
+                                    <button type="button" id="addComparisonStock" class="w-full py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center justify-center text-sm">
+                                        <i class="fa fa-plus mr-1"></i> 添加对比股票
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 日期范围 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">日期范围</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">开始日期</label>
+                                        <input type="text" id="startDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="选择开始日期">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">结束日期</label>
+                                        <input type="text" id="endDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="选择结束日期">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 技术指标选择 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">技术指标</label>
+                                <div class="space-y-2">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="indicatorMA" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" checked>
+                                        <label for="indicatorMA" class="ml-2 text-sm text-gray-700">移动平均线</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="indicatorRSI" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" checked>
+                                        <label for="indicatorRSI" class="ml-2 text-sm text-gray-700">RSI指标</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="indicatorMACD" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" checked>
+                                        <label for="indicatorMACD" class="ml-2 text-sm text-gray-700">MACD指标</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="indicatorBB" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <label for="indicatorBB" class="ml-2 text-sm text-gray-700">布林带</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="indicatorKDJ" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <label for="indicatorKDJ" class="ml-2 text-sm text-gray-700">KDJ指标</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="indicatorATR" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <label for="indicatorATR" class="ml-2 text-sm text-gray-700">ATR指标</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="indicatorOBV" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <label for="indicatorOBV" class="ml-2 text-sm text-gray-700">OBV指标</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="indicatorCCI" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <label for="indicatorCCI" class="ml-2 text-sm text-gray-700">CCI指标</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 均线参数 -->
+                            <div id="maParams" class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">均线参数</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <input type="number" value="5" min="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-center" id="maShort">
+                                    <input type="number" value="20" min="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-center" id="maMedium">
+                                    <input type="number" value="60" min="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-center" id="maLong">
+                                </div>
+                                <p class="text-xs text-gray-500 text-center">短期 / 中期 / 长期</p>
+                            </div>
+
+                            <!-- RSI参数 -->
+                            <div id="rsiParams" class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">RSI参数</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="number" value="14" min="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-center" id="rsiPeriod">
+                                    <div class="flex items-center justify-center space-x-4">
+                                        <input type="number" value="70" min="1" max="99" class="w-16 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-center" id="rsiOverbought">
+                                        <input type="number" value="30" min="1" max="99" class="w-16 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-center" id="rsiOversold">
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 text-center">周期 / 超买线 / 超卖线</p>
+                            </div>
+
+                            <!-- MACD参数 -->
+                            <div id="macdParams" class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">MACD参数</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <input type="number" value="12" min="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-center" id="macdFast">
+                                    <input type="number" value="26" min="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-center" id="macdSlow">
+                                    <input type="number" value="9" min="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-center" id="macdSignal">
+                                </div>
+                                <p class="text-xs text-gray-500 text-center">快线 / 慢线 / 信号线</p>
+                            </div>
+
+                            <!-- 分析按钮 -->
+                            <button type="button" id="analyzeBtn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center">
+                                <i class="fa fa-bar-chart mr-2"></i> 开始分析
+                            </button>
+
+                            <!-- 导出按钮 -->
+                            <button type="button" id="exportBtn" class="w-full py-3 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center justify-center">
+                                <i class="fa fa-download mr-2"></i> 导出分析报告
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 右侧分析结果 -->
+                <div class="lg:col-span-3 space-y-8">
+                    <!-- 股票基本信息 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                            <h2 class="text-xl font-semibold">招商银行 (600036.SH)</h2>
+                            <div class="mt-2 md:mt-0 flex items-center space-x-4">
+                                <div class="text-2xl font-bold text-success">32.65</div>
+                                <div class="text-success flex items-center">
+                                    <i class="fa fa-caret-up mr-1"></i> 0.82 (2.58%)
+                                </div>
+                                <div class="text-gray-500 text-sm">更新于: 2023-12-29 15:00</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div class="p-3 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">今开</div>
+                                <div class="font-medium">32.05</div>
+                            </div>
+                            <div class="p-3 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">最高</div>
+                                <div class="font-medium">32.80</div>
+                            </div>
+                            <div class="p-3 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">最低</div>
+                                <div class="font-medium">31.90</div>
+                            </div>
+                            <div class="p-3 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">昨收</div>
+                                <div class="font-medium">31.83</div>
+                            </div>
+                            <div class="p-3 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">成交量(万手)</div>
+                                <div class="font-medium">245.68</div>
+                            </div>
+                            <div class="p-3 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">成交额(亿)</div>
+                                <div class="font-medium">79.92</div>
+                            </div>
+                            <div class="p-3 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">换手率</div>
+                                <div class="font-medium">0.86%</div>
+                            </div>
+                            <div class="p-3 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">市盈率(TTM)</div>
+                                <div class="font-medium">5.86</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 价格走势与技术指标 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <div class="flex flex-wrap items-center justify-between mb-6">
+                            <div class="flex items-center gap-3">
+                                <h2 class="text-xl font-semibold">价格走势与技术指标</h2>
+                                <div id="simulatedDataWarning" class="hidden">
+                                    <span class="inline-block px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium border border-yellow-300">
+                                        <i class="fa fa-exclamation-triangle mr-1"></i>模拟数据 - 仅供演示
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2 mt-2 sm:mt-0">
+                                <button class="period-btn px-3 py-1 rounded-md bg-primary text-white text-sm">日K</button>
+                                <button class="period-btn px-3 py-1 rounded-md bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors">周K</button>
+                                <button class="period-btn px-3 py-1 rounded-md bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors">月K</button>
+                            </div>
+                        </div>
+
+                        <!-- 主图表容器 -->
+                        <div class="h-[400px] mb-8">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+
+                        <!-- 副图表容器 - RSI -->
+                        <div class="h-[200px] mb-8" id="rsiChartContainer">
+                            <canvas id="rsiChart"></canvas>
+                        </div>
+
+                        <!-- 副图表容器 - MACD -->
+                        <div class="h-[200px] mb-8" id="macdChartContainer">
+                            <canvas id="macdChart"></canvas>
+                        </div>
+
+                        <!-- 副图表容器 - KDJ -->
+                        <div class="h-[200px]" id="kdjChartContainer">
+                            <canvas id="kdjChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 风险收益指标 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <h2 class="text-xl font-semibold mb-6">风险与收益指标</h2>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all-300">
+                                <div class="text-sm text-gray-500 mb-2">总收益率</div>
+                                <div class="text-3xl font-bold text-success mb-1">24.6%</div>
+                                <div class="text-xs text-gray-500">
+                                    <i class="fa fa-arrow-up text-success mr-1"></i> 较上期增长 3.2%
+                                </div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all-300">
+                                <div class="text-sm text-gray-500 mb-2">年化收益率</div>
+                                <div class="text-3xl font-bold text-success mb-1">7.8%</div>
+                                <div class="text-xs text-gray-500">
+                                    基于 252 个交易日计算
+                                </div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all-300">
+                                <div class="text-sm text-gray-500 mb-2">波动率(年化)</div>
+                                <div class="text-3xl font-bold text-primary mb-1">18.6%</div>
+                                <div class="text-xs text-gray-500">
+                                    衡量价格波动幅度
+                                </div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all-300">
+                                <div class="text-sm text-gray-500 mb-2">夏普比率</div>
+                                <div class="text-3xl font-bold text-primary mb-1">1.87</div>
+                                <div class="text-xs text-gray-500">
+                                    风险调整后收益，越高越好
+                                </div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all-300">
+                                <div class="text-sm text-gray-500 mb-2">最大回撤</div>
+                                <div class="text-3xl font-bold text-danger mb-1">-12.3%</div>
+                                <div class="text-xs text-gray-500">
+                                    历史最大损失幅度
+                                </div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all-300">
+                                <div class="text-sm text-gray-500 mb-2">胜率</div>
+                                <div class="text-3xl font-bold text-primary mb-1">62.5%</div>
+                                <div class="text-xs text-gray-500">
+                                    盈利交易占比
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 收益率分布 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <h2 class="text-xl font-semibold mb-6">收益率分布分析</h2>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-lg font-medium mb-4">日收益率分布直方图</h3>
+                                <div class="h-[300px]">
+                                    <canvas id="returnDistributionChart"></canvas>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-medium mb-4">收益率统计特征</h3>
+                                <div class="space-y-4">
+                                    <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                                        <span class="text-gray-600">均值</span>
+                                        <span class="font-medium">0.08%</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                                        <span class="text-gray-600">中位数</span>
+                                        <span class="font-medium">0.05%</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                                        <span class="text-gray-600">标准差</span>
+                                        <span class="font-medium">1.23%</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                                        <span class="text-gray-600">偏度</span>
+                                        <span class="font-medium">-0.12</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                                        <span class="text-gray-600">峰度</span>
+                                        <span class="font-medium">4.36</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                                        <span class="text-gray-600">95%置信区间</span>
+                                        <span class="font-medium">[-2.35%, 2.51%]</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600">最大单日涨幅</span>
+                                        <span class="font-medium text-success">5.87%</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600">最大单日跌幅</span>
+                                        <span class="font-medium text-danger">-6.23%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 技术指标建议 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow" id="indicatorSuggestions">
+                        <h2 class="text-xl font-semibold mb-4">技术指标分析与建议</h2>
+                        <div id="suggestionsContent" class="space-y-3">
+                            <p class="text-neutral-medium">点击"开始分析"获取实时技术指标分析和交易建议</p>
+                        </div>
+                    </div>
+
+                    <!-- 相关性分析 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <h2 class="text-xl font-semibold mb-6">相关性分析</h2>
+
+                        <div class="mb-6">
+                            <h3 class="text-lg font-medium mb-4">与主要指数相关性</h3>
+                            <div class="h-[300px]">
+                                <canvas id="correlationChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-neutral-light rounded-lg p-4">
+                                <div class="text-sm text-gray-500 mb-1">与上证指数相关性</div>
+                                <div class="text-xl font-bold text-primary">0.78</div>
+                            </div>
+                            <div class="bg-neutral-light rounded-lg p-4">
+                                <div class="text-sm text-gray-500 mb-1">与沪深300相关性</div>
+                                <div class="text-xl font-bold text-primary">0.86</div>
+                            </div>
+                            <div class="bg-neutral-light rounded-lg p-4">
+                                <div class="text-sm text-gray-500 mb-1">与银行指数相关性</div>
+                                <div class="text-xl font-bold text-primary">0.92</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script>
+        // 移动端菜单切换
+        document.getElementById('menuBtn')?.addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 导航栏滚动效果
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (navbar && window.scrollY > 50) {
+                navbar.classList.add('py-2', 'shadow');
+                navbar.classList.remove('py-3');
+            } else if (navbar) {
+                navbar.classList.add('py-3');
+                navbar.classList.remove('py-2', 'shadow');
+            }
+        });
+
+        // 初始化日期选择器
+        const today = new Date();
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(today.getMonth() - 3);
+
+        flatpickr('#startDate', {
+            locale: 'zh',
+            defaultDate: threeMonthsAgo,
+            dateFormat: 'Y-m-d'
+        });
+
+        flatpickr('#endDate', {
+            locale: 'zh',
+            defaultDate: today,
+            dateFormat: 'Y-m-d'
+        });
+
+        // 股票对比功能
+        document.getElementById('addComparisonStock')?.addEventListener('click', function() {
+            const comparisonStocksContainer = document.getElementById('comparisonStocks');
+            if (comparisonStocksContainer) {
+                const newSelectDiv = document.createElement('div');
+                newSelectDiv.className = 'relative flex items-center space-x-2';
+                newSelectDiv.innerHTML = `
+                    <select class="flex-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary appearance-none bg-white">
+                        <option value="">选择对比股票</option>
+                        <option value="600036.SH">600036.SH - 招商银行</option>
+                        <option value="000858.SZ">000858.SZ - 五粮液</option>
+                        <option value="601318.SH">601318.SH - 中国平安</option>
+                        <option value="600519.SH">600519.SH - 贵州茅台</option>
+                        <option value="000001.SZ">000001.SZ - 平安银行</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-8 flex items-center px-2 pointer-events-none">
+                        <i class="fa fa-chevron-down text-gray-400"></i>
+                    </div>
+                    <button type="button" class="remove-comparison-stock p-2.5 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors">
+                        <i class="fa fa-times"></i>
+                    </button>
+                `;
+                
+                // 插入到添加按钮之前
+                const addButton = comparisonStocksContainer.querySelector('#addComparisonStock');
+                comparisonStocksContainer.insertBefore(newSelectDiv, addButton);
+                
+                // 添加移除按钮事件
+                const removeButton = newSelectDiv.querySelector('.remove-comparison-stock');
+                removeButton.addEventListener('click', function() {
+                    newSelectDiv.remove();
+                });
+            }
+        });
+
+        // 技术指标参数显示/隐藏逻辑
+        function setupIndicatorParams() {
+            const indicators = [
+                { checkbox: 'indicatorMA', params: 'maParams' },
+                { checkbox: 'indicatorRSI', params: 'rsiParams' },
+                { checkbox: 'indicatorMACD', params: 'macdParams' }
+            ];
+            
+            indicators.forEach(({ checkbox, params }) => {
+                const checkboxEl = document.getElementById(checkbox);
+                const paramsEl = document.getElementById(params);
+                
+                if (checkboxEl && paramsEl) {
+                    // 初始状态
+                    paramsEl.style.display = checkboxEl.checked ? 'block' : 'none';
+                    
+                    // 添加事件监听
+                    checkboxEl.addEventListener('change', function() {
+                        paramsEl.style.display = this.checked ? 'block' : 'none';
+                    });
+                }
+            });
+        }
+
+        // 初始化指标参数逻辑
+        setupIndicatorParams();
+
+        // 生成模拟数据
+        function generateDateRange(start, end, count) {
+            const dates = [];
+            const interval = (end - start) / (count - 1);
+
+            for (let i = 0; i < count; i++) {
+                const date = new Date(start.getTime() + interval * i);
+                dates.push(date.toISOString().split('T')[0]);
+            }
+
+            return dates;
+        }
+
+        // 生成随机价格数据，带有一定趋势
+        function generatePriceData(dates, startPrice, volatility, trend) {
+            const prices = [];
+            let currentPrice = startPrice;
+
+            dates.forEach((date, i) => {
+                // 添加趋势和随机波动
+                const change = (Math.random() - 0.5) * 2 * volatility + trend;
+                currentPrice = Math.max(1, currentPrice + change);
+                prices.push({
+                    date: date,
+                    open: currentPrice * (1 + (Math.random() - 0.5) * 0.01),
+                    high: currentPrice * (1 + Math.random() * 0.02),
+                    low: currentPrice * (1 - Math.random() * 0.02),
+                    close: currentPrice,
+                    volume: Math.floor(Math.random() * 10000000) + 5000000
+                });
+            });
+
+            return prices;
+        }
+
+        // 计算移动平均线
+        function calculateMA(data, period) {
+            const result = [];
+
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    result.push(null);
+                    continue;
+                }
+
+                let sum = 0;
+                for (let j = 0; j < period; j++) {
+                    sum += data[i - j].close;
+                }
+
+                result.push(sum / period);
+            }
+
+            return result;
+        }
+
+        // 计算RSI指标
+        function calculateRSI(data, period = 14) {
+            const rsi = [];
+            const changes = [];
+
+            // 计算价格变化
+            for (let i = 1; i < data.length; i++) {
+                changes.push(data[i].close - data[i - 1].close);
+            }
+
+            for (let i = 0; i < data.length; i++) {
+                if (i < period) {
+                    rsi.push(null);
+                    continue;
+                }
+
+                // 取最近period个变化
+                const recentChanges = changes.slice(i - period, i);
+                const gains = recentChanges.filter(c => c > 0).reduce((sum, c) => sum + c, 0);
+                const losses = Math.abs(recentChanges.filter(c => c < 0).reduce((sum, c) => sum + c, 0));
+
+                const rs = gains / (losses || 1); // 避免除以零
+                rsi.push(100 - (100 / (1 + rs)));
+            }
+
+            return rsi;
+        }
+
+        // 计算MACD指标
+        function calculateMACD(data) {
+            const macdLine = [];
+            const signalLine = [];
+            const histogram = [];
+
+            // 计算12期和26期EMA
+            const ema12 = calculateEMA(data, 12);
+            const ema26 = calculateEMA(data, 26);
+
+            // 计算MACD线
+            for (let i = 0; i < data.length; i++) {
+                if (ema12[i] && ema26[i]) {
+                    macdLine.push(ema12[i] - ema26[i]);
+                } else {
+                    macdLine.push(null);
+                }
+            }
+
+            // 计算信号线（9期EMA of MACD线）
+            // 先创建仅包含MACD值的临时数据
+            const macdData = macdLine.map((value, index) => ({
+                close: value || 0
+            }));
+
+            const signalEma = calculateEMA(macdData, 9);
+
+            for (let i = 0; i < data.length; i++) {
+                if (i < 34) { // 12 + 26 - 4
+                    signalLine.push(null);
+                    histogram.push(null);
+                } else {
+                    signalLine.push(signalEma[i]);
+                    histogram.push(macdLine[i] - signalEma[i]);
+                }
+            }
+
+            return { macdLine, signalLine, histogram };
+        }
+
+        // 计算指数移动平均线
+        function calculateEMA(data, period) {
+            const ema = [];
+            const multiplier = 2 / (period + 1);
+
+            // 计算初始SMA
+            let sum = 0;
+            for (let i = 0; i < period; i++) {
+                sum += data[i].close;
+            }
+            const initialSma = sum / period;
+            ema.push(...Array(period - 1).fill(null), initialSma);
+
+            // 计算后续EMA
+            for (let i = period; i < data.length; i++) {
+                const currentEma = (data[i].close - ema[i - 1]) * multiplier + ema[i - 1];
+                ema.push(currentEma);
+            }
+
+            return ema;
+        }
+
+        // 初始化图表
+        function initCharts() {
+            // 生成模拟数据
+            const today = new Date();
+            const startDate = new Date();
+            startDate.setMonth(startDate.getMonth() - 6);
+            const dates = generateDateRange(
+                startDate,
+                today,
+                120
+            );
+
+            // 主股票数据
+            const priceData = generatePriceData(dates, 30, 0.5, 0.05);
+            const ma5 = calculateMA(priceData, 5);
+            const ma20 = calculateMA(priceData, 20);
+            const ma60 = calculateMA(priceData, 60);
+            const rsi = calculateRSI(priceData, 14);
+            const { macdLine, signalLine, histogram } = calculateMACD(priceData);
+
+            // 对比股票数据
+            const comparisonData = {
+                '000858.SZ': generatePriceData(dates, 160, 2, 0.1),
+                '601318.SH': generatePriceData(dates, 45, 0.8, 0.08),
+                '600519.SH': generatePriceData(dates, 1600, 20, 2)
+            };
+
+            // 价格图表
+            const priceCtx = document.getElementById('priceChart')?.getContext('2d') || document.createElement('canvas').getContext('2d');
+            const priceChart = new Chart(priceCtx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: '招商银行 (600036.SH)',
+                            data: priceData.map(d => d.close),
+                            borderColor: '#165DFF',
+                            backgroundColor: 'rgba(22, 93, 255, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.2
+                        },
+                        {
+                            label: 'MA5',
+                            data: ma5,
+                            borderColor: '#36CFC9',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.1,
+                            borderDash: [],
+                            hidden: false
+                        },
+                        {
+                            label: 'MA20',
+                            data: ma20,
+                            borderColor: '#722ED1',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.1,
+                            borderDash: [],
+                            hidden: false
+                        },
+                        {
+                            label: 'MA60',
+                            data: ma60,
+                            borderColor: '#FF7D00',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.1,
+                            borderDash: [],
+                            hidden: false
+                        },
+                        // 对比股票数据
+                        {
+                            type: 'line',
+                            label: '五粮液 (000858.SZ)',
+                            data: comparisonData['000858.SZ'].map(d => d.close),
+                            borderColor: '#00B42A',
+                            backgroundColor: 'rgba(0, 180, 42, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.2,
+                            yAxisID: 'y1'
+                        },
+                        {
+                            type: 'line',
+                            label: '中国平安 (601318.SH)',
+                            data: comparisonData['601318.SH'].map(d => d.close),
+                            borderColor: '#F53F3F',
+                            backgroundColor: 'rgba(245, 63, 63, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.2,
+                            yAxisID: 'y2'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                usePointStyle: true,
+                                pointStyle: 'line'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#165DFF',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.dataset.label === '收盘价') {
+                                        const index = context.dataIndex;
+                                        const data = priceData[index];
+                                        return [
+                                            `日期: ${data.date}`,
+                                            `开盘: ${data.open.toFixed(2)}`,
+                                            `最高: ${data.high.toFixed(2)}`,
+                                            `最低: ${data.low.toFixed(2)}`,
+                                            `收盘: ${data.close.toFixed(2)}`,
+                                            `成交量: ${(data.volume / 10000).toFixed(2)}万手`
+                                        ];
+                                    }
+                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            position: 'right',
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '招商银行 (600036.SH)',
+                                color: '#165DFF'
+                            }
+                        },
+                        y1: {
+                            position: 'right',
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '五粮液 (000858.SZ)',
+                                color: '#00B42A'
+                            }
+                        },
+                        y2: {
+                            position: 'left',
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '中国平安 (601318.SH)',
+                                color: '#F53F3F'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // RSI图表
+            const rsiCtx = document.getElementById('rsiChart')?.getContext('2d') || document.createElement('canvas').getContext('2d');
+            const rsiChart = new Chart(rsiCtx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'RSI(14)',
+                            data: rsi,
+                            borderColor: '#F53F3F',
+                            backgroundColor: 'rgba(245, 63, 63, 0.1)',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.2
+                        },
+                        {
+                            label: '超买线',
+                            data: dates.map(() => 70),
+                            borderColor: 'rgba(245, 63, 63, 0.5)',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0
+                        },
+                        {
+                            label: '超卖线',
+                            data: dates.map(() => 30),
+                            borderColor: 'rgba(0, 180, 42, 0.5)',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                usePointStyle: true,
+                                pointStyle: 'line'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#F53F3F',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            min: 0,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                stepSize: 20
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // MACD图表
+            const macdCtx = document.getElementById('macdChart')?.getContext('2d') || document.createElement('canvas').getContext('2d');
+            const macdChart = new Chart(macdCtx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'MACD',
+                            data: macdLine,
+                            borderColor: '#165DFF',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.2,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '信号线',
+                            data: signalLine,
+                            borderColor: '#722ED1',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.2,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Histogram',
+                            data: histogram,
+                            backgroundColor: function(context) {
+                                const value = context.dataset.data[context.dataIndex];
+                                return value >= 0 ? 'rgba(0, 180, 42, 0.6)' : 'rgba(245, 63, 63, 0.6)';
+                            },
+                            borderWidth: 0,
+                            type: 'bar',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                usePointStyle: true,
+                                pointStyle: 'line'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#165DFF',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            position: 'right',
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        },
+                        y1: {
+                            position: 'left',
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // 收益率分布图表
+            const returnDistCtx = document.getElementById('returnDistributionChart')?.getContext('2d') || document.createElement('canvas').getContext('2d');
+
+            // 生成收益率数据
+            const returns = [];
+            for (let i = 1; i < priceData.length; i++) {
+                const returnVal = (priceData[i].close - priceData[i-1].close) / priceData[i-1].close * 100;
+                returns.push(returnVal);
+            }
+
+            // 计算均值
+            const meanReturn = returns.reduce((sum, val) => sum + val, 0) / returns.length;
+
+            const returnDistChart = new Chart(returnDistCtx, {
+                type: 'bar',
+                data: {
+                    labels: generateReturnLabels(),
+                    datasets: [{
+                        label: '日收益率(%)',
+                        data: generateReturnHistogram(returns),
+                        backgroundColor: 'rgba(22, 93, 255, 0.6)',
+                        borderColor: 'rgba(22, 93, 255, 1)',
+                        borderWidth: 1,
+                        hoverBackgroundColor: 'rgba(22, 93, 255, 0.8)',
+                        hoverBorderColor: 'rgba(22, 93, 255, 1)',
+                        hoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#165DFF',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `频率: ${context.parsed.y}`;
+                                },
+                                title: function(tooltipItems) {
+                                    return `收益率区间: ${tooltipItems[0].label}%`;
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日收益率(%)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '频率',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+
+            // 相关性图表
+            const correlationCtx = document.getElementById('correlationChart')?.getContext('2d') || document.createElement('canvas').getContext('2d');
+            const correlationChart = new Chart(correlationCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['上证指数', '深证成指', '沪深300', '中证500', '银行指数', '金融指数'],
+                    datasets: [{
+                        label: '相关系数',
+                        data: [0.78, 0.65, 0.86, 0.52, 0.92, 0.88],
+                        backgroundColor: 'rgba(22, 93, 255, 0.2)',
+                        borderColor: 'rgba(22, 93, 255, 1)',
+                        pointBackgroundColor: 'rgba(22, 93, 255, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(22, 93, 255, 1)',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 10
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#165DFF',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `相关系数: ${context.parsed.r.toFixed(2)}`;
+                                },
+                                title: function(tooltipItems) {
+                                    return tooltipItems[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 1,
+                            ticks: {
+                                stepSize: 0.2,
+                                backdropColor: 'transparent'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            pointLabels: {
+                                font: {
+                                    weight: 'normal'
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    interaction: {
+                        intersect: true,
+                        mode: 'nearest'
+                    }
+                }
+            });
+
+            // 辅助函数：生成收益率直方图标签
+            function generateReturnLabels() {
+                const labels = [];
+                for (let i = -5; i < 5; i += 0.5) {
+                    labels.push(`${i.toFixed(1)}~${(i + 0.5).toFixed(1)}`);
+                }
+                return labels;
+            }
+
+            // 辅助函数：生成收益率直方图数据
+            function generateReturnHistogram(returns) {
+                const bins = Array(20).fill(0);
+                const binWidth = 0.5;
+                const minReturn = -5;
+
+                returns.forEach(ret => {
+                    if (ret >= minReturn && ret < 5) {
+                        const binIndex = Math.floor((ret - minReturn) / binWidth);
+                        if (binIndex >= 0 && binIndex < bins.length) {
+                            bins[binIndex]++;
+                        }
+                    }
+                });
+
+                return bins;
+            }
+
+            return {
+                priceChart,
+                rsiChart,
+                macdChart,
+                returnDistChart,
+                correlationChart
+            };
+        }
+
+        // 初始化所有图表 - 使用真实API数据
+        let charts = {};
+        let currentStockData = null;
+        
+        // DOM加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 默认初始化空图表
+            initEmptyCharts();
+            
+            // 绑定分析按钮
+            document.getElementById('analyzeBtn')?.addEventListener('click', performAnalysis);
+            
+            // 绑定导出按钮
+            document.getElementById('exportBtn')?.addEventListener('click', function() {
+                alert('报告导出功能即将实现，敬请期待！');
+            });
+            
+            // 周期按钮
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.period-btn').forEach(b => {
+                        b.classList.remove('bg-primary', 'text-white');
+                        b.classList.add('bg-gray-100', 'text-gray-600');
+                    });
+                    this.classList.remove('bg-gray-100', 'text-gray-600');
+                    this.classList.add('bg-primary', 'text-white');
+                });
+            });
+        });
+        
+        function initEmptyCharts() {
+            const emptyData = { labels: [], datasets: [{ data: [] }] };
+            const emptyOpts = { responsive: true, maintainAspectRatio: false };
+            
+            const priceCtx = document.getElementById('priceChart')?.getContext('2d');
+            if (priceCtx) charts.priceChart = new Chart(priceCtx, { type: 'line', data: emptyData, options: emptyOpts });
+            
+            const rsiCtx = document.getElementById('rsiChart')?.getContext('2d');
+            if (rsiCtx) charts.rsiChart = new Chart(rsiCtx, { type: 'line', data: emptyData, options: emptyOpts });
+            
+            const macdCtx = document.getElementById('macdChart')?.getContext('2d');
+            if (macdCtx) charts.macdChart = new Chart(macdCtx, { type: 'line', data: emptyData, options: emptyOpts });
+            
+            const kdjCtx = document.getElementById('kdjChart')?.getContext('2d');
+            if (kdjCtx) charts.kdjChart = new Chart(kdjCtx, { type: 'line', data: emptyData, options: emptyOpts });
+            
+            const distCtx = document.getElementById('returnDistributionChart')?.getContext('2d');
+            if (distCtx) charts.returnDistChart = new Chart(distCtx, { type: 'bar', data: emptyData, options: emptyOpts });
+            
+            const corrCtx = document.getElementById('correlationChart')?.getContext('2d');
+            if (corrCtx) charts.correlationChart = new Chart(corrCtx, { type: 'radar', data: emptyData, options: emptyOpts });
+        }
+        
+        async function performAnalysis() {
+            const btn = document.getElementById('analyzeBtn');
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 分析中...';
+            btn.disabled = true;
+            
+            const stockCode = document.getElementById('stockSelect').value;
+            const startDate = document.getElementById('startDate').value.replace(/-/g, '');
+            const endDate = document.getElementById('endDate').value.replace(/-/g, '');
+            
+            try {
+                // 1. 获取股票价格数据
+                const priceResp = await fetch(`/data/api/stock/${stockCode}/prices?start_date=${startDate}&end_date=${endDate}`);
+                const priceData = await priceResp.json();
+                
+                if (!priceData.data || priceData.data.length === 0) {
+                    alert('获取数据失败，请检查股票代码和日期范围');
+                    return;
+                }
+                
+                // 检测并显示模拟数据警告
+                if (priceData.is_simulated) {
+                    const warning = document.getElementById('simulatedDataWarning');
+                    if (warning) warning.classList.remove('hidden');
+                } else {
+                    const warning = document.getElementById('simulatedDataWarning');
+                    if (warning) warning.classList.add('hidden');
+                }
+                
+                // 2. 获取分析数据
+                const analysisResp = await fetch('/analysis/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stockCode, startDate, endDate })
+                });
+                const analysisData = await analysisResp.json();
+                
+                // 更新图表
+                updateAllCharts(priceData.data, analysisData, stockCode);
+                
+                // 更新股票信息
+                updateStockInfo(priceData.data, analysisData);
+                
+                // 更新指标建议
+                updateIndicatorSuggestions(analysisData);
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+            } catch (error) {
+                console.error('分析失败:', error);
+                alert('分析失败，请重试: ' + error.message);
+            } finally {
+                btn.innerHTML = '<i class="fa fa-bar-chart mr-2"></i> 开始分析';
+                btn.disabled = false;
+            }
+        }
+        
+        function updateStockInfo(priceData, analysisData) {
+            if (!priceData || priceData.length === 0) return;
+            const latest = priceData[priceData.length - 1];
+            const prev = priceData[priceData.length - 2] || latest;
+            
+            const change = (latest.close || 0) - (prev.close || 0);
+            const changePct = prev.close ? ((change / prev.close) * 100) : 0;
+            
+            // Update DOM elements if they exist
+            const infoEls = document.querySelectorAll('.grid.grid-cols-2.md\\:grid-cols-4.gap-4.text-center > div');
+            // These are hardcoded in the HTML, we'll update via the risk_indicators
+        }
+        
+        function updateAllCharts(priceData, analysisData, stockCode) {
+            const dates = priceData.map(d => d.trade_date || d.date || '');
+            const closes = priceData.map(d => d.close || 0);
+            const opens = priceData.map(d => d.open || d.close || 0);
+            const highs = priceData.map(d => d.high || d.close || 0);
+            const lows = priceData.map(d => d.low || d.close || 0);
+            const volumes = priceData.map(d => d.volume || d.vol || 0);
+            
+            // 计算技术指标
+            const ma5 = calcMA(closes, 5);
+            const ma10 = calcMA(closes, 10);
+            const ma20 = calcMA(closes, 20);
+            const ma60 = calcMA(closes, 60);
+            const rsi14 = calcRSI(closes, 14);
+            const { macdLine, signalLine, histogram } = calcMACD(closes);
+            const { k, d, j } = calcKDJ(highs, lows, closes, 9, 3, 3);
+            
+            // 更新K线图
+            updatePriceChart(dates, closes, ma5, ma10, ma20, ma60, stockCode);
+            
+            // 更新RSI图
+            updateRSIChart(dates, rsi14);
+            
+            // 更新MACD图
+            updateMACDChart(dates, macdLine, signalLine, histogram);
+            
+            // 更新KDJ图
+            updateKDJChart(dates, k, d, j);
+            
+            // 更新收益率分布图
+            updateReturnDistChart(closes);
+            
+            // 更新风险指标显示
+            updateRiskIndicators(analysisData);
+        }
+        
+        function calcMA(data, period) {
+            const result = [];
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) { result.push(null); continue; }
+                let sum = 0;
+                for (let j = 0; j < period; j++) sum += data[i - j];
+                result.push(sum / period);
+            }
+            return result;
+        }
+        
+        function calcRSI(data, period = 14) {
+            const result = new Array(period).fill(null);
+            const changes = [];
+            for (let i = 1; i < data.length; i++) changes.push(data[i] - data[i-1]);
+            
+            for (let i = period; i < data.length; i++) {
+                const recentChanges = changes.slice(i - period, i);
+                const gains = recentChanges.filter(c => c > 0).reduce((a, b) => a + b, 0);
+                const losses = Math.abs(recentChanges.filter(c => c < 0).reduce((a, b) => a + b, 0));
+                const rs = gains / (losses || 1);
+                result.push(100 - (100 / (1 + rs)));
+            }
+            return result;
+        }
+        
+        function calcEMA(data, period) {
+            const result = new Array(period - 1).fill(null);
+            const multiplier = 2 / (period + 1);
+            let ema = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
+            result.push(ema);
+            for (let i = period; i < data.length; i++) {
+                ema = (data[i] - ema) * multiplier + ema;
+                result.push(ema);
+            }
+            return result;
+        }
+        
+        function calcMACD(closes) {
+            const ema12 = calcEMA(closes, 12);
+            const ema26 = calcEMA(closes, 26);
+            const macdLine = [];
+            for (let i = 0; i < closes.length; i++) {
+                if (ema12[i] != null && ema26[i] != null) {
+                    macdLine.push(ema12[i] - ema26[i]);
+                } else {
+                    macdLine.push(null);
+                }
+            }
+            
+            const signalLine = calcEMA(macdLine.filter(v => v !== null).length > 0 ? macdLine.map(v => v || 0) : macdLine, 9);
+            // pad signalLine to match length
+            const signalPadded = [];
+            let signalIdx = 0;
+            for (let i = 0; i < closes.length; i++) {
+                if (macdLine[i] != null && signalIdx < signalLine.length) {
+                    signalPadded.push(i >= 25 ? signalLine[signalIdx++] : null);
+                } else {
+                    signalPadded.push(null);
+                }
+            }
+            // Better approach: recalculate properly
+            const signalLine2 = new Array(25).fill(null);
+            // compute signal line properly from macdLine
+            const validMacd = macdLine.filter(v => v !== null);
+            const ema9 = calcEMA(validMacd, 9);
+            for (let i = 0; i < ema9.length; i++) {
+                signalLine2.push(ema9[i]);
+            }
+            while (signalLine2.length < closes.length) signalLine2.push(null);
+            
+            const histogram = [];
+            for (let i = 0; i < closes.length; i++) {
+                if (macdLine[i] != null && signalLine2[i] != null) {
+                    histogram.push(macdLine[i] - signalLine2[i]);
+                } else {
+                    histogram.push(null);
+                }
+            }
+            
+            return { macdLine, signalLine: signalLine2, histogram };
+        }
+        
+        function calcKDJ(highs, lows, closes, period = 9, kPeriod = 3, dPeriod = 3) {
+            const k = new Array(period - 1).fill(null);
+            const d = new Array(period - 1).fill(null);
+            const j = new Array(period - 1).fill(null);
+            
+            for (let i = period - 1; i < closes.length; i++) {
+                const sliceHigh = highs.slice(i - period + 1, i + 1);
+                const sliceLow = lows.slice(i - period + 1, i + 1);
+                const hh = Math.max(...sliceHigh);
+                const ll = Math.min(...sliceLow);
+                const rsv = ((closes[i] - ll) / (hh - ll || 1)) * 100;
+                
+                const prevK = k[i - 1] != null ? k[i - 1] : 50;
+                const prevD = d[i - 1] != null ? d[i - 1] : 50;
+                
+                const newK = (2/3) * prevK + (1/3) * rsv;
+                const newD = (2/3) * prevD + (1/3) * newK;
+                const newJ = 3 * newK - 2 * newD;
+                
+                k.push(newK);
+                d.push(newD);
+                j.push(newJ);
+            }
+            return { k, d, j };
+        }
+        
+        function updatePriceChart(dates, closes, ma5, ma10, ma20, ma60, stockCode) {
+            if (!charts.priceChart) return;
+            charts.priceChart.data = {
+                labels: dates,
+                datasets: [
+                    { label: '收盘价', data: closes, borderColor: '#165DFF', backgroundColor: 'rgba(22,93,255,0.1)', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.2 },
+                    { label: 'MA5', data: ma5, borderColor: '#36CFC9', borderWidth: 1.5, pointRadius: 0, tension: 0.1 },
+                    { label: 'MA10', data: ma10, borderColor: '#FF7D00', borderWidth: 1.5, pointRadius: 0, tension: 0.1 },
+                    { label: 'MA20', data: ma20, borderColor: '#722ED1', borderWidth: 1.5, pointRadius: 0, tension: 0.1 },
+                    { label: 'MA60', data: ma60, borderColor: '#F53F3F', borderWidth: 1.5, pointRadius: 0, tension: 0.1 }
+                ]
+            };
+            charts.priceChart.options = createPriceChartOptions(stockCode);
+            charts.priceChart.update();
+        }
+        
+        function createPriceChartOptions(stockCode) {
+            return {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 10, usePointStyle: true, pointStyle: 'line' } },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+                    y: { position: 'right', grid: { color: 'rgba(0,0,0,0.05)' }, title: { display: true, text: stockCode, color: '#165DFF' } }
+                }
+            };
+        }
+        
+        function updateRSIChart(dates, rsi) {
+            if (!charts.rsiChart) return;
+            charts.rsiChart.data = {
+                labels: dates,
+                datasets: [
+                    { label: 'RSI(14)', data: rsi, borderColor: '#F53F3F', backgroundColor: 'rgba(245,63,63,0.1)', borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.2 },
+                    { label: '超买线(70)', data: dates.map(() => 70), borderColor: 'rgba(245,63,63,0.5)', borderWidth: 1, borderDash: [5,5], pointRadius: 0 },
+                    { label: '超卖线(30)', data: dates.map(() => 30), borderColor: 'rgba(0,180,42,0.5)', borderWidth: 1, borderDash: [5,5], pointRadius: 0 }
+                ]
+            };
+            charts.rsiChart.options = {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'top', labels: { boxWidth: 10, usePointStyle: true } } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { display: false } },
+                    y: { min: 0, max: 100, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 20 } }
+                }
+            };
+            charts.rsiChart.update();
+        }
+        
+        function updateMACDChart(dates, macdLine, signalLine, histogram) {
+            if (!charts.macdChart) return;
+            charts.macdChart.data = {
+                labels: dates,
+                datasets: [
+                    { label: 'MACD', data: macdLine, borderColor: '#165DFF', borderWidth: 1.5, pointRadius: 0, tension: 0.2, yAxisID: 'y' },
+                    { label: '信号线', data: signalLine, borderColor: '#722ED1', borderWidth: 1.5, pointRadius: 0, tension: 0.2, yAxisID: 'y' },
+                    { 
+                        label: 'Histogram', data: histogram, type: 'bar',
+                        backgroundColor: ctx => {
+                            const val = ctx.raw;
+                            return val >= 0 ? 'rgba(0,180,42,0.6)' : 'rgba(245,63,63,0.6)';
+                        },
+                        yAxisID: 'y1'
+                    }
+                ]
+            };
+            charts.macdChart.options = {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'top', labels: { boxWidth: 10, usePointStyle: true } } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { display: false } },
+                    y: { position: 'right', grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { display: false } },
+                    y1: { position: 'left', grid: { display: false }, ticks: { display: false } }
+                }
+            };
+            charts.macdChart.update();
+        }
+        
+        function updateKDJChart(dates, k, d, j) {
+            if (!charts.kdjChart) return;
+            charts.kdjChart.data = {
+                labels: dates,
+                datasets: [
+                    { label: 'K', data: k, borderColor: '#165DFF', borderWidth: 1.5, pointRadius: 0, tension: 0.2 },
+                    { label: 'D', data: d, borderColor: '#F53F3F', borderWidth: 1.5, pointRadius: 0, tension: 0.2 },
+                    { label: 'J', data: j, borderColor: '#722ED1', borderWidth: 1.5, pointRadius: 0, tension: 0.2 },
+                    { label: '超买(80)', data: dates.map(() => 80), borderColor: 'rgba(245,63,63,0.3)', borderWidth: 1, borderDash: [5,5], pointRadius: 0 },
+                    { label: '超卖(20)', data: dates.map(() => 20), borderColor: 'rgba(0,180,42,0.3)', borderWidth: 1, borderDash: [5,5], pointRadius: 0 }
+                ]
+            };
+            charts.kdjChart.options = {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'top', labels: { boxWidth: 10, usePointStyle: true } } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { display: false } },
+                    y: { min: 0, max: 100, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 20 } }
+                }
+            };
+            charts.kdjChart.update();
+        }
+        
+        function updateReturnDistChart(closes) {
+            if (!charts.returnDistChart) return;
+            const returns = [];
+            for (let i = 1; i < closes.length; i++) {
+                returns.push(((closes[i] - closes[i-1]) / closes[i-1]) * 100);
+            }
+            
+            // 创建直方图bins
+            const bins = 20;
+            const minR = Math.min(...returns);
+            const maxR = Math.max(...returns);
+            const binWidth = (maxR - minR) / bins || 0.1;
+            const histData = new Array(bins).fill(0);
+            const labels = [];
+            
+            for (let i = 0; i < bins; i++) {
+                labels.push((minR + i * binWidth).toFixed(2) + '~' + (minR + (i+1) * binWidth).toFixed(2));
+            }
+            
+            returns.forEach(r => {
+                const idx = Math.min(Math.floor((r - minR) / binWidth), bins - 1);
+                if (idx >= 0) histData[idx]++;
+            });
+            
+            charts.returnDistChart.data = {
+                labels: labels,
+                datasets: [{ label: '频率', data: histData, backgroundColor: 'rgba(22,93,255,0.6)', borderColor: '#165DFF', borderWidth: 1 }]
+            };
+            charts.returnDistChart.options = {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { title: { display: true, text: '日收益率(%)' }, grid: { display: false } },
+                    y: { title: { display: true, text: '频率' }, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }
+                }
+            };
+            charts.returnDistChart.update();
+        }
+        
+        function updateRiskIndicators(analysisData) {
+            if (!analysisData || !analysisData.risk_indicators) return;
+            const ri = analysisData.risk_indicators;
+            const ti = analysisData.technical_indicators || {};
+            const ld = analysisData.latest_data || {};
+            
+            // 更新风险指标卡片
+            const cards = document.querySelectorAll('.border.border-gray-100.rounded-xl.p-5');
+            const cardTexts = [
+                { sel: '.text-3xl', val: ri.total_return ? (ri.total_return * 100).toFixed(1) + '%' : '-' },
+                { sel: '.text-3xl', val: ri.annualized_return ? (ri.annualized_return * 100).toFixed(1) + '%' : '-' }
+            ];
+            
+            // 简单更新页面上的静态数据（通过查找更新）
+            const allBoldTexts = document.querySelectorAll('.text-3xl.font-bold');
+            if (allBoldTexts.length >= 6) {
+                allBoldTexts[0].textContent = ri.total_return != null ? (ri.total_return * 100).toFixed(1) + '%' : 'N/A';
+                allBoldTexts[1].textContent = ri.annualized_return != null ? (ri.annualized_return * 100).toFixed(1) + '%' : 'N/A';
+                allBoldTexts[2].textContent = ri.volatility != null ? (ri.volatility * 100).toFixed(1) + '%' : 'N/A';
+                allBoldTexts[3].textContent = ri.sharpe_ratio != null ? ri.sharpe_ratio.toFixed(2) : 'N/A';
+                allBoldTexts[4].textContent = ri.max_drawdown != null ? (ri.max_drawdown * 100).toFixed(1) + '%' : 'N/A';
+            }
+            
+            // 更新收益率统计
+            updateReturnStats(analysisData);
+        }
+        
+        function updateReturnStats(analysisData) {
+            const ri = analysisData.risk_indicators || {};
+            const statValues = document.querySelectorAll('.flex.justify-between.items-center.pb-3 .font-medium');
+            const stats = [];
+            if (ri.mean_return != null) stats.push((ri.mean_return * 100).toFixed(2) + '%');
+            if (ri.median_return != null) stats.push((ri.median_return * 100).toFixed(2) + '%');
+            if (ri.volatility != null) stats.push((ri.volatility * 100).toFixed(2) + '%');
+            if (ri.skewness != null) stats.push(ri.skewness.toFixed(2));
+            if (ri.kurtosis != null) stats.push(ri.kurtosis.toFixed(2));
+            
+            statValues.forEach((el, i) => {
+                if (i < stats.length) el.textContent = stats[i];
+            });
+        }
+        
+        function updateIndicatorSuggestions(analysisData) {
+            const container = document.getElementById('suggestionsContent');
+            if (!container) return;
+            
+            const ti = analysisData.technical_indicators || {};
+            const suggestions = [];
+            
+            // RSI建议
+            if (ti.rsi14 != null) {
+                const rsi = ti.rsi14;
+                let rsiAdvice = '';
+                if (rsi > 70) rsiAdvice = '超买区域，建议谨慎追高，可考虑减仓';
+                else if (rsi < 30) rsiAdvice = '超卖区域，可能出现反弹机会，可关注买入';
+                else if (rsi > 50) rsiAdvice = '偏强区域，趋势向好';
+                else rsiAdvice = '偏弱区域，建议观望';
+                suggestions.push({
+                    indicator: 'RSI(14)',
+                    value: rsi.toFixed(2),
+                    advice: rsiAdvice,
+                    color: rsi > 70 ? 'danger' : (rsi < 30 ? 'success' : 'primary')
+                });
+            }
+            
+            // MACD建议
+            if (ti.macd != null && ti.macd_signal != null) {
+                const macd = ti.macd;
+                const signal = ti.macd_signal;
+                let macdAdvice = '';
+                if (macd > signal) macdAdvice = 'MACD在信号线上方，金叉看涨信号';
+                else macdAdvice = 'MACD在信号线下方，死叉看跌信号';
+                if (macd > 0) macdAdvice += '，且处于零轴上方，多头强势';
+                else macdAdvice += '，且处于零轴下方，空头主导';
+                suggestions.push({
+                    indicator: 'MACD',
+                    value: `MACD:${macd.toFixed(3)} 信号:${signal.toFixed(3)}`,
+                    advice: macdAdvice,
+                    color: macd > signal ? 'success' : 'danger'
+                });
+            }
+            
+            // KDJ建议
+            if (ti.kdj_k != null && ti.kdj_d != null && ti.kdj_j != null) {
+                const kv = ti.kdj_k, dv = ti.kdj_d, jv = ti.kdj_j;
+                let kdjAdvice = '';
+                if (kv > 80 && dv > 80) kdjAdvice = '超买区域，注意回调风险';
+                else if (kv < 20 && dv < 20) kdjAdvice = '超卖区域，可能出现反弹';
+                else if (kv > dv) kdjAdvice = 'K线上穿D线，金叉信号';
+                else kdjAdvice = 'K线下穿D线，死叉信号';
+                suggestions.push({
+                    indicator: 'KDJ',
+                    value: `K:${kv.toFixed(2)} D:${dv.toFixed(2)} J:${jv.toFixed(2)}`,
+                    advice: kdjAdvice,
+                    color: jv > 0 ? (jv > 80 ? 'danger' : 'success') : 'warning'
+                });
+            }
+            
+            // MA建议
+            if (ti.ma5 != null && ti.ma20 != null) {
+                const ma5 = ti.ma5, ma20 = ti.ma20;
+                let maAdvice = '';
+                if (ma5 > ma20) maAdvice = '短期均线在长期均线上方，多头排列';
+                else maAdvice = '短期均线在长期均线下方，空头排列';
+                suggestions.push({
+                    indicator: '均线(MA5/MA20)',
+                    value: `MA5:${ma5.toFixed(2)} MA20:${ma20.toFixed(2)}`,
+                    advice: maAdvice,
+                    color: ma5 > ma20 ? 'success' : 'danger'
+                });
+            }
+            
+            // 渲染建议
+            const colorMap = { success: '#00B42A', danger: '#F53F3F', primary: '#165DFF', warning: '#FF7D00' };
+            container.innerHTML = suggestions.map(s => `
+                <div class="flex items-start p-3 rounded-lg bg-gray-50">
+                    <div class="w-2 h-2 rounded-full mt-2 mr-3 flex-shrink-0" style="background-color: ${colorMap[s.color] || '#165DFF'}"></div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-semibold text-sm">${s.indicator}</span>
+                            <span class="text-xs text-neutral-medium">${s.value}</span>
+                        </div>
+                        <p class="text-sm text-gray-600">${s.advice}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 分析按钮点击事件（已在DOMContentLoaded中绑定，此处保留兼容性）
+        document.getElementById('analyzeBtn')?.addEventListener('click', function() {
+            // 显示加载状态
+            this.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 分析中...';
+            this.disabled = true;
+
+            // 获取表单数据
+            const stockCode = document.getElementById('stockSelect').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            // 从API获取数据
+            fetch(`/data/api/stock/${stockCode}/prices?start_date=${startDate.replace(/-/g, '')}&end_date=${endDate.replace(/-/g, '')}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.data && data.data.length > 0) {
+                        // 检测模拟数据警告
+                        if (data.is_simulated) {
+                            const warning = document.getElementById('simulatedDataWarning');
+                            if (warning) warning.classList.remove('hidden');
+                        } else {
+                            const warning = document.getElementById('simulatedDataWarning');
+                            if (warning) warning.classList.add('hidden');
+                        }
+                        
+                        // 处理数据并更新图表
+                        updateCharts(data.data, stockCode);
+                        
+                        // 滚动到顶部
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                        // 显示成功提示
+                        alert('分析完成！已更新图表数据。');
+                    } else {
+                        alert('获取数据失败，请重试。');
+                    }
+                })
+                .catch(error => {
+                    console.error('获取数据失败:', error);
+                    alert('获取数据失败，请重试。');
+                })
+                .finally(() => {
+                    // 恢复按钮状态
+                    this.innerHTML = '<i class="fa fa-bar-chart mr-2"></i> 开始分析';
+                    this.disabled = false;
+                });
+        });
+
+        // 更新图表数据
+        function updateCharts(stockData, stockCode) {
+            // 提取日期和价格数据
+            const dates = stockData.map(d => d.trade_date);
+            const prices = stockData.map(d => d.close);
+            
+            // 计算指标
+            const ma5 = calculateMA(stockData, 5);
+            const ma20 = calculateMA(stockData, 20);
+            const ma60 = calculateMA(stockData, 60);
+            const rsi = calculateRSI(stockData, 14);
+            const { macdLine, signalLine, histogram } = calculateMACD(stockData);
+
+            // 更新价格图表
+            if (charts.priceChart) {
+                charts.priceChart.data.labels = dates;
+                charts.priceChart.data.datasets[0].data = prices;
+                charts.priceChart.data.datasets[1].data = ma5;
+                charts.priceChart.data.datasets[2].data = ma20;
+                charts.priceChart.data.datasets[3].data = ma60;
+                charts.priceChart.update();
+            }
+
+            // 更新RSI图表
+            if (charts.rsiChart) {
+                charts.rsiChart.data.labels = dates;
+                charts.rsiChart.data.datasets[0].data = rsi;
+                charts.rsiChart.update();
+            }
+
+            // 更新MACD图表
+            if (charts.macdChart) {
+                charts.macdChart.data.labels = dates;
+                charts.macdChart.data.datasets[0].data = macdLine;
+                charts.macdChart.data.datasets[1].data = signalLine;
+                charts.macdChart.data.datasets[2].data = histogram;
+                charts.macdChart.update();
+            }
+
+            // 更新收益率分布图表
+            if (charts.returnDistChart) {
+                const returns = [];
+                for (let i = 1; i < stockData.length; i++) {
+                    const returnVal = (stockData[i].close - stockData[i-1].close) / stockData[i-1].close * 100;
+                    returns.push(returnVal);
+                }
+                
+                charts.returnDistChart.data.datasets[0].data = generateReturnHistogram(returns);
+                charts.returnDistChart.update();
+            }
+        }
+
+        // 导出按钮点击事件
+        document.getElementById('exportBtn')?.addEventListener('click', function() {
+            alert('报告导出功能即将实现，敬请期待！');
+        });
+
+        // 周期按钮点击事件
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 移除所有按钮的活跃状态
+                document.querySelectorAll('.period-btn').forEach(b => {
+                    b.classList.remove('bg-primary', 'text-white');
+                    b.classList.add('bg-gray-100', 'text-gray-600');
+                });
+
+                // 设置当前按钮为活跃状态
+                this.classList.remove('bg-gray-100', 'text-gray-600');
+                this.classList.add('bg-primary', 'text-white');
+
+                // 这里可以添加切换周期的逻辑
+            });
+        });
+    </script>
+    
+    <!-- 页脚 -->
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

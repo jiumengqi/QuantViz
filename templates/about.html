@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于我们 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 页面内容 -->
+    <main class="container mx-auto px-4 pt-28 pb-16">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12">
+            <h1 class="text-[clamp(1.75rem,4vw,3rem)] font-bold text-neutral-dark mb-4">关于我们</h1>
+            <p class="text-neutral-medium text-lg max-w-2xl mx-auto">了解股票分析与量化投资平台的使命、愿景和团队</p>
+        </div>
+
+        <!-- 平台简介 -->
+        <section class="bg-white rounded-xl shadow-lg p-8 mb-12">
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h2 class="text-2xl font-bold mb-4 text-primary">我们的使命</h2>
+                    <p class="text-neutral-dark mb-4">
+                        股票分析与量化投资平台致力于为投资者提供专业、高效、易用的量化投资工具，
+                        帮助用户通过科学的方法进行投资决策，提高投资效率和收益。
+                    </p>
+                    <p class="text-neutral-dark">
+                        我们相信，量化投资不应是少数专业人士的专利。通过我们的平台，
+                        即使是普通投资者也能运用先进的数据分析和算法模型，制定更科学的投资策略。
+                    </p>
+                </div>
+                <div class="rounded-lg overflow-hidden shadow-md">
+                    <img src="https://picsum.photos/600/400" alt="量化投资平台" class="w-full h-auto">
+                </div>
+            </div>
+        </section>
+
+        <!-- 核心优势 -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold mb-8 text-center text-neutral-dark">核心优势</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- 优势卡片1 -->
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                        <i class="fa fa-database text-primary text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2 text-neutral-dark">海量数据支持</h3>
+                    <p class="text-neutral-medium">
+                        集成了全面的股票历史数据、基本面数据和技术指标，为量化分析提供坚实基础。
+                    </p>
+                </div>
+                
+                <!-- 优势卡片2 -->
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center mb-4">
+                        <i class="fa fa-code-fork text-secondary text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2 text-neutral-dark">强大的回测系统</h3>
+                    <p class="text-neutral-medium">
+                        提供高性能的策略回测引擎，支持多种交易策略的验证和优化，帮助用户找到最优策略参数。
+                    </p>
+                </div>
+                
+                <!-- 优势卡片3 -->
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center mb-4">
+                        <i class="fa fa-lightbulb-o text-success text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2 text-neutral-dark">专业金融模型</h3>
+                    <p class="text-neutral-medium">
+                        内置Black-Scholes期权定价、VaR风险计算等专业金融模型，满足高级投资分析需求。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 发展历程 -->
+        <section class="bg-white rounded-xl shadow-lg p-8 mb-12">
+            <h2 class="text-2xl font-bold mb-8 text-center text-neutral-dark">发展历程</h2>
+            <div class="relative">
+                <!-- 时间线 -->
+                <div class="absolute left-0 md:left-1/2 h-full w-1 bg-neutral-light transform -translate-x-1/2"></div>
+                
+                <!-- 时间点1 -->
+                <div class="relative z-10 mb-8 md:mb-12">
+                    <div class="md:flex items-center">
+                        <div class="md:w-1/2 md:pr-12 mb-4 md:mb-0 md:text-right">
+                            <span class="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-2">2023年</span>
+                            <h3 class="text-xl font-semibold text-neutral-dark">平台创立</h3>
+                            <p class="text-neutral-medium">股票分析与量化投资平台正式成立，致力于提供专业的量化投资工具</p>
+                        </div>
+                        <div class="absolute left-0 md:left-1/2 w-5 h-5 rounded-full bg-primary transform -translate-x-1/2"></div>
+                        <div class="md:w-1/2 md:pl-12 hidden md:block"></div>
+                    </div>
+                </div>
+                
+                <!-- 时间点2 -->
+                <div class="relative z-10 mb-8 md:mb-12">
+                    <div class="md:flex items-center">
+                        <div class="md:w-1/2 md:pr-12 hidden md:block"></div>
+                        <div class="absolute left-0 md:left-1/2 w-5 h-5 rounded-full bg-primary transform -translate-x-1/2"></div>
+                        <div class="md:w-1/2 md:pl-12 md:text-left">
+                            <span class="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-2">2024年</span>
+                            <h3 class="text-xl font-semibold text-neutral-dark">数据中心上线</h3>
+                            <p class="text-neutral-medium">推出全面的数据中心模块，提供股票历史数据、基本面数据和技术指标分析</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 时间点3 -->
+                <div class="relative z-10">
+                    <div class="md:flex items-center">
+                        <div class="md:w-1/2 md:pr-12 text-right">
+                            <span class="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-2">现在</span>
+                            <h3 class="text-xl font-semibold text-neutral-dark">持续创新</h3>
+                            <p class="text-neutral-medium">不断优化平台功能，推出更多专业的量化工具和投资模型，服务广大投资者</p>
+                        </div>
+                        <div class="absolute left-0 md:left-1/2 w-5 h-5 rounded-full bg-primary transform -translate-x-1/2"></div>
+                        <div class="md:w-1/2 md:pl-12 hidden md:block"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 自定义JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+</body>
+</html>

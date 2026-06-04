@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>风险提示 - 量化知识库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .markdown-content p { margin: 0.75rem 0; line-height: 1.8; }
+        .markdown-content ul, .markdown-content ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+        .markdown-content li { margin: 0.5rem 0; line-height: 1.8; }
+        .markdown-content strong { font-weight: bold; color: #1D2129; }
+    </style>
+</head>
+<body class="bg-neutral-light font-sans text-neutral-dark">
+    {% include 'components/header.html' %}
+
+    <main class="container mx-auto px-4 pt-24 pb-16">
+        <div class="max-w-4xl mx-auto">
+            <!-- 页面标题 -->
+            <div class="text-center mb-12">
+                <div class="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                    <i class="fa fa-exclamation-triangle text-3xl text-red-500"></i>
+                </div>
+                <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-neutral-dark mb-4">风险提示</h1>
+                <p class="text-neutral-medium max-w-2xl mx-auto">量化投资涉及多种风险，投资者应充分了解并做好风险管理</p>
+            </div>
+
+            <!-- 重要提示 -->
+            <div class="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-8">
+                <div class="flex items-start">
+                    <i class="fa fa-exclamation-circle text-red-500 text-xl mr-3 mt-0.5"></i>
+                    <div>
+                        <h3 class="font-semibold text-red-700 mb-1">重要声明</h3>
+                        <p class="text-sm text-red-600">量化投资并不保证盈利，历史表现不代表未来收益。投资者应根据自身风险承受能力谨慎决策。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 风险类型列表 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {% for warning in warnings %}
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex items-start mb-4">
+                        <div class="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center mr-4 flex-shrink-0">
+                            <i class="fa {{ warning.icon }} text-red-500 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg text-neutral-dark">{{ warning.title }}</h3>
+                        </div>
+                    </div>
+                    <div class="markdown-content text-sm">
+                        {{ warning.content | safe }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 风险管理建议 -->
+            <div class="bg-white rounded-xl shadow-md p-6 lg:p-8 mb-8">
+                <h2 class="text-xl font-semibold text-neutral-dark mb-4 flex items-center">
+                    <i class="fa fa-shield text-primary mr-2"></i>风险管理建议
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                            <span class="text-primary font-bold">1</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium mb-1">设置止损点</h4>
+                            <p class="text-sm text-neutral-medium">为每笔交易设置明确的止损点，严格执行</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                            <span class="text-primary font-bold">2</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium mb-1">分散投资</h4>
+                            <p class="text-sm text-neutral-medium">不要将资金集中在单一策略或标的</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                            <span class="text-primary font-bold">3</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium mb-1">控制仓位</h4>
+                            <p class="text-sm text-neutral-medium">避免过度使用杠杆，合理控制单笔仓位</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                            <span class="text-primary font-bold">4</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium mb-1">持续学习</h4>
+                            <p class="text-sm text-neutral-medium">市场不断变化，需要持续学习和优化策略</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                            <span class="text-primary font-bold">5</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium mb-1">定期复盘</h4>
+                            <p class="text-sm text-neutral-medium">定期检查策略表现，及时调整</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                            <span class="text-primary font-bold">6</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium mb-1">保持冷静</h4>
+                            <p class="text-sm text-neutral-medium">遵守交易纪律，不被情绪左右</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 免责声明 -->
+            <div class="bg-gray-100 rounded-xl p-6">
+                <h2 class="font-semibold text-neutral-dark mb-3">免责声明</h2>
+                <p class="text-sm text-neutral-medium leading-relaxed">
+                    本平台提供的量化投资知识库内容仅供参考学习，不构成任何投资建议。投资者应自行承担投资风险，本平台不对因使用本平台内容而产生的任何损失负责。量化投资涉及复杂的金融工具和数学模型，需要专业知识储备。在进行实际投资之前，请咨询专业的投资顾问，确保投资决策符合您的财务状况和风险承受能力。
+                </p>
+            </div>
+
+            <!-- 返回链接 -->
+            <div class="text-center mt-8">
+                <a href="{{ url_for('knowledge.knowledge_index') }}" class="text-primary hover:text-primary/80 font-medium">
+                    <i class="fa fa-arrow-left mr-1"></i>返回知识库首页
+                </a>
+            </div>
+        </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑个人资料 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 配置Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+    <style>
+        .form-input-error {
+            border-color: #ef4444 !important;
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-16">
+        <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="gradient-bg p-6 text-white">
+                <h1 class="text-2xl font-bold">编辑个人资料</h1>
+                <p class="text-sm mt-1">更新您的账户信息</p>
+            </div>
+            <div class="p-6">
+                <!-- 显示消息 -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="mb-4 p-3 rounded-lg {{ 'bg-green-100 text-green-700' if category == 'success' else 'bg-red-100 text-red-700' }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <form method="POST" id="profile-form" class="space-y-6" onsubmit="return validateForm()">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- 基本信息 -->
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-semibold border-b pb-2">基本信息</h3>
+                            
+                            <div>
+                                <label for="username" class="block text-sm font-medium text-gray-700 mb-1">用户名 <span class="text-red-500">*</span></label>
+                                <input type="text" id="username" name="username" value="{{ user.username }}" 
+                                       required minlength="3" maxlength="64"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300"
+                                       onblur="validateUsername()">
+                                <div id="username-error" class="error-message hidden"></div>
+                            </div>
+                            
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">邮箱 <span class="text-red-500">*</span></label>
+                                <input type="email" id="email" name="email" value="{{ user.email }}" 
+                                       required
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300"
+                                       onblur="validateEmail()">
+                                <div id="email-error" class="error-message hidden"></div>
+                            </div>
+                            
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">电话</label>
+                                <input type="tel" id="phone" name="phone" value="{{ user.phone or '' }}" 
+                                       placeholder="请输入11位手机号码"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300"
+                                       onblur="validatePhone()">
+                                <div id="phone-error" class="error-message hidden"></div>
+                            </div>
+                            
+                            <div>
+                                <label for="bio" class="block text-sm font-medium text-gray-700 mb-1">个人简介</label>
+                                <textarea id="bio" name="bio" rows="3" maxlength="200" 
+                                          placeholder="介绍一下自己..."
+                                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 resize-none">{{ user.bio or '' }}</textarea>
+                                <div class="text-xs text-gray-500 mt-1">最多200字</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 偏好设置 -->
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-semibold border-b pb-2">偏好设置</h3>
+                            
+                            <div>
+                                <label for="theme_preference" class="block text-sm font-medium text-gray-700 mb-1">主题偏好</label>
+                                <select id="theme_preference" name="theme_preference" 
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                                    <option value="system" {{ 'selected' if user.theme_preference == 'system' else '' }}>跟随系统</option>
+                                    <option value="light" {{ 'selected' if user.theme_preference == 'light' else '' }}>浅色</option>
+                                    <option value="dark" {{ 'selected' if user.theme_preference == 'dark' else '' }}>深色</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">设置后将自动应用您选择的主题</p>
+                            </div>
+                            
+                            <div>
+                                <label for="refresh_frequency" class="block text-sm font-medium text-gray-700 mb-1">行情刷新频率</label>
+                                <div class="flex items-center">
+                                    <input type="number" id="refresh_frequency" name="refresh_frequency" 
+                                           value="{{ user.refresh_frequency or 5 }}" min="1" max="60"
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300"
+                                           onblur="validateRefreshFrequency()">
+                                    <span class="ml-2 text-gray-500">秒</span>
+                                </div>
+                                <div id="refresh_frequency-error" class="error-message hidden"></div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">通知设置</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="notification_email" 
+                                               {{ 'checked' if user.notification_email else '' }}
+                                               class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <span class="ml-2 text-sm text-gray-600">邮件通知</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="notification_browser" 
+                                               {{ 'checked' if user.notification_browser else '' }}
+                                               class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <span class="ml-2 text-sm text-gray-600">浏览器通知</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 回测默认设置 -->
+                    <div class="space-y-4 pt-4 border-t">
+                        <h3 class="text-lg font-semibold border-b pb-2">回测默认设置</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="backtest_default_capital" class="block text-sm font-medium text-gray-700 mb-1">回测默认资金</label>
+                                <div class="flex items-center">
+                                    <span class="mr-2 text-gray-500">¥</span>
+                                    <input type="number" id="backtest_default_capital" name="backtest_default_capital" 
+                                           value="{{ user.backtest_default_capital or 100000 }}" min="1000" step="1000"
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300"
+                                           onblur="validateCapital()">
+                                </div>
+                                <div id="backtest_default_capital-error" class="error-message hidden"></div>
+                            </div>
+                            
+                            <div>
+                                <label for="backtest_default_fee" class="block text-sm font-medium text-gray-700 mb-1">回测默认手续费</label>
+                                <div class="flex items-center">
+                                    <input type="number" id="backtest_default_fee" name="backtest_default_fee" 
+                                           value="{{ (user.backtest_default_fee * 100) if user.backtest_default_fee else 0.03 }}" 
+                                           min="0" max="1" step="0.001"
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300"
+                                           onblur="validateFee()">
+                                    <span class="ml-2 text-gray-500">%</span>
+                                </div>
+                                <div id="backtest_default_fee-error" class="error-message hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-4 pt-4">
+                        <a href="{{ url_for('auth.profile') }}" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center flex-1">
+                            <i class="fa fa-arrow-left mr-2"></i> 返回
+                        </a>
+                        <button type="submit" id="submit-btn" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center flex-1">
+                            <i class="fa fa-save mr-2"></i> 保存更改
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- 表单验证脚本 -->
+    <script>
+        function showError(fieldId, message) {
+            var field = document.getElementById(fieldId);
+            var errorDiv = document.getElementById(fieldId + '-error');
+            if (field) field.classList.add('form-input-error');
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.classList.remove('hidden');
+            }
+        }
+        
+        function clearError(fieldId) {
+            var field = document.getElementById(fieldId);
+            var errorDiv = document.getElementById(fieldId + '-error');
+            if (field) field.classList.remove('form-input-error');
+            if (errorDiv) errorDiv.classList.add('hidden');
+        }
+        
+        function validateUsername() {
+            var username = document.getElementById('username').value.trim();
+            if (username.length < 3) {
+                showError('username', '用户名至少需要3个字符');
+                return false;
+            }
+            clearError('username');
+            return true;
+        }
+        
+        function validateEmail() {
+            var email = document.getElementById('email').value.trim();
+            var emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+            if (!emailRegex.test(email)) {
+                showError('email', '请输入有效的邮箱地址');
+                return false;
+            }
+            clearError('email');
+            return true;
+        }
+        
+        function validatePhone() {
+            var phone = document.getElementById('phone').value.trim();
+            if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
+                showError('phone', '请输入有效的11位手机号码');
+                return false;
+            }
+            clearError('phone');
+            return true;
+        }
+        
+        function validateRefreshFrequency() {
+            var freq = parseInt(document.getElementById('refresh_frequency').value);
+            if (isNaN(freq) || freq < 1 || freq > 60) {
+                showError('refresh_frequency', '刷新频率应在 1-60 秒之间');
+                return false;
+            }
+            clearError('refresh_frequency');
+            return true;
+        }
+        
+        function validateCapital() {
+            var capital = parseFloat(document.getElementById('backtest_default_capital').value);
+            if (isNaN(capital) || capital < 1000) {
+                showError('backtest_default_capital', '回测资金不能少于 1000 元');
+                return false;
+            }
+            clearError('backtest_default_capital');
+            return true;
+        }
+        
+        function validateFee() {
+            var fee = parseFloat(document.getElementById('backtest_default_fee').value);
+            if (isNaN(fee) || fee < 0 || fee > 1) {
+                showError('backtest_default_fee', '手续费应在 0-1% 之间');
+                return false;
+            }
+            clearError('backtest_default_fee');
+            return true;
+        }
+        
+        function validateForm() {
+            var isValid = true;
+            isValid = validateUsername() && isValid;
+            isValid = validateEmail() && isValid;
+            isValid = validatePhone() && isValid;
+            isValid = validateRefreshFrequency() && isValid;
+            isValid = validateCapital() && isValid;
+            isValid = validateFee() && isValid;
+            
+            if (isValid) {
+                var btn = document.getElementById('submit-btn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 保存中...';
+                }
+            }
+            
+            return isValid;
+        }
+        
+        // 实时验证（输入时清除错误）
+        ['username', 'email', 'phone', 'refresh_frequency', 'backtest_default_capital', 'backtest_default_fee'].forEach(function(id) {
+            var field = document.getElementById(id);
+            if (field) {
+                field.addEventListener('input', function() {
+                    clearError(id);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

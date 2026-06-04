@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提交反馈 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    {% include 'components/header.html' %}
+
+    <main class="container mx-auto px-4 pt-28 pb-16">
+        <div class="max-w-2xl mx-auto">
+            <!-- 页面标题 -->
+            <div class="text-center mb-8">
+                <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-neutral-dark mb-4">
+                    <i class="fa fa-commenting-o text-primary mr-2"></i>提交反馈
+                </h1>
+                <p class="text-neutral-medium">我们重视您的每一条反馈，帮助我们做得更好</p>
+            </div>
+
+            <!-- 反馈类型选择 -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                <form id="feedbackForm">
+                    <div class="mb-6">
+                        <label class="block text-neutral-dark font-medium mb-3">反馈类型</label>
+                        <div class="grid grid-cols-3 gap-4">
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="type" value="bug" class="peer sr-only" checked>
+                                <div class="p-4 rounded-lg border-2 border-neutral-light peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-300 text-center">
+                                    <i class="fa fa-bug text-2xl text-neutral-medium peer-checked:text-primary mb-2"></i>
+                                    <p class="font-medium">Bug报告</p>
+                                </div>
+                            </label>
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="type" value="suggestion" class="peer sr-only">
+                                <div class="p-4 rounded-lg border-2 border-neutral-light peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-300 text-center">
+                                    <i class="fa fa-lightbulb-o text-2xl text-neutral-medium peer-checked:text-primary mb-2"></i>
+                                    <p class="font-medium">功能建议</p>
+                                </div>
+                            </label>
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="type" value="feature" class="peer sr-only">
+                                <div class="p-4 rounded-lg border-2 border-neutral-light peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-300 text-center">
+                                    <i class="fa fa-rocket text-2xl text-neutral-medium peer-checked:text-primary mb-2"></i>
+                                    <p class="font-medium">新功能请求</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 标题 -->
+                    <div class="mb-6">
+                        <label for="title" class="block text-neutral-dark font-medium mb-2">反馈标题</label>
+                        <input type="text" id="title" name="title" required maxlength="200"
+                            class="w-full px-4 py-3 rounded-lg border border-neutral-light focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300"
+                            placeholder="请简要描述您的问题或建议">
+                    </div>
+
+                    <!-- 内容 -->
+                    <div class="mb-6">
+                        <label for="content" class="block text-neutral-dark font-medium mb-2">反馈内容</label>
+                        <textarea id="content" name="content" required rows="8"
+                            class="w-full px-4 py-3 rounded-lg border border-neutral-light focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300 resize-none"
+                            placeholder="请详细描述您的问题或建议，以便我们更好地解决"></textarea>
+                        <p class="text-neutral-medium text-sm mt-2">请尽量详细描述问题，包括操作步骤、预期结果和实际结果</p>
+                    </div>
+
+                    <!-- 提交按钮 -->
+                    <div class="flex items-center justify-between">
+                        <a href="{{ url_for('feedback.my_feedback') }}" class="text-primary hover:text-primary/80 transition-colors duration-300">
+                            <i class="fa fa-arrow-left mr-1"></i>查看我的反馈
+                        </a>
+                        <button type="submit" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-300 font-medium transform hover:scale-105 active:scale-95">
+                            <i class="fa fa-paper-plane mr-2"></i>提交反馈
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 提示信息 -->
+            <div class="bg-primary/5 rounded-xl p-6 border border-primary/20">
+                <h3 class="font-semibold text-primary mb-3">
+                    <i class="fa fa-info-circle mr-2"></i>温馨提示
+                </h3>
+                <ul class="text-neutral-medium text-sm space-y-2">
+                    <li><i class="fa fa-check text-secondary mr-2"></i>Bug报告：请描述问题现象、复现步骤和您的操作环境</li>
+                    <li><i class="fa fa-check text-secondary mr-2"></i>功能建议：描述您希望增加的功能及使用场景</li>
+                    <li><i class="fa fa-check text-secondary mr-2"></i>我们会在1-3个工作日内处理您的反馈</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+        document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {
+                type: formData.get('type'),
+                title: formData.get('title'),
+                content: formData.get('content')
+            };
+
+            try {
+                const response = await fetch('/feedback/api/feedbacks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('反馈提交成功！');
+                    window.location.href = '{{ url_for("feedback.my_feedback") }}';
+                } else {
+                    alert('提交失败：' + result.message);
+                }
+            } catch (error) {
+                alert('提交失败，请稍后重试');
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热力图分析 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题 -->
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-neutral-dark mb-2">热力图分析</h1>
+                        <p class="text-gray-600">通过热力图展示股票相关性、行业分布等多维度数据</p>
+                    </div>
+                    <nav class="flex mt-4 md:mt-0" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="{{ url_for('main.index') }}" class="text-gray-700 hover:text-primary text-sm font-medium">首页</a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                    <a href="{{ url_for('analysis.analysis_index') }}" class="ml-1 text-gray-700 hover:text-primary text-sm font-medium">数据分析</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                    <span class="ml-1 text-gray-500 font-medium text-sm">热力图分析</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- 标签页切换 -->
+            <div class="bg-white rounded-xl shadow-md mb-8">
+                <div class="border-b">
+                    <nav class="flex -mb-px">
+                        <button onclick="switchTab('correlation')" id="tab-correlation" class="tab-btn px-6 py-4 text-sm font-medium border-b-2 border-primary text-primary">
+                            <i class="fa fa-table mr-2"></i>股票相关性热力图
+                        </button>
+                        <button onclick="switchTab('sector')" id="tab-sector" class="tab-btn px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                            <i class="fa fa-building mr-2"></i>行业分布热力图
+                        </button>
+                    </nav>
+                </div>
+                
+                <!-- 股票相关性热力图标签页 -->
+                <div id="panel-correlation" class="p-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <!-- 左侧控制面板 -->
+                        <div class="lg:col-span-1">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="text-sm font-semibold mb-4 flex items-center">
+                                    <i class="fa fa-sliders text-primary mr-2"></i>分析参数
+                                </h3>
+                                
+                                <!-- 股票选择 -->
+                                <div class="mb-4">
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">选择股票（可多选）</label>
+                                    <div class="space-y-2 max-h-48 overflow-y-auto">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="stock-1" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="600036.SH" checked>
+                                            <label for="stock-1" class="ml-2 text-xs text-gray-700">招商银行</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="stock-2" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="601318.SH" checked>
+                                            <label for="stock-2" class="ml-2 text-xs text-gray-700">中国平安</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="stock-3" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="600519.SH" checked>
+                                            <label for="stock-3" class="ml-2 text-xs text-gray-700">贵州茅台</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="stock-4" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="000858.SZ">
+                                            <label for="stock-4" class="ml-2 text-xs text-gray-700">五粮液</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="stock-5" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="000001.SZ">
+                                            <label for="stock-5" class="ml-2 text-xs text-gray-700">平安银行</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="stock-6" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="601888.SH">
+                                            <label for="stock-6" class="ml-2 text-xs text-gray-700">中国中免</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="stock-7" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="600276.SH">
+                                            <label for="stock-7" class="ml-2 text-xs text-gray-700">恒瑞医药</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="stock-8" class="stock-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" value="002594.SZ">
+                                            <label for="stock-8" class="ml-2 text-xs text-gray-700">比亚迪</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 时间范围 -->
+                                <div class="mb-4">
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">时间范围</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="text-xs text-gray-500 mb-1 block">开始日期</label>
+                                            <input type="date" id="corr-start-date" class="w-full p-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-primary focus:border-primary" value="{{ default_start }}">
+                                        </div>
+                                        <div>
+                                            <label class="text-xs text-gray-500 mb-1 block">结束日期</label>
+                                            <input type="date" id="corr-end-date" class="w-full p-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-primary focus:border-primary" value="{{ today }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 分析类型 -->
+                                <div class="mb-4">
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">分析类型</label>
+                                    <select id="corr-type" class="w-full p-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-primary focus:border-primary">
+                                        <option value="return">收益率相关性</option>
+                                        <option value="price">价格相关性</option>
+                                        <option value="volume">成交量相关性</option>
+                                    </select>
+                                </div>
+                                
+                                <button onclick="analyzeCorrelation()" class="w-full py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm flex items-center justify-center">
+                                    <i class="fa fa-bar-chart mr-2"></i>执行分析
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧结果展示 -->
+                        <div class="lg:col-span-3 space-y-6">
+                            <!-- 相关性热力图 -->
+                            <div class="bg-white border rounded-lg p-4 card-hover">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-sm font-semibold">股票相关性热力图</h3>
+                                    <div class="flex gap-2">
+                                        <button onclick="exportHeatmap('correlation')" class="px-3 py-1 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors text-xs flex items-center">
+                                            <i class="fa fa-download mr-1"></i>导出
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="correlationHeatmapContainer" class="h-96"></div>
+                            </div>
+                            
+                            <!-- 相关性矩阵表格 -->
+                            <div class="bg-white border rounded-lg p-4 card-hover">
+                                <h3 class="text-sm font-semibold mb-4">相关性矩阵</h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full text-xs" id="correlationTable">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-3 py-2 text-left font-medium text-gray-600">股票</th>
+                                                <th class="px-3 py-2 text-center font-medium text-gray-600">招商银行</th>
+                                                <th class="px-3 py-2 text-center font-medium text-gray-600">中国平安</th>
+                                                <th class="px-3 py-2 text-center font-medium text-gray-600">贵州茅台</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            <tr>
+                                                <td class="px-3 py-2 font-medium">招商银行</td>
+                                                <td class="px-3 py-2 text-center bg-gray-50">1.00</td>
+                                                <td class="px-3 py-2 text-center">0.75</td>
+                                                <td class="px-3 py-2 text-center">0.42</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-3 py-2 font-medium">中国平安</td>
+                                                <td class="px-3 py-2 text-center">0.75</td>
+                                                <td class="px-3 py-2 text-center bg-gray-50">1.00</td>
+                                                <td class="px-3 py-2 text-center">0.38</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-3 py-2 font-medium">贵州茅台</td>
+                                                <td class="px-3 py-2 text-center">0.42</td>
+                                                <td class="px-3 py-2 text-center">0.38</td>
+                                                <td class="px-3 py-2 text-center bg-gray-50">1.00</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 行业分布热力图标签页 -->
+                <div id="panel-sector" class="p-6 hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <!-- 左侧控制面板 -->
+                        <div class="lg:col-span-1">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="text-sm font-semibold mb-4 flex items-center">
+                                    <i class="fa fa-sliders text-primary mr-2"></i>行业参数
+                                </h3>
+                                
+                                <!-- 行业选择 -->
+                                <div class="mb-4">
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">选择行业</label>
+                                    <select id="sector-select" class="w-full p-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-primary focus:border-primary">
+                                        <option value="all">全部行业</option>
+                                        <option value="tech">科技</option>
+                                        <option value="finance">金融</option>
+                                        <option value="consumer">消费</option>
+                                        <option value="medical">医药</option>
+                                        <option value="energy">能源</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- 排序方式 -->
+                                <div class="mb-4">
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">排序方式</label>
+                                    <select id="sector-sort" class="w-full p-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-primary focus:border-primary">
+                                        <option value="market_cap">市值</option>
+                                        <option value="change">涨跌幅</option>
+                                        <option value="pe">市盈率</option>
+                                    </select>
+                                </div>
+                                
+                                <button onclick="analyzeSector()" class="w-full py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm flex items-center justify-center">
+                                    <i class="fa fa-building mr-2"></i>更新图表
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧结果展示 -->
+                        <div class="lg:col-span-3 space-y-6">
+                            <!-- 行业分布树图 -->
+                            <div class="bg-white border rounded-lg p-4 card-hover">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-sm font-semibold">行业分布图</h3>
+                                    <button onclick="exportHeatmap('sector')" class="px-3 py-1 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors text-xs flex items-center">
+                                        <i class="fa fa-download mr-1"></i>导出
+                                    </button>
+                                </div>
+                                <div id="sectorTreemapContainer" class="h-96"></div>
+                            </div>
+                            
+                            <!-- 行业统计表格 -->
+                            <div class="bg-white border rounded-lg p-4 card-hover">
+                                <h3 class="text-sm font-semibold mb-4">行业统计</h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full text-xs" id="sectorTable">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-3 py-2 text-left font-medium text-gray-600">行业</th>
+                                                <th class="px-3 py-2 text-right font-medium text-gray-600">股票数量</th>
+                                                <th class="px-3 py-2 text-right font-medium text-gray-600">总市值(亿)</th>
+                                                <th class="px-3 py-2 text-right font-medium text-gray-600">平均涨幅</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            <tr>
+                                                <td class="px-3 py-2 font-medium">科技</td>
+                                                <td class="px-3 py-2 text-right">128</td>
+                                                <td class="px-3 py-2 text-right">45,230</td>
+                                                <td class="px-3 py-2 text-right text-green-600">+2.35%</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-3 py-2 font-medium">金融</td>
+                                                <td class="px-3 py-2 text-right">86</td>
+                                                <td class="px-3 py-2 text-right">38,560</td>
+                                                <td class="px-3 py-2 text-right text-red-600">-0.82%</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-3 py-2 font-medium">消费</td>
+                                                <td class="px-3 py-2 text-right">95</td>
+                                                <td class="px-3 py-2 text-right">32,180</td>
+                                                <td class="px-3 py-2 text-right text-green-600">+1.26%</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- 引入图表工具模块 -->
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    
+    <script>
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化相关性热力图
+            initCorrelationHeatmap();
+            // 初始化行业分布图
+            initSectorTreemap();
+        });
+        
+        // 标签页切换
+        function switchTab(tabName) {
+            // 隐藏所有面板
+            document.getElementById('panel-correlation').classList.add('hidden');
+            document.getElementById('panel-sector').classList.add('hidden');
+            
+            // 重置所有标签按钮样式
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-primary', 'text-primary');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            // 显示选中面板
+            document.getElementById('panel-' + tabName).classList.remove('hidden');
+            
+            // 高亮选中标签
+            document.getElementById('tab-' + tabName).classList.remove('border-transparent', 'text-gray-500');
+            document.getElementById('tab-' + tabName).classList.add('border-primary', 'text-primary');
+            
+            // 调整图表大小
+            setTimeout(() => {
+                if (tabName === 'correlation') {
+                    const chart = echarts.getInstanceByDom(document.getElementById('correlationHeatmapContainer'));
+                    if (chart) chart.resize();
+                } else {
+                    const chart = echarts.getInstanceByDom(document.getElementById('sectorTreemapContainer'));
+                    if (chart) chart.resize();
+                }
+            }, 100);
+        }
+        
+        // 初始化相关性热力图
+        function initCorrelationHeatmap() {
+            const stocks = ['招商银行', '中国平安', '贵州茅台'];
+            const correlationData = [
+                [1.00, 0.75, 0.42],
+                [0.75, 1.00, 0.38],
+                [0.42, 0.38, 1.00]
+            ];
+            
+            if (typeof QuantCharts !== 'undefined') {
+                QuantCharts.createCorrelationHeatmap('correlationHeatmapContainer', stocks, correlationData);
+            }
+        }
+        
+        // 初始化行业分布树图
+        function initSectorTreemap() {
+            const sectorData = [
+                {
+                    name: '科技',
+                    value: 45230,
+                    stocks: [
+                        { name: '宁德时代', value: 8500 },
+                        { name: '比亚迪', value: 7200 },
+                        { name: '隆基绿能', value: 3800 },
+                        { name: '中芯国际', value: 3200 }
+                    ]
+                },
+                {
+                    name: '金融',
+                    value: 38560,
+                    stocks: [
+                        { name: '招商银行', value: 9200 },
+                        { name: '中国平安', value: 7800 },
+                        { name: '工商银行', value: 6500 }
+                    ]
+                },
+                {
+                    name: '消费',
+                    value: 32180,
+                    stocks: [
+                        { name: '贵州茅台', value: 15000 },
+                        { name: '五粮液', value: 5200 },
+                        { name: '美的集团', value: 4200 }
+                    ]
+                },
+                {
+                    name: '医药',
+                    value: 25800,
+                    stocks: [
+                        { name: '恒瑞医药', value: 4800 },
+                        { name: '药明康德', value: 3500 }
+                    ]
+                }
+            ];
+            
+            if (typeof QuantCharts !== 'undefined') {
+                QuantCharts.createSectorTreemap('sectorTreemapContainer', sectorData);
+            }
+        }
+        
+        // 分析相关性
+        function analyzeCorrelation() {
+            const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
+            const startDate = document.getElementById('corr-start-date').value;
+            const endDate = document.getElementById('corr-end-date').value;
+            const corrType = document.getElementById('corr-type').value;
+            
+            // 模拟分析过程
+            showLoading('正在分析相关性...');
+            
+            setTimeout(() => {
+                hideLoading();
+                showToast('相关性分析完成！');
+                
+                // 更新热力图（使用模拟数据）
+                updateCorrelationHeatmap(selectedStocks);
+            }, 1500);
+        }
+        
+        // 更新相关性热力图
+        function updateCorrelationHeatmap(selectedStocks) {
+            // 模拟相关性数据生成
+            const correlationData = [];
+            selectedStocks.forEach((stock1, i) => {
+                const row = [];
+                selectedStocks.forEach((stock2, j) => {
+                    if (i === j) {
+                        row.push(1.00);
+                    } else {
+                        row.push(Math.random() * 0.6 + 0.2); // 0.2-0.8之间的随机相关性
+                    }
+                });
+                correlationData.push(row);
+            });
+            
+            // 股票代码到名称的映射
+            const stockNames = {
+                '600036.SH': '招商银行',
+                '601318.SH': '中国平安',
+                '600519.SH': '贵州茅台',
+                '000858.SZ': '五粮液',
+                '000001.SZ': '平安银行',
+                '601888.SH': '中国中免',
+                '600276.SH': '恒瑞医药',
+                '002594.SZ': '比亚迪'
+            };
+            
+            const stocks = selectedStocks.map(code => stockNames[code] || code);
+            
+            if (typeof QuantCharts !== 'undefined') {
+                QuantCharts.createCorrelationHeatmap('correlationHeatmapContainer', stocks, correlationData);
+            }
+            
+            // 更新表格
+            updateCorrelationTable(stocks, correlationData);
+        }
+        
+        // 更新相关性表格
+        function updateCorrelationTable(stocks, correlationData) {
+            const table = document.getElementById('correlationTable');
+            let thead = '<thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left font-medium text-gray-600">股票</th>';
+            stocks.forEach(stock => {
+                thead += `<th class="px-3 py-2 text-center font-medium text-gray-600">${stock}</th>`;
+            });
+            thead += '</tr></thead><tbody class="divide-y divide-gray-100">';
+            
+            let tbody = '';
+            stocks.forEach((stock, i) => {
+                tbody += '<tr>';
+                tbody += `<td class="px-3 py-2 font-medium">${stock}</td>`;
+                correlationData[i].forEach((value, j) => {
+                    const bgClass = i === j ? 'bg-gray-50' : '';
+                    tbody += `<td class="px-3 py-2 text-center ${bgClass}">${value.toFixed(2)}</td>`;
+                });
+                tbody += '</tr>';
+            });
+            tbody += '</tbody>';
+            
+            table.innerHTML = thead + tbody;
+        }
+        
+        // 分析行业分布
+        function analyzeSector() {
+            const sector = document.getElementById('sector-select').value;
+            const sortBy = document.getElementById('sector-sort').value;
+            
+            showToast('行业分布已更新');
+            initSectorTreemap();
+        }
+        
+        // 导出热力图
+        function exportHeatmap(type) {
+            if (typeof QuantCharts !== 'undefined') {
+                const containerId = type === 'correlation' ? 'correlationHeatmapContainer' : 'sectorTreemapContainer';
+                QuantCharts.exportChartAsImage(containerId, type + '_heatmap');
+                showToast('图表已导出');
+            }
+        }
+        
+        // 显示加载状态
+        function showLoading(message) {
+            // 简单的加载提示
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loading-overlay';
+            loadingDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            loadingDiv.innerHTML = `
+                <div class="bg-white rounded-lg p-6 flex flex-col items-center">
+                    <i class="fa fa-spinner fa-spin text-3xl text-primary mb-3"></i>
+                    <p class="text-sm text-gray-600">${message || '加载中...'}</p>
+                </div>
+            `;
+            document.body.appendChild(loadingDiv);
+        }
+        
+        function hideLoading() {
+            const loadingDiv = document.getElementById('loading-overlay');
+            if (loadingDiv) {
+                loadingDiv.remove();
+            }
+        }
+        
+        // 显示提示消息
+        function showToast(message) {
+            const toastDiv = document.createElement('div');
+            toastDiv.className = 'fixed top-24 right-4 bg-primary text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in';
+            toastDiv.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+            document.body.appendChild(toastDiv);
+            
+            setTimeout(() => {
+                toastDiv.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

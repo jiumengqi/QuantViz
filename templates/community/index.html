@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略社区 - 量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        [data-theme="dark"] {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+            min-height: 100vh;
+        }
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .strategy-card {
+            transition: all 0.3s ease;
+        }
+        .strategy-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .code-preview {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow: hidden;
+            position: relative;
+        }
+        [data-theme="dark"] .code-preview {
+            background: #1e1e1e;
+        }
+        .code-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(transparent, rgba(45,45,45,0.9));
+        }
+        .like-btn.liked {
+            color: #e74c3c;
+        }
+        .tab-btn.active {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    {% include 'components/header.html' %}
+    
+    <div class="container mx-auto px-4 pt-24 pb-12">
+        <!-- 页面标题和操作栏 -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fa fa-users mr-2 text-blue-500"></i>策略社区
+                </h1>
+                <p class="text-gray-600">分享你的量化策略，与投资者交流经验</p>
+            </div>
+            <a href="{{ url_for('community.create_strategy') }}" 
+               class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300 shadow-lg hover:shadow-xl">
+                <i class="fa fa-plus mr-2"></i>发布策略
+            </a>
+        </div>
+
+        <!-- 筛选和排序栏 -->
+        <div class="bg-white rounded-xl shadow-md p-4 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600 font-medium">排序：</span>
+                    <div class="flex space-x-2" id="sortTabs">
+                        <button class="tab-btn active px-4 py-2 text-gray-600 hover:text-blue-500 transition-all duration-300 rounded-lg" data-sort="latest">
+                            <i class="fa fa-clock mr-1"></i>最新
+                        </button>
+                        <button class="tab-btn px-4 py-2 text-gray-600 hover:text-blue-500 transition-all duration-300 rounded-lg" data-sort="popular">
+                            <i class="fa fa-heart mr-1"></i>最热
+                        </button>
+                        <button class="tab-btn px-4 py-2 text-gray-600 hover:text-blue-500 transition-all duration-300 rounded-lg" data-sort="most_shared">
+                            <i class="fa fa-share mr-1"></i>最多分享
+                        </button>
+                    </div>
+                </div>
+                <div class="text-gray-500 text-sm">
+                    共 <span id="totalCount" class="font-bold text-blue-500">0</span> 个策略
+                </div>
+            </div>
+        </div>
+
+        <!-- 策略列表 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="strategyList">
+            <!-- 动态加载 -->
+        </div>
+
+        <!-- 加载更多 -->
+        <div class="text-center mt-8" id="loadMoreSection" style="display: none;">
+            <button id="loadMoreBtn" class="px-8 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all duration-300">
+                <i class="fa fa-arrow-down mr-2"></i>加载更多
+            </button>
+        </div>
+
+        <!-- 加载动画 -->
+        <div class="text-center py-12" id="loadingIndicator">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+            <p class="mt-4 text-gray-500">加载中...</p>
+        </div>
+
+        <!-- 空状态 -->
+        <div class="text-center py-16" id="emptyState" style="display: none;">
+            <i class="fa fa-inbox text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500 text-lg">还没有人发布策略</p>
+            <p class="text-gray-400 mt-2">成为第一个分享者吧！</p>
+        </div>
+    </div>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+        let currentPage = 1;
+        let currentSort = 'latest';
+        let isLoading = false;
+        let hasMore = true;
+
+        async function loadStrategies(page = 1, append = false) {
+            if (isLoading) return;
+            isLoading = true;
+
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const strategyList = document.getElementById('strategyList');
+
+            if (!append) {
+                loadingIndicator.style.display = 'block';
+                strategyList.innerHTML = '';
+            }
+
+            try {
+                const response = await fetch(`/api/community/strategies?page=${page}&per_page=12&sort_by=${currentSort}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('totalCount').textContent = data.total;
+
+                    if (data.strategies.length === 0 && !append) {
+                        document.getElementById('emptyState').style.display = 'block';
+                        loadingIndicator.style.display = 'none';
+                        return;
+                    }
+
+                    document.getElementById('emptyState').style.display = 'none';
+
+                    if (append) {
+                        strategyList.insertAdjacentHTML('beforeend', data.strategies.map(s => createStrategyCard(s, data.liked_strategy_ids || [])).join(''));
+                    } else {
+                        strategyList.innerHTML = data.strategies.map(s => createStrategyCard(s, data.liked_strategy_ids || [])).join('');
+                    }
+
+                    hasMore = page < data.pages;
+                    currentPage = page;
+
+                    document.getElementById('loadMoreSection').style.display = hasMore ? 'block' : 'none';
+                }
+            } catch (error) {
+                console.error('加载策略失败:', error);
+            } finally {
+                loadingIndicator.style.display = 'none';
+                isLoading = false;
+            }
+        }
+
+        function createStrategyCard(strategy, likedIds = []) {
+            const hasLiked = likedIds.includes(strategy.id);
+            const codePreview = strategy.strategy_code.length > 200 
+                ? strategy.strategy_code.substring(0, 200) + '...' 
+                : strategy.strategy_code;
+
+            return `
+                <div class="strategy-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                    ${escapeHTML(strategy.username.charAt(0).toUpperCase())}
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">${escapeHTML(strategy.username)}</p>
+                                    <p class="text-xs text-gray-400">${escapeHTML(strategy.created_at)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-lg font-bold text-gray-800 mb-2 hover:text-blue-500 cursor-pointer" onclick="location.href='/community/strategies/${strategy.id}'">
+                            ${escapeHTML(strategy.strategy_name)}
+                        </h3>
+                        
+                        <p class="text-gray-600 text-sm mb-3 line-clamp-2">${escapeHTML(strategy.description || '暂无描述')}</p>
+                        
+                        <div class="code-preview rounded-lg p-3 mb-3">
+                            <pre class="whitespace-pre-wrap">${escapeHTML(codePreview)}</pre>
+                            <div class="code-overlay"></div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between text-sm text-gray-500">
+                            <div class="flex items-center space-x-4">
+                                <button class="like-btn ${hasLiked ? 'liked' : ''} hover:text-red-500 transition-colors duration-300" onclick="toggleLike(${strategy.id}, this)">
+                                    <i class="${hasLiked ? 'fa' : 'fa'} fa-heart mr-1"></i>
+                                    <span class="likes-count">${strategy.likes_count}</span>
+                                </button>
+                                <span class="hover:text-blue-500 cursor-pointer" onclick="location.href='/community/strategies/${strategy.id}#comments'">
+                                    <i class="fa fa-comment mr-1"></i>
+                                    ${strategy.comments_count || 0}
+                                </span>
+                            </div>
+                            <button class="text-blue-500 hover:text-blue-700 text-sm font-medium" onclick="location.href='/community/strategies/${strategy.id}'">
+                                查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHTML(str) {
+            if (str == null) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+
+        async function toggleLike(strategyId, btn) {
+            {% if current_user.is_authenticated %}
+            try {
+                const response = await fetch(`/api/community/strategies/${strategyId}/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    btn.classList.toggle('liked');
+                    const countSpan = btn.querySelector('.likes-count');
+                    countSpan.textContent = data.likes_count;
+                }
+            } catch (error) {
+                console.error('点赞失败:', error);
+            }
+            {% else %}
+            alert('请先登录后再点赞');
+            {% endif %}
+        }
+
+        // 排序切换
+        document.getElementById('sortTabs').addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (btn) {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSort = btn.dataset.sort;
+                loadStrategies(1, false);
+            }
+        });
+
+        // 加载更多
+        document.getElementById('loadMoreBtn').addEventListener('click', () => {
+            loadStrategies(currentPage + 1, true);
+        });
+
+        // 初始加载
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStrategies(1, false);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>常见问题 - 量化知识库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .markdown-content p { margin: 0.75rem 0; line-height: 1.8; }
+        .markdown-content ul, .markdown-content ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+        .markdown-content li { margin: 0.5rem 0; line-height: 1.8; }
+        .markdown-content strong { font-weight: bold; color: #1D2129; }
+        .faq-item {
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .faq-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-sans text-neutral-dark">
+    {% include 'components/header.html' %}
+
+    <main class="container mx-auto px-4 pt-24 pb-16">
+        <div class="max-w-4xl mx-auto">
+            <!-- 页面标题 -->
+            <div class="text-center mb-12">
+                <div class="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                    <i class="fa fa-question-circle text-3xl text-primary"></i>
+                </div>
+                <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-neutral-dark mb-4">常见问题</h1>
+                <p class="text-neutral-medium max-w-2xl mx-auto">关于量化投资的常见问题解答</p>
+            </div>
+
+            <!-- 搜索框 -->
+            <div class="mb-8">
+                <div class="relative max-w-xl mx-auto">
+                    <input type="text" id="faqSearch" placeholder="搜索问题..." 
+                           class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    <i class="fa fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                </div>
+            </div>
+
+            <!-- FAQ列表 -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6 lg:p-8">
+                    <div id="faqList" class="space-y-4">
+                        {% for item in faq_data %}
+                        <div class="faq-item pb-4" data-question="{{ item.question }}">
+                            <button class="faq-toggle w-full text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                                <span class="font-medium text-neutral-dark pr-4">{{ item.question }}</span>
+                                <i class="fa fa-chevron-down text-neutral-medium transition-transform duration-300"></i>
+                            </button>
+                            <div class="faq-content hidden mt-3">
+                                <div class="markdown-content text-sm text-neutral-medium pl-4 border-l-2 border-primary/20">
+                                    {{ item.answer | safe }}
+                                </div>
+                                <div class="mt-2">
+                                    <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-neutral-medium">{{ item.category }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 没有找到问题提示 -->
+            <div id="noResults" class="hidden text-center py-8">
+                <i class="fa fa-search text-4xl text-gray-300 mb-4"></i>
+                <p class="text-neutral-medium">没有找到相关问题</p>
+            </div>
+
+            <!-- 联系方式 -->
+            <div class="mt-8 text-center">
+                <p class="text-neutral-medium mb-4">还有其他问题？</p>
+                <a href="{{ url_for('main.contact') }}" class="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                    <i class="fa fa-envelope mr-2"></i>联系我们
+                </a>
+            </div>
+
+            <!-- 返回链接 -->
+            <div class="text-center mt-6">
+                <a href="{{ url_for('knowledge.knowledge_index') }}" class="text-primary hover:text-primary/80 font-medium">
+                    <i class="fa fa-arrow-left mr-1"></i>返回知识库首页
+                </a>
+            </div>
+        </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+        // FAQ展开/收起
+        function toggleFaq(button) {
+            const content = button.nextElementSibling;
+            const icon = button.querySelector('i');
+            
+            // 关闭其他已展开的FAQ
+            document.querySelectorAll('.faq-content').forEach(item => {
+                if (item !== content && !item.classList.contains('hidden')) {
+                    item.classList.add('hidden');
+                    item.previousElementSibling.querySelector('i').style.transform = 'rotate(0deg)';
+                }
+            });
+            
+            // 切换当前FAQ
+            content.classList.toggle('hidden');
+            if (!content.classList.contains('hidden')) {
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // 搜索功能
+        document.getElementById('faqSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const faqItems = document.querySelectorAll('.faq-item');
+            let hasResults = false;
+
+            faqItems.forEach(item => {
+                const question = item.dataset.question.toLowerCase();
+                if (question.includes(searchTerm)) {
+                    item.style.display = 'block';
+                    hasResults = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            document.getElementById('noResults').classList.toggle('hidden', hasResults);
+        });
+    </script>
+</body>
+</html>

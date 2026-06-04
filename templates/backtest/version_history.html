@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略版本历史 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5',
+                        success: '#00B42A',
+                        danger: '#F53F3F',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .diff-added { background-color: #e6ffed; }
+        .diff-deleted { background-color: #ffeef0; }
+        .diff-unchanged { background-color: #fff; }
+        .diff-empty { background-color: #f5f5f5; }
+        .version-card.selected { border-color: #165DFF; background-color: #f0f5ff; }
+        .code-block {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    {% include 'components/header.html' %}
+
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题 -->
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-neutral-dark mb-2">策略版本历史</h1>
+                        <p class="text-gray-600" id="strategy-name">加载中...</p>
+                    </div>
+                    <nav class="flex mt-4 md:mt-0" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="{{ url_for('main.index') }}" class="text-gray-700 hover:text-primary text-sm font-medium">首页</a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                    <a href="{{ url_for('backtest.backtest_index') }}" class="ml-1 text-gray-700 hover:text-primary text-sm font-medium">策略回测</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                    <span class="ml-1 text-gray-500 font-medium text-sm">版本历史</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左侧：版本列表 -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold">版本列表</h2>
+                            <button id="back-btn" class="text-primary hover:text-primary/80 text-sm">
+                                <i class="fa fa-arrow-left mr-1"></i>返回策略
+                            </button>
+                        </div>
+                        
+                        <!-- 版本统计 -->
+                        <div class="mb-4 p-3 bg-neutral-light rounded-lg">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">版本数量：</span>
+                                <span id="version-count" class="font-medium">0</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 版本列表 -->
+                        <div id="version-list" class="space-y-3 max-h-[600px] overflow-y-auto">
+                            <div class="text-center text-gray-500 py-8">加载中...</div>
+                        </div>
+                        
+                        <!-- 版本对比操作 -->
+                        <div class="mt-4 pt-4 border-t">
+                            <p class="text-sm text-gray-600 mb-2">选择两个版本进行对比：</p>
+                            <div class="flex gap-2">
+                                <button id="compare-btn" class="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary/90 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" disabled>
+                                    <i class="fa fa-exchange mr-1"></i>对比
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：版本详情和对比 -->
+                <div class="lg:col-span-2">
+                    <!-- 版本详情 -->
+                    <div id="version-detail-panel" class="bg-white rounded-xl shadow-md p-6 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold" id="detail-title">选择版本查看详情</h2>
+                            <div class="flex gap-2">
+                                <button id="rollback-btn" class="bg-danger text-white py-2 px-4 rounded-lg hover:bg-danger/90 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors hidden">
+                                    <i class="fa fa-undo mr-1"></i>回滚此版本
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="version-detail" class="text-center text-gray-500 py-8">
+                            点击左侧版本列表查看详情
+                        </div>
+                    </div>
+
+                    <!-- 版本对比视图 -->
+                    <div id="diff-panel" class="bg-white rounded-xl shadow-md p-6 hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold">版本对比</h2>
+                            <button id="close-diff-btn" class="text-gray-500 hover:text-gray-700">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- 差异统计 -->
+                        <div id="diff-stats" class="mb-4 p-3 bg-neutral-light rounded-lg flex gap-4 text-sm">
+                            <span class="text-green-600"><i class="fa fa-plus mr-1"></i>新增: <span id="added-count">0</span> 行</span>
+                            <span class="text-red-600"><i class="fa fa-minus mr-1"></i>删除: <span id="deleted-count">0</span> 行</span>
+                            <span class="text-gray-600"><i class="fa fa-circle-o mr-1"></i>未变: <span id="unchanged-count">0</span> 行</span>
+                        </div>
+                        
+                        <!-- 对比视图 -->
+                        <div id="diff-content" class="overflow-x-auto">
+                            <!-- 对比内容将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+    // 获取URL参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const strategyId = {{ strategy_id }};
+    
+    let versions = [];
+    let selectedVersions = [];
+    let currentVersionId = null;
+
+    // 加载版本列表
+    async function loadVersions() {
+        try {
+            const response = await fetch(`/api/strategies/${strategyId}/versions`);
+            const data = await response.json();
+            
+            if (data.success) {
+                versions = data.versions;
+                renderVersionList();
+                document.getElementById('version-count').textContent = versions.length;
+            } else {
+                alert('加载版本失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('加载版本失败:', error);
+            document.getElementById('version-list').innerHTML = '<div class="text-center text-danger py-8">加载失败</div>';
+        }
+    }
+
+    // 渲染版本列表
+    function renderVersionList() {
+        const container = document.getElementById('version-list');
+        
+        if (versions.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-500 py-8">暂无版本记录</div>';
+            return;
+        }
+        
+        container.innerHTML = versions.map(v => `
+            <div class="version-card border-2 border-gray-200 rounded-lg p-4 cursor-pointer hover:border-primary transition-colors ${selectedVersions.includes(v.id) ? 'selected' : ''}" data-id="${v.id}">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="font-semibold text-primary">v${v.version_number}</span>
+                    <span class="text-xs text-gray-500">${formatDate(v.created_at)}</span>
+                </div>
+                <p class="text-sm text-gray-600 mb-2 line-clamp-2">${v.description || '无描述'}</p>
+                <div class="flex gap-2 mt-2">
+                    <button class="view-btn text-xs text-primary hover:text-primary/80" data-id="${v.id}">
+                        <i class="fa fa-eye mr-1"></i>查看
+                    </button>
+                    <button class="compare-check-btn text-xs ${selectedVersions.includes(v.id) ? 'text-primary' : 'text-gray-400'} hover:text-primary" data-id="${v.id}">
+                        <i class="fa fa${selectedVersions.includes(v.id) ? ' fa-check-square' : ' fa-square'}-o mr-1"></i>选择
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        // 绑定事件
+        container.querySelectorAll('.version-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.view-btn') || e.target.closest('.compare-check-btn')) return;
+                const id = parseInt(card.dataset.id);
+                viewVersion(id);
+            });
+        });
+        
+        container.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                viewVersion(parseInt(btn.dataset.id));
+            });
+        });
+        
+        container.querySelectorAll('.compare-check-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                toggleVersionSelection(parseInt(btn.dataset.id));
+            });
+        });
+    }
+
+    // 查看版本详情
+    async function viewVersion(versionId) {
+        currentVersionId = versionId;
+        const version = versions.find(v => v.id === versionId);
+        
+        if (!version) return;
+        
+        document.getElementById('detail-title').textContent = `版本 v${version.version_number}`;
+        document.getElementById('rollback-btn').classList.remove('hidden');
+        
+        let params = {};
+        try {
+            params = JSON.parse(version.parameters || '{}');
+        } catch (e) {}
+        
+        const detailHtml = `
+            <div class="text-left">
+                <div class="mb-4">
+                    <h3 class="text-sm font-medium text-gray-600 mb-1">版本号</h3>
+                    <p class="font-semibold text-primary">v${version.version_number}</p>
+                </div>
+                <div class="mb-4">
+                    <h3 class="text-sm font-medium text-gray-600 mb-1">创建时间</h3>
+                    <p>${formatDateTime(version.created_at)}</p>
+                </div>
+                <div class="mb-4">
+                    <h3 class="text-sm font-medium text-gray-600 mb-1">版本描述</h3>
+                    <p>${version.description || '无描述'}</p>
+                </div>
+                <div class="mb-4">
+                    <h3 class="text-sm font-medium text-gray-600 mb-1">策略参数</h3>
+                    <pre class="bg-neutral-light p-3 rounded-lg text-sm overflow-x-auto">${JSON.stringify(params, null, 2)}</pre>
+                </div>
+                <div class="mb-4">
+                    <h3 class="text-sm font-medium text-gray-600 mb-1">策略代码</h3>
+                    <pre class="code-block bg-neutral-light p-3 rounded-lg border max-h-[300px] overflow-y-auto">${escapeHtml(version.code)}</pre>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('version-detail').innerHTML = detailHtml;
+    }
+
+    // 切换版本选择
+    function toggleVersionSelection(versionId) {
+        const index = selectedVersions.indexOf(versionId);
+        if (index > -1) {
+            selectedVersions.splice(index, 1);
+        } else {
+            if (selectedVersions.length >= 2) {
+                selectedVersions.shift();
+            }
+            selectedVersions.push(versionId);
+        }
+        renderVersionList();
+        updateCompareButton();
+    }
+
+    // 更新对比按钮状态
+    function updateCompareButton() {
+        const btn = document.getElementById('compare-btn');
+        btn.disabled = selectedVersions.length !== 2;
+    }
+
+    // 对比两个版本
+    async function compareVersions() {
+        if (selectedVersions.length !== 2) return;
+        
+        const [id1, id2] = selectedVersions;
+        
+        try {
+            const response = await fetch(`/api/strategies/${strategyId}/versions/${id1}/diff?compare_with=${id2}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                showDiffPanel(data);
+            } else {
+                alert('对比失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('对比失败:', error);
+            alert('对比失败');
+        }
+    }
+
+    // 显示对比面板
+    function showDiffPanel(data) {
+        const panel = document.getElementById('diff-panel');
+        panel.classList.remove('hidden');
+        
+        document.getElementById('added-count').textContent = data.diff.stats.added_lines;
+        document.getElementById('deleted-count').textContent = data.diff.stats.deleted_lines;
+        document.getElementById('unchanged-count').textContent = data.diff.stats.unchanged_lines;
+        
+        // 注意: data.diff.side_by_side 来自服务端，服务端需确保输出已做HTML转义/消毒处理，防止XSS攻击
+        document.getElementById('diff-content').innerHTML = data.diff.side_by_side;
+        
+        // 滚动到对比面板
+        panel.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 回滚到指定版本
+    async function rollbackVersion(versionId) {
+        if (!confirm('确定要回滚到此版本吗？当前版本将被备份。')) return;
+        
+        try {
+            const response = await fetch(`/api/strategies/${strategyId}/rollback/${versionId}`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('回滚成功');
+                loadVersions();
+            } else {
+                alert('回滚失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('回滚失败:', error);
+            alert('回滚失败');
+        }
+    }
+
+    // 格式化日期
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    // 格式化日期时间
+    function formatDateTime(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return `${formatDate(dateStr)} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    }
+
+    // HTML转义
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 事件绑定
+    document.getElementById('compare-btn').addEventListener('click', compareVersions);
+    
+    document.getElementById('close-diff-btn').addEventListener('click', () => {
+        document.getElementById('diff-panel').classList.add('hidden');
+    });
+    
+    document.getElementById('rollback-btn').addEventListener('click', () => {
+        if (currentVersionId) {
+            rollbackVersion(currentVersionId);
+        }
+    });
+    
+    document.getElementById('back-btn').addEventListener('click', () => {
+        window.location.href = '{{ url_for("backtest.backtest_index") }}';
+    });
+
+    // 初始化
+    loadVersions();
+    </script>
+</body>
+</html>

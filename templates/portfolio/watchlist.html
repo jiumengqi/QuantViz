@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票观察列表 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 配置Tailwind颜色方案 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-16">
+        <!-- 页面标题 -->
+        <div class="mb-8 animate-fade-in">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-neutral-dark mb-2">股票观察列表</h1>
+                    <p class="text-neutral-medium">管理您关注的股票</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button id="batchImportButton" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fa fa-upload mr-1"></i> 批量导入
+                    </button>
+                    <button id="addStockButton" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                        <i class="fa fa-plus mr-1"></i> 添加股票
+                    </button>
+                    <a href="{{ url_for('portfolio.portfolio_index') }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:border-primary hover:text-primary transition-colors">
+                        返回投资组合
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分组标签 -->
+        <section class="mb-6 animate-slide-up">
+            <div class="flex flex-wrap gap-2" id="groupTabs">
+                {% for group in groups %}
+                <button class="group-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors {{ 'bg-primary text-white' if loop.first else 'bg-white text-gray-600 hover:bg-gray-100' }}" data-group="{{ group }}">
+                    {{ group }}
+                    <span class="ml-1 text-xs opacity-70 group-count">({{ watchlist_items|selectattr('group_name', 'equalto', group)|list|length }})</span>
+                </button>
+                {% endfor %}
+                <button id="showAllTab" class="group-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200" data-group="all">
+                    全部
+                </button>
+            </div>
+        </section>
+
+        <!-- 搜索栏 -->
+        <section class="mb-8 animate-slide-up">
+            <div class="bg-white rounded-xl shadow-md p-4">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="relative flex-1">
+                        <input type="text" id="stockSearch" placeholder="搜索股票代码或名称..." 
+                               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                        <i class="fa fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                    <button id="refreshButton" class="px-4 py-3 border border-gray-300 rounded-lg hover:border-primary hover:text-primary transition-colors">
+                        <i class="fa fa-refresh mr-2"></i> 刷新价格
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 观察列表 -->
+        <section class="animate-slide-up" style="animation-delay: 0.2s">
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">代码</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">现价</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">涨跌幅</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分组</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="watchlistTableBody">
+                            {% for item in watchlist_items %}
+                                <tr class="hover:bg-gray-50 transition-colors duration-150 watchlist-row" data-group="{{ item.group_name }}" data-symbol="{{ item.symbol }}">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">{{ item.name }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-500">{{ item.symbol }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                                        <div class="text-sm font-medium text-gray-900">¥{{ "%.2f"|format(item.price|float) }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center justify-end">
+                                            <span class="text-sm {{ 'text-green-500' if item.change_percent >= 0 else 'text-red-500' }}">
+                                                {{ '+' if item.change_percent >= 0 else '' }}{{ "%.2f"|format(item.change_percent) }}%
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            {{ item.group_name if item.group_name else '默认分组' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <div class="flex items-center space-x-2">
+                                            <select class="move-group-select text-xs border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-primary" data-item-id="{{ item.id }}">
+                                                <option value="">移动到...</option>
+                                                {% for group in groups %}
+                                                <option value="{{ group }}">{{ group }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <button class="remove-stock-btn text-red-600 hover:text-red-900 transition-colors text-xs" data-item-id="{{ item.id }}" data-name="{{ item.name }}">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            {% if not watchlist_items %}
+                                <tr>
+                                    <td colspan="6" class="px-6 py-12 text-center text-neutral-medium">
+                                        <i class="fa fa-star-o text-4xl mb-3 block"></i>
+                                        暂无关注股票，点击"添加股票"或"批量导入"开始
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 市场概览 -->
+        <section class="mt-16 animate-slide-up" style="animation-delay: 0.3s">
+            <h2 class="text-2xl font-semibold mb-8 text-center">市场概览 <span class="text-sm font-normal text-neutral-medium">（实时数据）</span></h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="marketOverview">
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <div><h3 class="font-medium">加载中...</h3><p class="text-xs text-neutral-medium">--</p></div>
+                    </div>
+                    <div class="flex justify-between items-end"><span class="text-xl font-bold">--</span></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 添加股票模态框 -->
+    <div id="addStockModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl p-8 max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold">添加股票到观察列表</h2>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="addStockForm" class="space-y-4">
+                <div>
+                    <label for="stockSymbol" class="block text-sm font-medium text-gray-700 mb-2">股票代码</label>
+                    <input type="text" id="stockSymbol" name="stockSymbol" required placeholder="如: 600036.SH"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                </div>
+                <div>
+                    <label for="stockName" class="block text-sm font-medium text-gray-700 mb-2">股票名称</label>
+                    <input type="text" id="stockName" name="stockName" required placeholder="如: 招商银行"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                </div>
+                <div>
+                    <label for="stockExchange" class="block text-sm font-medium text-gray-700 mb-2">交易所</label>
+                    <select id="stockExchange" name="stockExchange" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                        <option value="SSE">上海证券交易所</option>
+                        <option value="SZSE">深圳证券交易所</option>
+                        <option value="BSE">北京证券交易所</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="stockGroup" class="block text-sm font-medium text-gray-700 mb-2">分组</label>
+                    <input type="text" id="stockGroup" name="stockGroup" placeholder="默认分组"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                </div>
+                <div class="pt-4">
+                    <button type="submit" class="w-full px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-1">
+                        添加到观察列表
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 批量导入模态框 -->
+    <div id="batchImportModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl p-8 max-w-lg w-full mx-4 transform transition-all duration-300 scale-95 opacity-0" id="batchImportContent">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold">批量导入股票</h2>
+                <button id="closeBatchModal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label for="batchStocks" class="block text-sm font-medium text-gray-700 mb-2">
+                        股票代码（使用逗号、分号或换行分隔）
+                    </label>
+                    <textarea id="batchStocks" rows="6" placeholder="600036.SH, 000858.SZ&#10;601318.SH&#10;600519.SH"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 font-mono text-sm"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">支持格式: 600036.SH 或 600036（自动补全后缀）</p>
+                </div>
+                <div>
+                    <label for="batchGroup" class="block text-sm font-medium text-gray-700 mb-2">导入到分组</label>
+                    <input type="text" id="batchGroup" placeholder="默认分组"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                </div>
+                <div id="batchImportResult" class="hidden p-3 rounded-lg"></div>
+                <div class="pt-2">
+                    <button id="confirmBatchImport" class="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-1">
+                        <i class="fa fa-upload mr-2"></i> 开始导入
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // 模态框工具函数
+        function openModal(modalId, contentId) {
+            const modal = document.getElementById(modalId);
+            const content = document.getElementById(contentId);
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+        
+        function closeModal(modalId, contentId) {
+            const modal = document.getElementById(modalId);
+            const content = document.getElementById(contentId);
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        // 页面加载完成后执行
+        window.addEventListener('DOMContentLoaded', function() {
+            // 添加股票按钮
+            document.getElementById('addStockButton').addEventListener('click', () => {
+                openModal('addStockModal', 'modalContent');
+            });
+            
+            document.getElementById('closeModal').addEventListener('click', () => {
+                closeModal('addStockModal', 'modalContent');
+            });
+            
+            document.getElementById('addStockModal').addEventListener('click', function(e) {
+                if (e.target === this) closeModal('addStockModal', 'modalContent');
+            });
+
+            // 批量导入按钮
+            document.getElementById('batchImportButton').addEventListener('click', () => {
+                openModal('batchImportModal', 'batchImportContent');
+            });
+            
+            document.getElementById('closeBatchModal').addEventListener('click', () => {
+                closeModal('batchImportModal', 'batchImportContent');
+            });
+            
+            document.getElementById('batchImportModal').addEventListener('click', function(e) {
+                if (e.target === this) closeModal('batchImportModal', 'batchImportContent');
+            });
+
+            // 添加股票表单提交
+            document.getElementById('addStockForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const symbol = document.getElementById('stockSymbol').value.trim();
+                const name = document.getElementById('stockName').value.trim();
+                const exchange = document.getElementById('stockExchange').value;
+                const groupName = document.getElementById('stockGroup').value.trim() || '默认分组';
+                
+                try {
+                    const resp = await fetch('/portfolio/api/watchlist/add', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ symbol, name, exchange, group_name: groupName })
+                    });
+                    const result = await resp.json();
+                    
+                    if (result.success) {
+                        alert('股票已成功添加到观察列表！');
+                        closeModal('addStockModal', 'modalContent');
+                        this.reset();
+                        location.reload();
+                    } else {
+                        alert('添加失败: ' + (result.error || '未知错误'));
+                    }
+                } catch (err) {
+                    alert('请求失败: ' + err.message);
+                }
+            });
+
+            // 批量导入
+            document.getElementById('confirmBatchImport').addEventListener('click', async function() {
+                const btn = this;
+                const stocks = document.getElementById('batchStocks').value.trim();
+                const groupName = document.getElementById('batchGroup').value.trim() || '默认分组';
+                
+                if (!stocks) {
+                    alert('请输入股票代码');
+                    return;
+                }
+                
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 导入中...';
+                
+                try {
+                    const resp = await fetch('/portfolio/api/watchlist/batch_import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ stocks, group_name: groupName })
+                    });
+                    const result = await resp.json();
+                    
+                    const resultDiv = document.getElementById('batchImportResult');
+                    resultDiv.classList.remove('hidden');
+                    
+                    if (result.success) {
+                        resultDiv.className = 'p-3 rounded-lg bg-green-50 text-green-800 mb-3';
+                        let msg = result.message;
+                        if (result.imported && result.imported.length > 0) {
+                            msg += '\n已导入: ' + result.imported.map(i => i.symbol).join(', ');
+                        }
+                        if (result.failed && result.failed.length > 0) {
+                            msg += '\n失败: ' + result.failed.join(', ');
+                        }
+                        resultDiv.textContent = msg;
+                        
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        resultDiv.className = 'p-3 rounded-lg bg-red-50 text-red-800 mb-3';
+                        resultDiv.textContent = result.error || '导入失败';
+                    }
+                } catch (err) {
+                    const resultDiv = document.getElementById('batchImportResult');
+                    resultDiv.classList.remove('hidden');
+                    resultDiv.className = 'p-3 rounded-lg bg-red-50 text-red-800 mb-3';
+                    resultDiv.textContent = '请求失败: ' + err.message;
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa fa-upload mr-2"></i> 开始导入';
+                }
+            });
+
+            // 分组标签筛选
+            document.querySelectorAll('.group-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // 更新标签样式
+                    document.querySelectorAll('.group-tab').forEach(t => {
+                        t.classList.remove('bg-primary', 'text-white');
+                        t.classList.add('bg-white', 'text-gray-600', 'hover:bg-gray-100');
+                    });
+                    this.classList.remove('bg-white', 'text-gray-600', 'hover:bg-gray-100');
+                    this.classList.add('bg-primary', 'text-white');
+                    
+                    // 筛选行
+                    const group = this.dataset.group;
+                    document.querySelectorAll('.watchlist-row').forEach(row => {
+                        if (group === 'all' || row.dataset.group === group) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
+            // 移动股票到分组
+            document.querySelectorAll('.move-group-select').forEach(select => {
+                select.addEventListener('change', async function() {
+                    const newGroup = this.value;
+                    const itemId = this.dataset.itemId;
+                    
+                    if (!newGroup) return;
+                    
+                    try {
+                        const resp = await fetch(`/portfolio/api/watchlist/move/${itemId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ group_name: newGroup })
+                        });
+                        const result = await resp.json();
+                        
+                        if (result.success) {
+                            location.reload();
+                        } else {
+                            alert('移动失败: ' + (result.error || '未知错误'));
+                        }
+                    } catch (err) {
+                        alert('请求失败: ' + err.message);
+                    }
+                });
+            });
+
+            // 移除股票
+            document.querySelectorAll('.remove-stock-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const itemId = this.dataset.itemId;
+                    const name = this.dataset.name;
+                    
+                    if (!confirm(`确定要从观察列表中移除 ${name} 吗？`)) return;
+                    
+                    try {
+                        const resp = await fetch(`/portfolio/api/watchlist/remove/${itemId}`, {
+                            method: 'DELETE'
+                        });
+                        const result = await resp.json();
+                        
+                        if (result.success) {
+                            location.reload();
+                        } else {
+                            alert('移除失败: ' + (result.error || '未知错误'));
+                        }
+                    } catch (err) {
+                        alert('请求失败: ' + err.message);
+                    }
+                });
+            });
+
+            // 搜索功能
+            document.getElementById('stockSearch').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                document.querySelectorAll('.watchlist-row').forEach(row => {
+                    const symbol = (row.dataset.symbol || '').toLowerCase();
+                    const name = (row.querySelector('.text-sm.font-medium')?.textContent || '').toLowerCase();
+                    if (!searchTerm || symbol.includes(searchTerm) || name.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+
+            // 刷新按钮
+            document.getElementById('refreshButton').addEventListener('click', function() {
+                this.classList.add('animate-spin');
+                location.reload();
+            });
+            
+            // 加载实时市场概览
+            fetchMarketOverview();
+        });
+        
+        async function fetchMarketOverview() {
+            const container = document.getElementById('marketOverview');
+            if (!container) return;
+            
+            try {
+                const resp = await fetch('/portfolio/api/market-data');
+                const result = await resp.json();
+                
+                if (result.success && result.data && result.data.indices) {
+                    const indices = result.data.indices.slice(0, 4);
+                    container.innerHTML = indices.map(idx => {
+                        const isPositive = idx.change_percent >= 0;
+                        const colorClass = isPositive ? 'text-green-500' : 'text-red-500';
+                        return `
+                            <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h3 class="font-medium">${idx.name}</h3>
+                                        <p class="text-xs text-neutral-medium">${idx.code}</p>
+                                    </div>
+                                    <span class="text-sm font-bold ${colorClass}">${idx.change_percent >= 0 ? '+' : ''}${idx.change_percent}%</span>
+                                </div>
+                                <div class="flex justify-between items-end">
+                                    <span class="text-xl font-bold">${idx.price}</span>
+                                    <span class="text-sm ${colorClass}">${idx.change >= 0 ? '+' : ''}${idx.change}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (err) {
+                console.error('获取市场概览失败:', err);
+            }
+        }
+    </script>
+</body>
+</html>

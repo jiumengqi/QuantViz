@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略回测 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- Chart.js Zoom Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <!-- 引入日期选择器 -->
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh.js"></script>
+
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5',
+                        success: '#00B42A',
+                        danger: '#F53F3F',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .transition-all-300 {
+                transition: all 0.3s ease;
+            }
+            .scrollbar-thin {
+                scrollbar-width: thin;
+            }
+            .scrollbar-thin::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+                background-color: rgba(156, 163, 175, 0.5);
+                border-radius: 3px;
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主内容区 -->
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题 -->
+            <div class="mb-8">
+                <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-neutral mb-2">量化策略回测</h1>
+                <p class="text-gray-600">设计、测试和评估量化交易策略的绩效表现</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- 左侧参数设置 -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
+                        <h2 class="text-lg font-semibold mb-6 flex items-center">
+                            <i class="fa fa-cogs text-primary mr-2"></i> 回测参数设置
+                        </h2>
+
+                        <form id="backtestForm" class="space-y-6">
+                            <!-- 策略选择 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">策略选择</label>
+                                <div class="space-y-3">
+                                    <label class="flex items-start p-3 border border-primary rounded-lg bg-primary/5 cursor-pointer">
+                                        <input type="radio" name="strategy" value="ma_cross" checked class="mt-1 w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <div class="ml-3">
+                                            <div class="font-medium">移动平均线交叉策略</div>
+                                            <div class="text-sm text-gray-500">短期均线上穿长期均线买入，下穿卖出</div>
+                                        </div>
+                                    </label>
+
+                                    <label class="flex items-start p-3 border border-gray-200 rounded-lg hover:border-primary/50 cursor-pointer transition-all-300">
+                                        <input type="radio" name="strategy" value="rsi" class="mt-1 w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <div class="ml-3">
+                                            <div class="font-medium">RSI超买超卖策略</div>
+                                            <div class="text-sm text-gray-500">RSI低于超卖阈值买入，高于超买阈值卖出</div>
+                                        </div>
+                                    </label>
+
+                                    <label class="flex items-start p-3 border border-gray-200 rounded-lg hover:border-primary/50 cursor-pointer transition-all-300">
+                                        <input type="radio" name="strategy" value="macd" class="mt-1 w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <div class="ml-3">
+                                            <div class="font-medium">MACD策略</div>
+                                            <div class="text-sm text-gray-500">MACD线与信号线交叉产生交易信号</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 策略参数 - 均线策略 -->
+                            <div id="maParams" class="strategy-params">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">均线参数</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">短期均线周期</label>
+                                        <input type="number" value="10" min="1" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="shortWindow">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">长期均线周期</label>
+                                        <input type="number" value="30" min="1" max="200" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="longWindow">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 策略参数 - RSI策略 (默认隐藏) -->
+                            <div id="rsiParams" class="strategy-params hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">RSI参数</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">RSI周期</label>
+                                        <input type="number" value="14" min="1" max="50" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="rsiPeriod">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">超买阈值</label>
+                                        <input type="number" value="70" min="50" max="90" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="rsiOverbought">
+                                    </div>
+                                    <div class="col-span-2">
+                                        <label class="text-xs text-gray-500 mb-1 block">超卖阈值</label>
+                                        <input type="number" value="30" min="10" max="50" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="rsiOversold">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 策略参数 - MACD策略 (默认隐藏) -->
+                            <div id="macdParams" class="strategy-params hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">MACD参数</label>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">快速周期</label>
+                                        <input type="number" value="12" min="1" max="50" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="macdFast">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">慢速周期</label>
+                                        <input type="number" value="26" min="1" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="macdSlow">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">信号周期</label>
+                                        <input type="number" value="9" min="1" max="50" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="macdSignal">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 股票选择 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">股票选择</label>
+                                <div class="relative">
+                                    <select id="stockSelect" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary appearance-none bg-white">
+                                        <option value="600036.SH">600036.SH - 招商银行</option>
+                                        <option value="000858.SZ">000858.SZ - 五粮液</option>
+                                        <option value="601318.SH">601318.SH - 中国平安</option>
+                                        <option value="600519.SH">600519.SH - 贵州茅台</option>
+                                        <option value="000001.SZ">000001.SZ - 平安银行</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                        <i class="fa fa-chevron-down text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 回测周期 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">回测时间范围</label>
+                                <div class="space-y-3">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="text-xs text-gray-500 mb-1 block">开始日期</label>
+                                            <input type="text" id="startDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="选择开始日期">
+                                        </div>
+                                        <div>
+                                            <label class="text-xs text-gray-500 mb-1 block">结束日期</label>
+                                            <input type="text" id="endDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="选择结束日期">
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" class="period-btn px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors">近1年</button>
+                                        <button type="button" class="period-btn px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors">近3年</button>
+                                        <button type="button" class="period-btn px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors">近5年</button>
+                                        <button type="button" class="period-btn px-3 py-1 text-xs bg-primary text-white rounded-md">全部数据</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 初始资金与手续费 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">交易参数</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">初始资金(元)</label>
+                                        <input type="number" value="1000000" min="10000" step="10000" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="initialCapital">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">手续费率(%)</label>
+                                        <input type="number" value="0.03" min="0" max="1" step="0.01" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="feeRate">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 高级交易参数 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">高级交易参数</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">滑点(%)</label>
+                                        <input type="number" value="0.01" min="0" max="1" step="0.01" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="slippage">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 mb-1 block">杠杆倍数</label>
+                                        <input type="number" value="1" min="1" max="10" step="0.5" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" id="leverage">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 基准选择 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">基准选择</label>
+                                <div class="relative">
+                                    <select id="benchmarkSelect" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary appearance-none bg-white">
+                                        <option value="000001.SH">上证指数 (000001.SH)</option>
+                                        <option value="399001.SZ">深证成指 (399001.SZ)</option>
+                                        <option value="399006.SZ">创业板指 (399006.SZ)</option>
+                                        <option value="399300.SZ">沪深300 (399300.SZ)</option>
+                                        <option value="000688.SH">科创50 (000688.SH)</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                        <i class="fa fa-chevron-down text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 运行回测按钮 -->
+                            <button type="button" id="runBacktestBtn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center">
+                                <i class="fa fa-play mr-2"></i> 运行回测
+                            </button>
+
+                            <!-- 保存策略按钮 -->
+                            <button type="button" id="saveStrategyBtn" class="w-full py-3 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center justify-center">
+                                <i class="fa fa-save mr-2"></i> 保存策略
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 右侧回测结果 -->
+                <div class="lg:col-span-3 space-y-8">
+                    <!-- 回测状态与基本信息 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                            <div>
+                                <h2 class="text-xl font-semibold mb-1">回测结果</h2>
+                                <p class="text-gray-500 text-sm">移动平均线交叉策略 (10, 30) | 招商银行(600036.SH)</p>
+                            </div>
+                            <div class="mt-3 md:mt-0 flex items-center space-x-3">
+                                <span class="px-3 py-1 bg-success/10 text-success text-sm rounded-full flex items-center">
+                                    <i class="fa fa-check-circle mr-1"></i> 回测完成
+                                </span>
+                                <span class="text-gray-500 text-sm">
+                                    <i class="fa fa-clock-o mr-1"></i> 耗时: 2.4秒
+                                </span>
+                                <span class="text-gray-500 text-sm update-time">
+                                    <i class="fa fa-calendar mr-1"></i> 更新于: 2023-12-30
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-xs text-gray-500 mb-1">回测周期</div>
+                                <div class="font-semibold result-period">2018-12-30 至 2023-12-29</div>
+                            </div>
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-xs text-gray-500 mb-1">交易日数</div>
+                                <div class="font-semibold result-days">1217 天</div>
+                            </div>
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-xs text-gray-500 mb-1">交易次数</div>
+                                <div class="font-semibold result-trades">38 次</div>
+                            </div>
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-xs text-gray-500 mb-1">胜率</div>
+                                <div class="font-semibold text-success result-win-rate">63.16%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 绩效概览 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <h2 class="text-xl font-semibold mb-6">绩效概览</h2>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all-300">
+                                <div class="text-sm text-gray-500 mb-2">初始资金</div>
+                                <div class="text-3xl font-bold mb-1 initial-capital">¥1,000,000</div>
+                                <div class="text-xs text-gray-500">回测开始时的本金</div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all-300">
+                                <div class="text-sm text-gray-500 mb-2">最终资产</div>
+                                <div class="text-3xl font-bold text-success mb-1 final-capital">¥1,684,256</div>
+                                <div class="text-xs text-gray-500">回测结束时的总资产</div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all-300">
+                                <div class="text-sm text-gray-500 mb-2">总收益率</div>
+                                <div class="text-3xl font-bold text-success mb-1 total-return">68.43%</div>
+                                <div class="text-xs text-gray-500">相比初始资金的收益</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-xs text-gray-500 mb-1">年化收益率</div>
+                                <div class="text-xl font-bold text-success annual-return">10.97%</div>
+                            </div>
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-xs text-gray-500 mb-1">夏普比率</div>
+                                <div class="text-xl font-bold text-primary sharpe-ratio">1.83</div>
+                            </div>
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-xs text-gray-500 mb-1">最大回撤</div>
+                                <div class="text-xl font-bold text-danger max-drawdown">-18.74%</div>
+                            </div>
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-xs text-gray-500 mb-1">收益风险比</div>
+                                <div class="text-xl font-bold text-primary return-risk-ratio">0.58</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 净值曲线与基准对比 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <div class="flex flex-wrap items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold">策略净值与基准对比</h2>
+                            <div class="flex space-x-2 mt-2 sm:mt-0">
+                                <button class="result-period-btn px-3 py-1 rounded-md bg-primary text-white text-sm">日净值</button>
+                                <button class="result-period-btn px-3 py-1 rounded-md bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors">周净值</button>
+                                <button class="result-period-btn px-3 py-1 rounded-md bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors">月净值</button>
+                            </div>
+                        </div>
+
+                        <div class="h-[400px]">
+                            <canvas id="equityCurveChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 回撤分析 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <h2 class="text-xl font-semibold mb-6">回撤分析</h2>
+
+                        <div class="h-[300px] mb-6">
+                            <canvas id="drawdownChart"></canvas>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">最大回撤</div>
+                                <div class="text-2xl font-bold text-danger mb-1 max-drawdown-value">-18.74%</div>
+                                <div class="text-xs text-gray-500 max-drawdown-date">发生在: 2022-04-26</div>
+                            </div>
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">最长回撤天数</div>
+                                <div class="text-2xl font-bold mb-1 max-drawdown-days">146 天</div>
+                                <div class="text-xs text-gray-500 max-drawdown-period">从 2021-12-15 到 2022-06-10</div>
+                            </div>
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">平均回撤</div>
+                                <div class="text-2xl font-bold text-danger mb-1 avg-drawdown">-4.27%</div>
+                                <div class="text-xs text-gray-500">所有回撤的平均值</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 月度收益分析 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <h2 class="text-xl font-semibold mb-6">月度收益分析</h2>
+
+                        <div class="h-[300px] mb-6">
+                            <canvas id="monthlyReturnsChart"></canvas>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">盈利月份占比</div>
+                                <div class="text-2xl font-bold text-success mb-1 profit-month-ratio">62.5%</div>
+                                <div class="text-xs text-gray-500 profit-month-detail">60个月中38个月盈利</div>
+                            </div>
+                            <div class="p-4 bg-neutral-light rounded-lg">
+                                <div class="text-sm text-gray-500 mb-1">最佳月度收益</div>
+                                <div class="text-2xl font-bold text-success mb-1 best-month-return">12.83%</div>
+                                <div class="text-xs text-gray-500 best-month-date">发生在: 2020-07</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 风险分析 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <h2 class="text-xl font-semibold mb-6">风险分析</h2>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="text-lg font-medium mb-4">风险指标</h3>
+                                <div class="space-y-4">
+                                    <div class="flex justify-between items-center p-3 bg-neutral-light rounded-lg">
+                                        <span class="text-gray-700">年化波动率</span>
+                                        <span class="font-bold text-primary">14.28%</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-neutral-light rounded-lg">
+                                        <span class="text-gray-700">夏普比率</span>
+                                        <span class="font-bold text-primary">1.83</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-neutral-light rounded-lg">
+                                        <span class="text-gray-700">索提诺比率</span>
+                                        <span class="font-bold text-primary">2.45</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-neutral-light rounded-lg">
+                                        <span class="text-gray-700">卡玛比率</span>
+                                        <span class="font-bold text-primary">0.58</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-neutral-light rounded-lg">
+                                        <span class="text-gray-700">阿尔法</span>
+                                        <span class="font-bold text-success">0.06</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-neutral-light rounded-lg">
+                                        <span class="text-gray-700">贝塔</span>
+                                        <span class="font-bold text-primary">0.85</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-medium mb-4">风险分布</h3>
+                                <div class="h-[300px]">
+                                    <canvas id="riskDistributionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 策略绩效深度分析 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <h2 class="text-xl font-semibold mb-6">策略绩效深度分析</h2>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="col-span-1 lg:col-span-2">
+                                <h3 class="text-lg font-medium mb-4">收益分布</h3>
+                                <div class="h-[300px]">
+                                    <canvas id="returnDistributionChart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-medium mb-4">交易统计</h3>
+                                <div class="space-y-4">
+                                    <div class="p-4 bg-neutral-light rounded-lg">
+                                        <div class="text-sm text-gray-500 mb-1">总交易次数</div>
+                                        <div class="text-2xl font-bold mb-1 total-trades">38</div>
+                                    </div>
+                                    <div class="p-4 bg-neutral-light rounded-lg">
+                                        <div class="text-sm text-gray-500 mb-1">盈利交易</div>
+                                        <div class="text-2xl font-bold text-success mb-1 win-trades">24</div>
+                                    </div>
+                                    <div class="p-4 bg-neutral-light rounded-lg">
+                                        <div class="text-sm text-gray-500 mb-1">亏损交易</div>
+                                        <div class="text-2xl font-bold text-danger mb-1 loss-trades">14</div>
+                                    </div>
+                                    <div class="p-4 bg-neutral-light rounded-lg">
+                                        <div class="text-sm text-gray-500 mb-1">平均持仓天数</div>
+                                        <div class="text-2xl font-bold mb-1 avg-holding-days">45</div>
+                                    </div>
+                                    <div class="p-4 bg-neutral-light rounded-lg">
+                                        <div class="text-sm text-gray-500 mb-1">盈亏比</div>
+                                        <div class="text-2xl font-bold text-primary mb-1 profit-loss-ratio">1.85</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 交易记录 -->
+                    <div class="bg-white rounded-xl shadow-md p-6 card-shadow">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold">交易记录</h2>
+                            <div class="flex items-center">
+                                <div class="relative mr-4">
+                                    <input type="text" placeholder="搜索交易..." class="pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm">
+                                    <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="text-primary text-sm hover:text-primary/80 transition-colors">
+                                    <i class="fa fa-download mr-1"></i> 导出记录
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto scrollbar-thin trade-history">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">金额</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">手续费</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">总资产</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">2023-12-15</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                            <span class="px-2 py-1 bg-danger/10 text-danger text-xs rounded-full">卖出</span>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">33.25</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">3000</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">99,750.00</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">29.93</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">1,684,256.32</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">2023-10-27</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                            <span class="px-2 py-1 bg-success/10 text-success text-xs rounded-full">买入</span>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">31.52</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">3000</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">94,560.00</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">28.37</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">1,623,845.67</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">2023-08-14</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                            <span class="px-2 py-1 bg-danger/10 text-danger text-xs rounded-full">卖出</span>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">34.86</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">2800</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">97,608.00</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">29.28</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">1,618,752.95</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">2023-06-02</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                            <span class="px-2 py-1 bg-success/10 text-success text-xs rounded-full">买入</span>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">32.15</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">2800</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">89,920.00</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">26.98</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">1,562,341.87</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">2023-03-20</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                            <span class="px-2 py-1 bg-danger/10 text-danger text-xs rounded-full">卖出</span>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">35.62</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">2500</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">89,050.00</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">26.72</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">1,534,219.45</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4 flex items-center justify-between">
+                            <div class="text-sm text-gray-500">显示 1 至 5 条，共 38 条记录</div>
+                            <div class="flex space-x-1">
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-gray-300 text-gray-500 hover:border-primary hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                    <i class="fa fa-chevron-left text-xs"></i>
+                                </button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded bg-primary text-white">1</button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-gray-300 hover:border-primary hover:text-primary">2</button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-gray-300 hover:border-primary hover:text-primary">3</button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-gray-300 hover:border-primary hover:text-primary">4</button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-gray-300 hover:border-primary hover:text-primary">5</button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-gray-300 text-gray-500 hover:border-primary hover:text-primary">
+                                    <i class="fa fa-chevron-right text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- JavaScript -->
+    <script>
+        // 确保DOM加载完成后执行所有JavaScript代码
+        document.addEventListener('DOMContentLoaded', function() {
+            // 移动端菜单切换
+            document.getElementById('menuBtn')?.addEventListener('click', function() {
+                const mobileMenu = document.getElementById('mobileMenu');
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // 导航栏滚动效果
+            window.addEventListener('scroll', function() {
+                const navbar = document.getElementById('navbar');
+                if (window.scrollY > 50) {
+                    navbar.classList.add('py-2', 'shadow');
+                    navbar.classList.remove('py-3');
+                } else {
+                    navbar.classList.add('py-3');
+                    navbar.classList.remove('py-2', 'shadow');
+                }
+            });
+
+            // 策略选择切换显示对应的参数设置
+            document.querySelectorAll('input[name="strategy"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    // 隐藏所有策略参数
+                    document.querySelectorAll('.strategy-params').forEach(el => {
+                        el.classList.add('hidden');
+                    });
+
+                    // 显示当前策略对应的参数
+                    const strategy = this.value;
+                    if (strategy === 'ma_cross') {
+                        document.getElementById('maParams').classList.remove('hidden');
+                    } else if (strategy === 'rsi') {
+                        document.getElementById('rsiParams').classList.remove('hidden');
+                    } else if (strategy === 'macd') {
+                        document.getElementById('macdParams').classList.remove('hidden');
+                    }
+                });
+            });
+
+            // 初始化日期选择器
+            const today = new Date();
+            const fiveYearsAgo = new Date();
+            fiveYearsAgo.setFullYear(today.getFullYear() - 5);
+
+            // 确保flatpickr已加载
+            if (typeof flatpickr !== 'undefined') {
+                // 初始化开始日期选择器
+                const startDateInput = document.getElementById('startDate');
+                if (startDateInput) {
+                    flatpickr(startDateInput, {
+                        locale: 'zh',
+                        defaultDate: fiveYearsAgo,
+                        dateFormat: 'Y-m-d',
+                        maxDate: today
+                    });
+                }
+
+                // 初始化结束日期选择器
+                const endDateInput = document.getElementById('endDate');
+                if (endDateInput) {
+                    flatpickr(endDateInput, {
+                        locale: 'zh',
+                        defaultDate: today,
+                        dateFormat: 'Y-m-d',
+                        minDate: fiveYearsAgo,
+                        maxDate: today
+                    });
+                }
+            } else {
+                console.error('flatpickr未加载，请检查引入是否正确');
+            }
+
+            // 预设时间周期按钮
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 移除所有按钮的活跃状态
+                    document.querySelectorAll('.period-btn').forEach(b => {
+                        b.classList.remove('bg-primary', 'text-white');
+                        b.classList.add('bg-gray-100', 'text-gray-600');
+                    });
+
+                    // 设置当前按钮为活跃状态
+                    this.classList.remove('bg-gray-100', 'text-gray-600');
+                    this.classList.add('bg-primary', 'text-white');
+
+                    // 设置日期范围
+                    const today = new Date();
+                    let startDate;
+
+                    if (this.textContent.includes('1年')) {
+                        startDate = new Date();
+                        startDate.setFullYear(today.getFullYear() - 1);
+                    } else if (this.textContent.includes('3年')) {
+                        startDate = new Date();
+                        startDate.setFullYear(today.getFullYear() - 3);
+                    } else if (this.textContent.includes('5年')) {
+                        startDate = new Date();
+                        startDate.setFullYear(today.getFullYear() - 5);
+                    } else if (this.textContent.includes('全部')) {
+                        // 全部数据，这里设置为10年前
+                        startDate = new Date();
+                        startDate.setFullYear(today.getFullYear() - 10);
+                    }
+
+                    // 更新日期选择器
+                    if (startDate) {
+                        if (document.getElementById('startDate')._flatpickr) {
+                            document.getElementById('startDate')._flatpickr.setDate(startDate);
+                        }
+                        if (document.getElementById('endDate')._flatpickr) {
+                            document.getElementById('endDate')._flatpickr.setDate(today);
+                        }
+                    }
+                });
+            });
+
+            // 运行回测按钮点击事件
+            const runBacktestBtn = document.getElementById('runBacktestBtn');
+            if (runBacktestBtn) {
+                runBacktestBtn.addEventListener('click', function() {
+                    // 显示加载状态
+                    this.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 回测中...';
+                    this.disabled = true;
+
+                    try {
+                        // 获取表单数据
+                        const strategyEl = document.querySelector('input[name="strategy"]:checked');
+                        const strategy = strategyEl ? strategyEl.value : 'ma_cross';
+                        const stock_code = document.getElementById('stockSelect')?.value || '600036';
+                        const start_date = document.getElementById('startDate')?.value || '2018-01-01';
+                        const end_date = document.getElementById('endDate')?.value || new Date().toISOString().split('T')[0];
+                        const initial_capital = document.getElementById('initialCapital')?.value || 100000;
+                        
+                        // 构建请求数据
+                        const requestData = {
+                            strategy: strategy,
+                            stock_code: stock_code,
+                            start_date: start_date,
+                            end_date: end_date,
+                            initial_capital: initial_capital
+                        };
+                        
+                        // 添加策略特定参数
+                        if (strategy === 'ma_cross') {
+                            requestData.short_window = document.getElementById('shortWindow')?.value || 10;
+                            requestData.long_window = document.getElementById('longWindow')?.value || 30;
+                        } else if (strategy === 'rsi') {
+                            requestData.rsi_period = document.getElementById('rsiPeriod')?.value || 14;
+                            requestData.rsi_overbought = document.getElementById('rsiOverbought')?.value || 70;
+                            requestData.rsi_oversold = document.getElementById('rsiOversold')?.value || 30;
+                        } else if (strategy === 'macd') {
+                            requestData.macd_fast = document.getElementById('macdFast')?.value || 12;
+                            requestData.macd_slow = document.getElementById('macdSlow')?.value || 26;
+                            requestData.macd_signal = document.getElementById('macdSignal')?.value || 9;
+                        }
+                        
+                        console.log('回测请求数据:', requestData);
+
+                        // 模拟API请求
+                        console.log('准备发送回测请求到 /backtest/run');
+                        
+                        // 模拟API响应
+                        setTimeout(() => {
+                            // 恢复按钮状态
+                            runBacktestBtn.innerHTML = '<i class="fa fa-play mr-2"></i> 运行回测';
+                            runBacktestBtn.disabled = false;
+                            
+                            // 显示成功提示
+                            alert('回测完成！已更新回测结果。');
+                            
+                            // 模拟更新图表
+                            if (typeof updateCharts === 'function') {
+                                updateCharts({
+                                    start_date: start_date,
+                                    end_date: end_date,
+                                    initial_capital: initial_capital,
+                                    final_assets: 1684256,
+                                    total_return: 0.6843,
+                                    annual_return: 0.1097,
+                                    sharpe_ratio: 1.83,
+                                    max_drawdown: -0.1874,
+                                    total_trades: 38,
+                                    win_rate: 0.6316,
+                                    max_drawdown_date: '2022-04-26',
+                                    max_drawdown_days: 146,
+                                    max_drawdown_period: '2021-12-15 到 2022-06-10',
+                                    avg_drawdown: -0.0427,
+                                    profit_month_ratio: 0.625,
+                                    total_months: 60,
+                                    profit_months: 38,
+                                    best_month_return: 0.1283,
+                                    best_month_date: '2020-07'
+                                });
+                            }
+                        }, 1500);
+                    } catch (err) {
+                        // 捕获代码执行错误
+                        this.innerHTML = '<i class="fa fa-play mr-2"></i> 运行回测';
+                        this.disabled = false;
+                        alert('代码执行错误: ' + err.message);
+                        console.error('代码错误:', err);
+                    }
+                });
+            }
+
+            // 保存策略按钮点击事件
+            document.getElementById('saveStrategyBtn')?.addEventListener('click', function() {
+                const strategyName = prompt('请输入策略名称:', '均线交叉策略(10,30)');
+
+                if (strategyName && strategyName.trim() !== '') {
+                    alert(`策略 "${strategyName}" 已保存成功！`);
+                } else if (strategyName !== null) {
+                    alert('策略名称不能为空！');
+                }
+            });
+            
+            // 结果周期按钮点击事件
+            document.querySelectorAll('.result-period-btn')?.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 移除所有按钮的活跃状态
+                    document.querySelectorAll('.result-period-btn').forEach(b => {
+                        b.classList.remove('bg-primary', 'text-white');
+                        b.classList.add('bg-gray-100', 'text-gray-600');
+                    });
+
+                    // 设置当前按钮为活跃状态
+                    this.classList.remove('bg-gray-100', 'text-gray-600');
+                    this.classList.add('bg-primary', 'text-white');
+
+                    // 这里可以添加切换净值周期的逻辑
+                    // 重新调用updateCharts更新图表
+                    if (window.lastBacktestResult && typeof updateCharts === 'function') {
+                        updateCharts(window.lastBacktestResult);
+                    }
+                });
+            });
+            
+            // 初始化图表
+            charts = initCharts();
+            
+        }); // DOMContentLoaded事件监听器结束
+        
+        // 全局变量，存储图表实例
+        let charts;
+        
+        // 生成模拟的净值数据
+        function generateEquityData() {
+            const months = 60; // 5年数据
+            const dates = [];
+            const strategyEquity = [1.0]; // 策略净值，初始为1
+            const benchmarkEquity = [1.0]; // 基准净值，初始为1
+
+            // 生成日期标签（每月一个）
+            let currentDate = new Date();
+            currentDate.setMonth(currentDate.getMonth() - months);
+
+            for (let i = 0; i < months; i++) {
+                dates.push(currentDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short' }));
+                currentDate.setMonth(currentDate.getMonth() + 1);
+
+                // 生成策略净值（带随机波动的上升趋势）
+                const strategyChange = (Math.random() - 0.45) * 0.05; // 略偏向正收益
+                strategyEquity.push(strategyEquity[i] * (1 + strategyChange));
+
+                // 生成基准净值
+                const benchmarkChange = (Math.random() - 0.5) * 0.04;
+                benchmarkEquity.push(benchmarkEquity[i] * (1 + benchmarkChange));
+            }
+
+            return { dates, strategyEquity, benchmarkEquity };
+        }
+
+        // 生成模拟的回撤数据
+        function generateDrawdownData(equityData) {
+            const drawdown = [];
+            let peak = equityData[0];
+
+            for (let i = 0; i < equityData.length; i++) {
+                peak = Math.max(peak, equityData[i]);
+                drawdown.push((equityData[i] - peak) / peak);
+            }
+
+            return drawdown;
+        }
+
+        // 生成月度收益数据
+        function generateMonthlyReturns() {
+            const recentMonths = 12; // 最近12个月
+            const months = [];
+            const returns = [];
+
+            let currentDate = new Date();
+
+            for (let i = recentMonths - 1; i >= 0; i--) {
+                months.push(currentDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short' }));
+
+                // 生成月度收益率
+                const returnVal = (Math.random() - 0.3) * 0.1; // 略偏向正收益
+                returns.push(returnVal * 100); // 转换为百分比
+
+                currentDate.setMonth(currentDate.getMonth() - 1);
+            }
+
+            return { months, returns };
+        }
+
+        // 生成风险分布数据
+        function generateRiskDistributionData() {
+            const bins = 20;
+            const data = Array(bins).fill(0);
+            const labels = [];
+
+            // 生成正态分布的风险数据
+            for (let i = 0; i < bins; i++) {
+                const value = (i - bins / 2) * 2;
+                labels.push(value.toFixed(1) + '%');
+                // 正态分布概率密度函数
+                data[i] = Math.exp(-Math.pow(value, 2) / 10) * 10;
+            }
+
+            return { labels, data };
+        }
+
+        // 生成收益分布数据
+        function generateReturnDistributionData() {
+            const bins = 20;
+            const data = Array(bins).fill(0);
+            const labels = [];
+
+            // 生成偏态分布的收益数据
+            for (let i = 0; i < bins; i++) {
+                const value = (i - bins / 2) * 3;
+                labels.push(value.toFixed(1) + '%');
+                // 偏态分布
+                if (value >= 0) {
+                    data[i] = Math.exp(-Math.pow(value, 2) / 20) * 15;
+                } else {
+                    data[i] = Math.exp(-Math.pow(value, 2) / 5) * 5;
+                }
+            }
+
+            return { labels, data };
+        }
+
+        // 初始化图表
+        function initCharts() {
+            // 生成净值数据
+            const equityData = generateEquityData();
+
+            // 1. 净值曲线图表
+            const equityCtx = document.getElementById('equityCurveChart').getContext('2d');
+            const equityChart = new Chart(equityCtx, {
+                type: 'line',
+                data: {
+                    labels: equityData.dates,
+                    datasets: [
+                        {
+                            label: '策略净值',
+                            data: equityData.strategyEquity,
+                            borderColor: '#165DFF',
+                            backgroundColor: 'rgba(22, 93, 255, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.2,
+                            yAxisID: 'y',
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            pointHoverBackgroundColor: '#165DFF',
+                            pointHoverBorderColor: '#fff',
+                            pointHoverBorderWidth: 2
+                        },
+                        {
+                            label: '基准净值',
+                            data: equityData.benchmarkEquity,
+                            borderColor: '#722ED1',
+                            backgroundColor: 'rgba(114, 46, 209, 0.1)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: true,
+                            tension: 0.2,
+                            yAxisID: 'y',
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            pointHoverBackgroundColor: '#722ED1',
+                            pointHoverBorderColor: '#fff',
+                            pointHoverBorderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                usePointStyle: true,
+                                pointStyle: 'line'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#165DFF',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(4)}`;
+                                },
+                                title: function(tooltipItems) {
+                                    return `日期: ${tooltipItems[0].label}`;
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 12
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '净值',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            min: 0.5,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // 生成回撤数据
+            const drawdownData = generateDrawdownData(equityData.strategyEquity);
+
+            // 2. 回撤图表
+            const drawdownCtx = document.getElementById('drawdownChart').getContext('2d');
+            const drawdownChart = new Chart(drawdownCtx, {
+                type: 'line',
+                data: {
+                    labels: equityData.dates,
+                    datasets: [
+                        {
+                            label: '策略回撤',
+                            data: drawdownData,
+                            borderColor: '#F53F3F',
+                            backgroundColor: 'rgba(245, 63, 63, 0.1)',
+                            borderWidth: 1.5,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            pointHoverBackgroundColor: '#F53F3F',
+                            pointHoverBorderColor: '#fff',
+                            pointHoverBorderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                usePointStyle: true,
+                                pointStyle: 'line'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#F53F3F',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${(context.parsed.y * 100).toFixed(2)}%`;
+                                },
+                                title: function(tooltipItems) {
+                                    return `日期: ${tooltipItems[0].label}`;
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 12
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '回撤率',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return (value * 100).toFixed(0) + '%';
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // 生成月度收益数据
+            const monthlyData = generateMonthlyReturns();
+
+            // 3. 月度收益图表
+            const monthlyCtx = document.getElementById('monthlyReturnsChart').getContext('2d');
+            const monthlyChart = new Chart(monthlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: monthlyData.months,
+                    datasets: [
+                        {
+                            label: '月度收益率',
+                            data: monthlyData.returns,
+                            backgroundColor: function(context) {
+                                const value = context.dataset.data[context.dataIndex];
+                                return value >= 0 ? 'rgba(0, 180, 42, 0.7)' : 'rgba(245, 63, 63, 0.7)';
+                            },
+                            borderColor: function(context) {
+                                const value = context.dataset.data[context.dataIndex];
+                                return value >= 0 ? 'rgba(0, 180, 42, 1)' : 'rgba(245, 63, 63, 1)';
+                            },
+                            borderWidth: 1,
+                            hoverBackgroundColor: function(context) {
+                                const value = context.dataset.data[context.dataIndex];
+                                return value >= 0 ? 'rgba(0, 180, 42, 0.9)' : 'rgba(245, 63, 63, 0.9)';
+                            },
+                            hoverBorderColor: function(context) {
+                                const value = context.dataset.data[context.dataIndex];
+                                return value >= 0 ? 'rgba(0, 180, 42, 1)' : 'rgba(245, 63, 63, 1)';
+                            },
+                            hoverBorderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#165DFF',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `收益率: ${context.parsed.y.toFixed(2)}%`;
+                                },
+                                title: function(tooltipItems) {
+                                    return `月份: ${tooltipItems[0].label}`;
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '收益率 (%)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+
+            // 生成风险分布数据
+            const riskData = generateRiskDistributionData();
+
+            // 4. 风险分布图表
+            const riskCtx = document.getElementById('riskDistributionChart');
+            let riskChart = null;
+            if (riskCtx) {
+                riskChart = new Chart(riskCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: riskData.labels,
+                        datasets: [{
+                            label: '风险概率',
+                            data: riskData.data,
+                            backgroundColor: 'rgba(22, 93, 255, 0.7)',
+                            borderColor: 'rgba(22, 93, 255, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                borderColor: '#165DFF',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 8,
+                                displayColors: true
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                beginAtZero: true
+                            }
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeOutQuart'
+                        }
+                    }
+                });
+            }
+
+            // 生成收益分布数据
+            const returnData = generateReturnDistributionData();
+
+            // 5. 收益分布图表
+            const returnCtx = document.getElementById('returnDistributionChart');
+            let returnChart = null;
+            if (returnCtx) {
+                returnChart = new Chart(returnCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: returnData.labels,
+                        datasets: [{
+                            label: '收益概率',
+                            data: returnData.data,
+                            backgroundColor: function(context) {
+                                const index = context.dataIndex;
+                                const value = (index - returnData.labels.length / 2) * 3;
+                                return value >= 0 ? 'rgba(0, 180, 42, 0.7)' : 'rgba(245, 63, 63, 0.7)';
+                            },
+                            borderColor: function(context) {
+                                const index = context.dataIndex;
+                                const value = (index - returnData.labels.length / 2) * 3;
+                                return value >= 0 ? 'rgba(0, 180, 42, 1)' : 'rgba(245, 63, 63, 1)';
+                            },
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                borderColor: '#165DFF',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 8,
+                                displayColors: true
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                beginAtZero: true
+                            }
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeOutQuart'
+                        }
+                    }
+                });
+            }
+
+            return {
+                equityChart,
+                drawdownChart,
+                monthlyChart,
+                riskChart,
+                returnChart
+            };
+        }
+
+        // 格式化日期函数
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            try {
+                const date = new Date(dateString);
+                return date.toISOString().split('T')[0];
+            } catch (e) {
+                return dateString;
+            }
+        }
+        
+        // 更新绩效概览数据
+        function updatePerformanceMetrics(result) {
+            try {
+                console.log('更新绩效数据:', result);
+                
+                // 确保result对象存在
+                if (!result) {
+                    console.error('无效的回测结果数据');
+                    return;
+                }
+                
+                // 更新初始资金
+                const initialCapitalEl = document.querySelector('.initial-capital');
+                if (initialCapitalEl) {
+                    initialCapitalEl.textContent = '¥' + (result.initial_capital || 1000000).toLocaleString();
+                }
+                
+                // 更新最终资产
+                const finalCapitalEl = document.querySelector('.final-capital');
+                if (finalCapitalEl) {
+                    finalCapitalEl.textContent = '¥' + (result.final_assets || result.final_capital || 1000000).toLocaleString();
+                }
+                
+                // 更新总收益率
+                const totalReturnEl = document.querySelector('.total-return');
+                if (totalReturnEl) {
+                    let returnValue = 0;
+                    if (result.total_return !== undefined) {
+                        returnValue = result.total_return;
+                    } else if (result.cumulative_return !== undefined) {
+                        returnValue = result.cumulative_return;
+                    } else if (result.final_assets && result.initial_capital) {
+                        returnValue = (result.final_assets - result.initial_capital) / result.initial_capital;
+                    }
+                    const returnPercent = (returnValue * 100).toFixed(2) + '%';
+                    totalReturnEl.textContent = returnPercent;
+                    // 设置正确的颜色
+                    totalReturnEl.className = 'text-3xl font-bold text-success mb-1 total-return';
+                }
+                
+                // 更新年化收益率
+                const annualEl = document.querySelector('.annual-return');
+                if (annualEl) {
+                    annualEl.textContent = (result.annual_return !== undefined ? result.annual_return * 100 : 0).toFixed(2) + '%';
+                }
+                
+                // 更新夏普比率
+                const sharpeEl = document.querySelector('.sharpe-ratio');
+                if (sharpeEl) {
+                    sharpeEl.textContent = (result.sharpe_ratio !== undefined ? result.sharpe_ratio : 0).toFixed(2);
+                }
+                
+                // 更新最大回撤
+                const drawdownEl = document.querySelector('.max-drawdown');
+                if (drawdownEl) {
+                    drawdownEl.textContent = (result.max_drawdown !== undefined ? result.max_drawdown * 100 : 0).toFixed(2) + '%';
+                }
+                
+                // 返回风险比 - 如果没有提供则计算
+                const returnRiskEl = document.querySelector('.return-risk-ratio');
+                if (returnRiskEl) {
+                    let returnRiskRatio = 0;
+                    if (result.return_risk_ratio !== undefined) {
+                        returnRiskRatio = result.return_risk_ratio;
+                    } else if (result.total_return !== undefined && result.max_drawdown !== undefined && result.max_drawdown !== 0) {
+                        returnRiskRatio = Math.abs(result.total_return / Math.abs(result.max_drawdown));
+                    } else if (result.cumulative_return !== undefined && result.max_drawdown !== undefined && result.max_drawdown !== 0) {
+                        returnRiskRatio = Math.abs(result.cumulative_return / Math.abs(result.max_drawdown));
+                    }
+                    returnRiskEl.textContent = returnRiskRatio.toFixed(2);
+                }
+                
+                // 更新回测周期
+                const periodEl = document.querySelector('.result-period');
+                if (periodEl) {
+                    periodEl.textContent = (result.start_date || '2018-01-01') + ' 至 ' + (result.end_date || new Date().toISOString().split('T')[0]);
+                }
+                
+                // 更新交易次数
+                const tradesEl = document.querySelector('.result-trades');
+                if (tradesEl) {
+                    tradesEl.textContent = (result.total_trades || 0) + ' 次';
+                }
+                
+                // 更新胜率
+                const winRateEl = document.querySelector('.result-win-rate');
+                if (winRateEl) {
+                    winRateEl.textContent = (result.win_rate !== undefined ? result.win_rate * 100 : 0).toFixed(2) + '%';
+                }
+                
+                // 更新最后更新时间
+                const now = new Date();
+                const updateEl = document.querySelector('.update-time');
+                if (updateEl) {
+                    updateEl.textContent = '更新于: ' + now.toISOString().split('T')[0];
+                }
+            } catch (error) {
+                console.error('更新绩效数据时出错:', error);
+            }
+        }
+        
+        // 更新回撤分析数据
+        function updateDrawdownMetrics(result) {
+            try {
+                console.log('更新回撤数据:', result);
+                
+                // 确保result对象存在
+                if (!result) {
+                    console.error('无效的回测结果数据');
+                    return;
+                }
+                
+                // 最大回撤
+                const drawdownValueEl = document.querySelector('.max-drawdown-value');
+                if (drawdownValueEl) {
+                    drawdownValueEl.textContent = (result.max_drawdown !== undefined ? result.max_drawdown * 100 : 0).toFixed(2) + '%';
+                }
+                
+                // 最大回撤日期
+                const drawdownDateEl = document.querySelector('.max-drawdown-date');
+                if (drawdownDateEl) {
+                    drawdownDateEl.textContent = result.max_drawdown_date ? '发生在: ' + formatDate(result.max_drawdown_date) : '-';
+                }
+                
+                // 最长回撤天数
+                const drawdownDaysEl = document.querySelector('.max-drawdown-days');
+                if (drawdownDaysEl) {
+                    drawdownDaysEl.textContent = (result.max_drawdown_days || 0) + ' 天';
+                }
+                
+                // 最长回撤周期
+                const drawdownPeriodEl = document.querySelector('.max-drawdown-period');
+                if (drawdownPeriodEl) {
+                    drawdownPeriodEl.textContent = result.max_drawdown_period || '-';
+                }
+                
+                // 平均回撤
+                const avgDrawdownEl = document.querySelector('.avg-drawdown');
+                if (avgDrawdownEl) {
+                    avgDrawdownEl.textContent = (result.avg_drawdown !== undefined ? result.avg_drawdown * 100 : 0).toFixed(2) + '%';
+                }
+            } catch (error) {
+                console.error('更新回撤数据时出错:', error);
+            }
+        }
+        
+        // 更新月度收益分析
+        function updateMonthlyMetrics(result) {
+            try {
+                console.log('更新月度收益数据:', result);
+                
+                // 确保result对象存在
+                if (!result) {
+                    console.error('无效的回测结果数据');
+                    return;
+                }
+                
+                // 盈利月份占比
+                const profitMonthRatioEl = document.querySelector('.profit-month-ratio');
+                if (profitMonthRatioEl) {
+                    profitMonthRatioEl.textContent = (result.profit_month_ratio !== undefined ? result.profit_month_ratio * 100 : 0).toFixed(1) + '%';
+                }
+                
+                // 盈利月份详情
+                const profitMonthDetailEl = document.querySelector('.profit-month-detail');
+                if (profitMonthDetailEl) {
+                    profitMonthDetailEl.textContent = result.total_months && result.profit_months ? 
+                        result.total_months + '个月中' + result.profit_months + '个月盈利' : '-';
+                }
+                
+                // 最佳月度收益
+                const bestMonthReturnEl = document.querySelector('.best-month-return');
+                if (bestMonthReturnEl) {
+                    bestMonthReturnEl.textContent = (result.best_month_return !== undefined ? result.best_month_return * 100 : 0).toFixed(2) + '%';
+                }
+                
+                // 最佳月度日期
+                const bestMonthDateEl = document.querySelector('.best-month-date');
+                if (bestMonthDateEl) {
+                    bestMonthDateEl.textContent = result.best_month_date ? '发生在: ' + formatDate(result.best_month_date) : '-';
+                }
+            } catch (error) {
+                console.error('更新月度收益数据时出错:', error);
+            }
+        }
+        
+        // 更新交易记录
+        function updateTradeRecords(result) {
+            try {
+                console.log('更新交易记录:', result);
+                
+                // 确保result对象存在
+                if (!result) {
+                    console.error('无效的回测结果数据');
+                    return;
+                }
+                
+                // 这里可以添加更新交易记录表格的逻辑
+                // 由于交易记录通常是复杂的，这里暂时不实现具体更新逻辑
+            } catch (error) {
+                console.error('更新交易记录时出错:', error);
+            }
+        }
+        
+        // 更新图表
+        function updateCharts(result) {
+            try {
+                console.log('更新图表:', result);
+                
+                // 确保result对象存在
+                if (!result) {
+                    console.error('无效的回测结果数据');
+                    return;
+                }
+                
+                // 保存结果到全局变量
+                window.lastBacktestResult = result;
+                
+                // 更新绩效数据
+                updatePerformanceMetrics(result);
+                
+                // 更新回撤数据
+                updateDrawdownMetrics(result);
+                
+                // 更新月度收益数据
+                updateMonthlyMetrics(result);
+                
+                // 更新交易记录
+                updateTradeRecords(result);
+                
+                // 重新初始化图表
+                if (charts) {
+                    // 销毁旧图表
+                    Object.values(charts).forEach(chart => {
+                        if (chart) chart.destroy();
+                    });
+                }
+                
+                // 重新初始化图表并更新全局变量
+                charts = initCharts();
+                
+            } catch (error) {
+                console.error('更新图表时出错:', error);
+                // 显示错误提示
+                alert('更新图表时出错: ' + error.message);
+            }
+        }
+    </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas显示测试
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('图表加载中...', canvas.width/2, canvas.height/2);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

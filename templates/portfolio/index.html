@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投资组合管理 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 配置Tailwind颜色方案 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-16">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12 animate-fade-in">
+            <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-neutral-dark mb-4">投资组合管理</h1>
+            <p class="text-neutral-medium max-w-3xl mx-auto">管理您的投资组合，优化资产配置，监控市场动态</p>
+        </div>
+
+        <!-- 市场概览 -->
+        <section class="mb-12 animate-slide-up">
+            <h2 class="text-2xl font-semibold mb-6">市场概览</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {% for index in market_overview.indices %}
+                    <div class="bg-white rounded-xl shadow-md p-4 card-hover">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="font-medium">{{ index.name }}</h3>
+                                <p class="text-xs text-neutral-medium">{{ index.code }}</p>
+                            </div>
+                            <span class="text-sm font-bold {{ 'text-green-500' if index.change_percent >= 0 else 'text-red-500' }}">
+                                {{ index.change_percent }}%
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <span class="text-xl font-bold">{{ index.price }}</span>
+                            <span class="text-sm {{ 'text-green-500' if index.change >= 0 else 'text-red-500' }}">
+                                {{ '+' if index.change >= 0 else '' }}{{ index.change }}
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- 板块表现 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.2s">
+            <h2 class="text-2xl font-semibold mb-6">板块表现</h2>
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {% for sector in market_overview.sectors %}
+                        <div class="border rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium">{{ sector.name }}</span>
+                                <span class="text-sm font-semibold {{ 'text-green-500' if sector.change >= 0 else 'text-red-500' }}">
+                                    {{ sector.change }}%
+                                </span>
+                            </div>
+                            <div class="mt-2 h-1 bg-gray-200 rounded-full">
+                                <div class="h-1 rounded-full transition-all duration-1000 ease-out" style="width: {{ 50 + sector.change * 10 }}%; {{ 'background-color: #10b981' if sector.change >= 0 else 'background-color: #ef4444' }}"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- 投资组合列表 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.3s">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold">我的投资组合</h2>
+                <div class="flex gap-3">
+                    <a href="{{ url_for('portfolio.create_portfolio') }}" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center">
+                        <i class="fa fa-plus mr-2"></i> 创建投资组合
+                    </a>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {% for portfolio in portfolios %}
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover">
+                        <div class="gradient-bg p-4 text-white">
+                            <h3 class="text-xl font-semibold">{{ portfolio.name }}</h3>
+                            <p class="text-sm opacity-90">{{ portfolio.description }}</p>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="text-neutral-medium text-sm">总资产</span>
+                                <span class="text-xl font-bold">¥{{ "{:,.2f}".format(portfolio.total_value) }}</span>
+                            </div>
+                            
+                            <div class="space-y-2 mb-4">
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-neutral-medium">日涨跌幅</span>
+                                    <span class="font-medium {{ 'text-green-500' if portfolio.daily_change >= 0 else 'text-red-500' }}">{{ portfolio.daily_change }}%</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-neutral-medium">周涨跌幅</span>
+                                    <span class="font-medium {{ 'text-green-500' if portfolio.weekly_change >= 0 else 'text-red-500' }}">{{ portfolio.weekly_change }}%</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-neutral-medium">月涨跌幅</span>
+                                    <span class="font-medium {{ 'text-green-500' if portfolio.monthly_change >= 0 else 'text-red-500' }}">{{ portfolio.monthly_change }}%</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-neutral-medium">年化收益</span>
+                                    <span class="font-medium text-primary">{{ portfolio.annual_return }}%</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-neutral-medium">风险等级</span>
+                                    <span class="font-medium {{ 'text-blue-500' if portfolio.risk_level == '低' else 'text-yellow-500' if portfolio.risk_level == '中' else 'text-red-500' }}">{{ portfolio.risk_level }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <h4 class="text-sm font-medium mb-2">资产配置</h4>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs text-neutral-medium">股票</span>
+                                        <div class="flex-1 mx-2 h-2 bg-gray-200 rounded-full">
+                                            <div class="h-2 bg-blue-500 rounded-full" style="width: {{ portfolio.allocation.stocks }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-medium">{{ portfolio.allocation.stocks }}%</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs text-neutral-medium">债券</span>
+                                        <div class="flex-1 mx-2 h-2 bg-gray-200 rounded-full">
+                                            <div class="h-2 bg-green-500 rounded-full" style="width: {{ portfolio.allocation.bonds }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-medium">{{ portfolio.allocation.bonds }}%</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs text-neutral-medium">现金</span>
+                                        <div class="flex-1 mx-2 h-2 bg-gray-200 rounded-full">
+                                            <div class="h-2 bg-yellow-500 rounded-full" style="width: {{ portfolio.allocation.cash }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-medium">{{ portfolio.allocation.cash }}%</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs text-neutral-medium">其他</span>
+                                        <div class="flex-1 mx-2 h-2 bg-gray-200 rounded-full">
+                                            <div class="h-2 bg-purple-500 rounded-full" style="width: {{ portfolio.allocation.alternatives }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-medium">{{ portfolio.allocation.alternatives }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-2">
+                                <a href="{{ url_for('portfolio.portfolio_detail', portfolio_id=portfolio.id) }}" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-center">
+                                    查看详情
+                                </a>
+                                <a href="{{ url_for('portfolio.optimize_portfolio_page') }}" class="px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-colors">
+                                    优化
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- 快速操作 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.4s">
+            <h2 class="text-2xl font-semibold mb-6">快速操作</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <a href="{{ url_for('portfolio.optimize_portfolio_page') }}" class="bg-white rounded-xl shadow-md p-6 flex items-center card-hover">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-primary text-2xl mr-4">
+                        <i class="fa fa-line-chart"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold">投资组合优化</h3>
+                        <p class="text-neutral-medium text-sm">使用Markowitz模型优化资产配置</p>
+                    </div>
+                </a>
+                <a href="{{ url_for('portfolio.market_monitor') }}" class="bg-white rounded-xl shadow-md p-6 flex items-center card-hover">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-2xl mr-4">
+                        <i class="fa fa-area-chart"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold">市场监控</h3>
+                        <p class="text-neutral-medium text-sm">实时监控市场动态和热点</p>
+                    </div>
+                </a>
+                <a href="{{ url_for('portfolio.watchlist') }}" class="bg-white rounded-xl shadow-md p-6 flex items-center card-hover">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-2xl mr-4">
+                        <i class="fa fa-star"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold">股票观察列表</h3>
+                        <p class="text-neutral-medium text-sm">管理您关注的股票</p>
+                    </div>
+                </a>
+                <a href="{{ url_for('portfolio.performance_attribution_page', portfolio_id=1) }}" class="bg-white rounded-xl shadow-md p-6 flex items-center card-hover">
+                    <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-2xl mr-4">
+                        <i class="fa fa-pie-chart"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold">绩效归因分析</h3>
+                        <p class="text-neutral-medium text-sm">分析投资组合收益来源</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // 页面加载完成后执行
+        window.addEventListener('DOMContentLoaded', function() {
+            // 模拟市场数据更新
+            setInterval(function() {
+                document.querySelectorAll('.card-hover').forEach(card => {
+                    // 添加轻微的动画效果
+                    card.style.transform = 'translateY(-2px)';
+                    setTimeout(() => {
+                        card.style.transform = 'translateY(0)';
+                    }, 200);
+                });
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

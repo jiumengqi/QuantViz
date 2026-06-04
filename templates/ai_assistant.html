@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 助手 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .chat-container {
+            height: calc(100vh - 280px);
+            min-height: 400px;
+        }
+        .chat-messages {
+            scroll-behavior: smooth;
+        }
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        .typing-indicator span {
+            animation: typing 1.4s infinite;
+            display: inline-block;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    {% include 'components/header.html' %}
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- 标题区域 -->
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-bold text-primary">
+                    <i class="fa fa-android mr-2"></i>量化小助手
+                </h1>
+                <p class="text-neutral-medium mt-2">专业的股票分析与量化投资 AI 助手</p>
+            </div>
+
+            <!-- 聊天区域 -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <!-- 工具栏 -->
+                <div class="bg-gradient-to-r from-primary to-secondary p-4 flex justify-between items-center">
+                    <div class="flex items-center text-white">
+                        <i class="fa fa-comments mr-2"></i>
+                        <span id="status-text">在线</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="exportChat('json')" class="text-white hover:text-green-200 transition-colors" title="导出JSON">
+                            <i class="fa fa-download mr-1"></i> 导出
+                        </button>
+                        <button onclick="exportChat('markdown')" class="text-white hover:text-green-200 transition-colors" title="导出Markdown">
+                            <i class="fa fa-file-text mr-1"></i> MD
+                        </button>
+                        <button onclick="clearChat()" class="text-white hover:text-red-200 transition-colors" title="清除对话">
+                            <i class="fa fa-trash mr-1"></i> 清除
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 消息区域 -->
+                <div id="chat-messages" class="chat-container chat-messages p-4 overflow-y-auto bg-gray-50">
+                    <!-- 欢迎消息 -->
+                    <div class="flex items-start mb-4">
+                        <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
+                            AI
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-3 max-w-md shadow-sm">
+                            <p class="text-sm">您好！我是量化小助手，一个专业的股票分析与量化投资 AI 助手。我可以帮您：</p>
+                            <ul class="text-sm mt-2 space-y-1">
+                                <li>• 解答股票、基金等金融产品问题</li>
+                                <li>• 解释技术指标（MA、MACD、RSI 等）</li>
+                                <li>• 介绍量化交易策略</li>
+                                <li>• 讨论投资组合管理和风险控制</li>
+                            </ul>
+                            <p class="text-sm mt-2">请随时向我提问！</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="border-t border-gray-200 p-4 bg-white">
+                    <div class="flex items-end">
+                        <div class="flex-1">
+                            <textarea
+                                id="user-input"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+                                rows="2"
+                                placeholder="请输入您的问题..."
+                                onkeydown="handleKeyDown(event)"
+                            ></textarea>
+                        </div>
+                        <button
+                            onclick="sendMessage()"
+                            id="send-btn"
+                            class="ml-3 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center"
+                        >
+                            <i class="fa fa-send mr-2"></i> 发送
+                        </button>
+                    </div>
+                    <div class="mt-2 flex justify-between items-center text-xs text-neutral-medium">
+                        <span>按 Enter 发送，Shift + Enter 换行</span>
+                        <span id="char-count">0 / 1000</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快捷问题 -->
+            <div class="mt-6">
+                <h3 class="text-sm font-medium text-neutral-medium mb-3">
+                    <i class="fa fa-lightbulb-o mr-1"></i> 快捷问题模板
+                </h3>
+                <div id="quick-templates" class="space-y-3">
+                    <p class="text-sm text-neutral-medium">加载中...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const charCount = document.getElementById('char-count');
+
+        // 发送消息
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // 添加用户消息
+            addMessage('user', message);
+            userInput.value = '';
+            charCount.textContent = '0 / 1000';
+
+            // 显示加载状态
+            const loadingId = addLoadingMessage();
+
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                removeLoadingMessage(loadingId);
+
+                if (response.ok) {
+                    addMessage('ai', data.response);
+                } else {
+                    addMessage('ai', '抱歉，服务暂时不可用，请稍后再试。', true);
+                }
+            } catch (error) {
+                removeLoadingMessage(loadingId);
+                addMessage('ai', '网络错误，请检查您的连接后重试。', true);
+            }
+        }
+
+        // 添加消息到聊天区域
+        function addMessage(type, content, isError = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start mb-4';
+
+            if (type === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="flex-1"></div>
+                    <div class="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
+                        U
+                    </div>
+                    <div class="bg-primary text-white rounded-lg p-3 max-w-md shadow-sm">
+                        <p class="text-sm">${escapeHtml(content)}</p>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
+                        AI
+                    </div>
+                    <div class="bg-white border ${isError ? 'border-red-300 bg-red-50' : 'border-gray-200'} rounded-lg p-3 max-w-md shadow-sm">
+                        <p class="text-sm whitespace-pre-wrap">${formatContent(escapeHtml(content))}</p>
+                    </div>
+                `;
+            }
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 添加加载消息
+        function addLoadingMessage() {
+            const id = 'loading-' + Date.now();
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = id;
+            loadingDiv.className = 'flex items-start mb-4';
+            loadingDiv.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
+                    AI
+                </div>
+                <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                    <div class="typing-indicator text-gray-400">
+                        <span>●</span><span>●</span><span>●</span>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return id;
+        }
+
+        // 移除加载消息
+        function removeLoadingMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        // 清除对话
+        async function clearChat() {
+            try {
+                await fetch('/api/ai/clear', { method: 'POST' });
+                chatMessages.innerHTML = `
+                    <div class="flex items-start mb-4">
+                        <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
+                            AI
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-3 max-w-md shadow-sm">
+                            <p class="text-sm">对话历史已清除，请开始新的对话！</p>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('清除对话失败:', error);
+            }
+        }
+
+        // 导出对话
+        async function exportChat(format) {
+            try {
+                const resp = await fetch(`/api/ai/export?format=${format}`);
+                if (format === 'markdown') {
+                    const text = await resp.text();
+                    downloadFile(`chat_export_${new Date().toISOString().slice(0,10)}.md`, text, 'text/markdown');
+                } else {
+                    const data = await resp.json();
+                    if (data.success) {
+                        const jsonStr = JSON.stringify(data.data, null, 2);
+                        downloadFile(`chat_export_${new Date().toISOString().slice(0,10)}.json`, jsonStr, 'application/json');
+                    } else {
+                        alert('导出失败: 没有对话历史');
+                    }
+                }
+            } catch (error) {
+                console.error('导出对话失败:', error);
+                alert('导出失败，请稍后重试');
+            }
+        }
+
+        function downloadFile(filename, content, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 加载快捷模板
+        async function loadTemplates() {
+            try {
+                const resp = await fetch('/api/ai/templates');
+                const data = await resp.json();
+                const container = document.getElementById('quick-templates');
+                container.innerHTML = '';
+
+                const templates = data.templates;
+                for (const [category, questions] of Object.entries(templates)) {
+                    const section = document.createElement('div');
+                    section.innerHTML = `<h4 class="text-xs font-semibold text-gray-500 uppercase mb-2">${category}</h4>`;
+                    
+                    const btns = document.createElement('div');
+                    btns.className = 'flex flex-wrap gap-2';
+                    questions.forEach(q => {
+                        const btn = document.createElement('button');
+                        btn.className = 'px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors';
+                        btn.textContent = q.question;
+                        btn.onclick = () => quickQuestion(q.question);
+                        btns.appendChild(btn);
+                    });
+                    
+                    section.appendChild(btns);
+                    container.appendChild(section);
+                }
+            } catch (error) {
+                console.error('加载模板失败:', error);
+                document.getElementById('quick-templates').innerHTML = 
+                    '<p class="text-sm text-red-500">加载模板失败，请刷新页面</p>';
+            }
+        }
+
+        // 快捷问题
+        function quickQuestion(question) {
+            userInput.value = question;
+            sendMessage();
+        }
+
+        // 处理键盘事件
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // 监听输入字符数
+        userInput.addEventListener('input', function() {
+            const len = this.value.length;
+            charCount.textContent = `${len} / 1000`;
+            if (len > 1000) {
+                charCount.classList.add('text-red-500');
+            } else {
+                charCount.classList.remove('text-red-500');
+            }
+        });
+
+        // HTML 转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 格式化内容（处理换行）
+        function formatContent(text) {
+            return text.replace(/\n/g, '<br>');
+        }
+
+        // 页面加载时聚焦输入框和加载模板
+        window.onload = function() {
+            userInput.focus();
+            loadTemplates();
+        };
+    </script>
+</body>
+</html>

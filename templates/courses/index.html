@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投资课程 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+            .animate-fade-in {
+                animation: fadeIn 0.6s ease-in-out;
+            }
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            .animate-slide-up {
+                animation: slideUp 0.6s ease-out;
+            }
+            @keyframes slideUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            .animate-pulse-slow {
+                animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            @keyframes pulse {
+                0%, 100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.7;
+                }
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12 animate-fade-in">
+            <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-neutral-dark mb-4">课程中心</h1>
+            <p class="text-neutral-medium max-w-3xl mx-auto">系统学习量化投资知识，掌握专业的投资分析技能</p>
+            <div class="mt-6 flex justify-center gap-3">
+                <div class="flex items-center bg-white px-4 py-2 rounded-lg shadow-sm animate-slide-up" style="animation-delay: 0.1s">
+                    <i class="fa fa-book text-primary mr-2"></i>
+                    <span class="text-sm font-medium">100+ 精品课程</span>
+                </div>
+                <div class="flex items-center bg-white px-4 py-2 rounded-lg shadow-sm animate-slide-up" style="animation-delay: 0.2s">
+                    <i class="fa fa-users text-primary mr-2"></i>
+                    <span class="text-sm font-medium">5,000+ 学习人次</span>
+                </div>
+                <div class="flex items-center bg-white px-4 py-2 rounded-lg shadow-sm animate-slide-up" style="animation-delay: 0.3s">
+                    <i class="fa fa-star text-primary mr-2"></i>
+                    <span class="text-sm font-medium">4.8+ 平均评分</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 搜索和筛选 -->
+        <div class="mb-12">
+            <div class="max-w-4xl mx-auto">
+                <div class="relative">
+                    <input type="text" id="courseSearch" placeholder="搜索课程、讲师或关键词..." class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300">
+                    <i class="fa fa-search absolute left-4 top-3.5 text-gray-400 transition-colors duration-300"></i>
+                    <button id="searchBtn" class="absolute right-2 top-1.5 px-4 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors sm:px-4 sm:py-1.5 px-3 py-1 text-sm transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                        搜索
+                    </button>
+                </div>
+                <div id="searchResults" class="mt-4 hidden bg-white rounded-lg shadow-md p-4 border border-gray-100">
+                    <div class="text-sm text-gray-500 mb-2">搜索结果将显示在这里</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 排序和筛选选项 -->
+        <div class="mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <!-- 排序选项 -->
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm font-medium text-gray-600">排序方式：</span>
+                    <select id="sortOptions" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary text-sm transition-all duration-300 hover:border-primary">
+                        <option value="recommended">推荐排序</option>
+                        <option value="newest">最新上线</option>
+                        <option value="popular">最受欢迎</option>
+                        <option value="price_asc">价格从低到高</option>
+                        <option value="price_desc">价格从高到低</option>
+                    </select>
+                </div>
+                
+                <!-- 高级筛选 -->
+                <div class="flex items-center space-x-2">
+                    <button id="filterBtn" class="flex items-center border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors text-sm transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                        <i class="fa fa-filter mr-1.5 text-gray-500"></i>
+                        <span>筛选</span>
+                    </button>
+                    <button id="clearFilters" class="text-primary hover:text-primary/80 text-sm font-medium transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                        清除筛选
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 课程分类 -->
+        <section class="mb-12 animate-slide-up">
+            <h2 class="text-2xl font-semibold mb-6 sm:text-2xl text-xl text-neutral-dark">课程分类</h2>
+            <div class="flex flex-wrap gap-2 sm:gap-3 justify-center">
+                <button class="category-pill active px-4 sm:px-5 py-2 sm:py-2.5 bg-primary text-white rounded-full text-sm font-medium transition-all duration-300 transform hover:scale-105 active:scale-95">全部课程</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">入门基础</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">技术分析</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">量化策略</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">Python编程</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">金融模型</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">风险管理</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">高频交易</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">机器学习</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">投资组合</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">期权期货</button>
+                <button class="category-pill px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95">实盘交易</button>
+            </div>
+        </section>
+
+        <!-- 推荐课程 -->
+        <section class="mb-16 animate-slide-up" style="animation-delay: 0.2s">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold sm:text-2xl text-xl text-neutral-dark">推荐课程</h2>
+                <a href="#" class="text-primary hover:text-primary/80 font-medium flex items-center transition-colors text-sm sm:text-base">
+                    查看更多
+                    <i class="fa fa-angle-right ml-1"></i>
+                </a>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                <!-- 课程卡片1 -->
+                <div class="course-card bg-white rounded-xl shadow-md overflow-hidden card-hover transition-all duration-300 hover:shadow-xl hover:-translate-y-2 transform active:scale-98">
+                    <div class="relative group">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340' viewBox='0 0 600 340'%3E%3Crect width='600' height='340' fill='%23f3f4f6'/%3E%3Ctext x='300' y='170' font-family='Arial' font-size='16' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/237/600/340" alt="量化投资入门与实践" class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105 lazyload" loading="lazy">
+                        <div class="absolute top-3 left-3 bg-primary text-white text-xs px-2 py-1 rounded-full transform transition-transform duration-300 group-hover:scale-105">畅销课程</div>
+                        <div class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full transform transition-transform duration-300 group-hover:scale-105">24课时</div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                            <button class="bg-white text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                <i class="fa fa-play-circle mr-1"></i> 预览课程
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex items-center mb-3">
+                            <span class="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full mr-2 transform transition-transform duration-300 group-hover:scale-105">入门基础</span>
+                            <div class="flex items-center text-yellow-400 transform transition-transform duration-300 group-hover:scale-105">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star-half-o"></i>
+                                <span class="text-gray-600 text-xs ml-1">4.8 (326)</span>
+                            </div>
+                        </div>
+                        <h3 class="font-semibold text-lg mb-2 line-clamp-2 h-12 group-hover:text-primary transition-colors transform transition-transform duration-300 group-hover:translate-x-1">量化投资入门与实践：从零开始构建量化交易系统</h3>
+                        <p class="text-gray-600 text-sm mb-4 line-clamp-2 h-10 transform transition-transform duration-300 group-hover:translate-x-1">本课程适合零基础学员，从量化投资基础概念开始，逐步学习如何使用Python构建自己的量化交易系统。</p>
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center transform transition-transform duration-300 group-hover:translate-x-1">
+                                <img src="https://picsum.photos/id/64/100/100" alt="讲师头像" class="w-8 h-8 rounded-full mr-2 transform transition-transform duration-300 group-hover:scale-110">
+                                <div>
+                                    <span class="text-sm font-medium">张教授</span>
+                                    <p class="text-xs text-gray-500">量化投资专家</p>
+                                </div>
+                            </div>
+                            <div class="text-primary font-bold transform transition-transform duration-300 group-hover:scale-110">¥299</div>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-500 mb-3 transform transition-transform duration-300 group-hover:translate-x-1">
+                            <span class="flex items-center"><i class="fa fa-users mr-1"></i> 1,258人学习</span>
+                            <span class="flex items-center"><i class="fa fa-calendar mr-1"></i> 2026-01更新</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <button class="favorite-btn flex items-center text-gray-500 hover:text-red-500 transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                <i class="fa fa-heart-o mr-1"></i>
+                                <span class="text-sm">收藏</span>
+                            </button>
+                            <button class="share-btn flex items-center text-gray-500 hover:text-primary transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                <i class="fa fa-share-alt mr-1"></i>
+                                <span class="text-sm">分享</span>
+                            </button>
+                            <button class="bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                立即报名
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 课程卡片2 -->
+                <div class="course-card bg-white rounded-xl shadow-md overflow-hidden card-hover transition-all duration-300 hover:shadow-xl hover:-translate-y-2 transform active:scale-98">
+                    <div class="relative group">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340' viewBox='0 0 600 340'%3E%3Crect width='600' height='340' fill='%23f3f4f6'/%3E%3Ctext x='300' y='170' font-family='Arial' font-size='16' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/1/600/340" alt="Python金融数据分析" class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105 lazyload" loading="lazy">
+                        <div class="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full transform transition-transform duration-300 group-hover:scale-105">新课上线</div>
+                        <div class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full transform transition-transform duration-300 group-hover:scale-105">32课时</div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                            <button class="bg-white text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                <i class="fa fa-play-circle mr-1"></i> 预览课程
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex items-center mb-3">
+                            <span class="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full mr-2 transform transition-transform duration-300 group-hover:scale-105">Python编程</span>
+                            <div class="flex items-center text-yellow-400 transform transition-transform duration-300 group-hover:scale-105">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star-o"></i>
+                                <span class="text-gray-600 text-xs ml-1">4.2 (189)</span>
+                            </div>
+                        </div>
+                        <h3 class="font-semibold text-lg mb-2 line-clamp-2 h-12 group-hover:text-primary transition-colors transform transition-transform duration-300 group-hover:translate-x-1">Python金融数据分析实战：从数据获取到可视化</h3>
+                        <p class="text-gray-600 text-sm mb-4 line-clamp-2 h-10 transform transition-transform duration-300 group-hover:translate-x-1">掌握如何使用Python进行金融数据的获取、清洗、处理和可视化分析，提升数据分析能力。</p>
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center transform transition-transform duration-300 group-hover:translate-x-1">
+                                <img src="https://picsum.photos/id/91/100/100" alt="讲师头像" class="w-8 h-8 rounded-full mr-2 transform transition-transform duration-300 group-hover:scale-110">
+                                <div>
+                                    <span class="text-sm font-medium">李老师</span>
+                                    <p class="text-xs text-gray-500">Python数据分析专家</p>
+                                </div>
+                            </div>
+                            <div class="text-primary font-bold transform transition-transform duration-300 group-hover:scale-110">¥399</div>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-500 mb-3 transform transition-transform duration-300 group-hover:translate-x-1">
+                            <span class="flex items-center"><i class="fa fa-users mr-1"></i> 856人学习</span>
+                            <span class="flex items-center"><i class="fa fa-calendar mr-1"></i> 2026-02更新</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <button class="favorite-btn flex items-center text-gray-500 hover:text-red-500 transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                <i class="fa fa-heart-o mr-1"></i>
+                                <span class="text-sm">收藏</span>
+                            </button>
+                            <button class="share-btn flex items-center text-gray-500 hover:text-primary transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                <i class="fa fa-share-alt mr-1"></i>
+                                <span class="text-sm">分享</span>
+                            </button>
+                            <button class="bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                立即报名
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 课程卡片3 -->
+                <div class="course-card bg-white rounded-xl shadow-md overflow-hidden card-hover transition-all duration-300 hover:shadow-xl hover:-translate-y-2 transform active:scale-98">
+                    <div class="relative group">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340' viewBox='0 0 600 340'%3E%3Crect width='600' height='340' fill='%23f3f4f6'/%3E%3Ctext x='300' y='170' font-family='Arial' font-size='16' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/20/600/340" alt="期权定价与交易策略" class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105 lazyload" loading="lazy">
+                        <div class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full transform transition-transform duration-300 group-hover:scale-105">28课时</div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                            <button class="bg-white text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                <i class="fa fa-play-circle mr-1"></i> 预览课程
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex items-center mb-3">
+                            <span class="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full mr-2 transform transition-transform duration-300 group-hover:scale-105">金融模型</span>
+                            <div class="flex items-center text-yellow-400 transform transition-transform duration-300 group-hover:scale-105">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <span class="text-gray-600 text-xs ml-1">5.0 (156)</span>
+                            </div>
+                        </div>
+                        <h3 class="font-semibold text-lg mb-2 line-clamp-2 h-12 group-hover:text-primary transition-colors transform transition-transform duration-300 group-hover:translate-x-1">期权定价与交易策略：从Black-Scholes到波动率曲面</h3>
+                        <p class="text-gray-600 text-sm mb-4 line-clamp-2 h-10 transform transition-transform duration-300 group-hover:translate-x-1">深入学习期权定价模型和交易策略，掌握期权组合管理和风险管理的核心技能。</p>
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center transform transition-transform duration-300 group-hover:translate-x-1">
+                                <img src="https://picsum.photos/id/26/100/100" alt="讲师头像" class="w-8 h-8 rounded-full mr-2 transform transition-transform duration-300 group-hover:scale-110">
+                                <div>
+                                    <span class="text-sm font-medium">王教授</span>
+                                    <p class="text-xs text-gray-500">金融工程专家</p>
+                                </div>
+                            </div>
+                            <div class="text-primary font-bold transform transition-transform duration-300 group-hover:scale-110">¥499</div>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-500 mb-3 transform transition-transform duration-300 group-hover:translate-x-1">
+                            <span class="flex items-center"><i class="fa fa-users mr-1"></i> 623人学习</span>
+                            <span class="flex items-center"><i class="fa fa-calendar mr-1"></i> 2026-01更新</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <button class="favorite-btn flex items-center text-gray-500 hover:text-red-500 transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                <i class="fa fa-heart-o mr-1"></i>
+                                <span class="text-sm">收藏</span>
+                            </button>
+                            <button class="share-btn flex items-center text-gray-500 hover:text-primary transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                <i class="fa fa-share-alt mr-1"></i>
+                                <span class="text-sm">分享</span>
+                            </button>
+                            <button class="bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                立即报名
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 热门课程 -->
+        <section class="mb-16 animate-slide-up" style="animation-delay: 0.3s">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold sm:text-2xl text-xl text-neutral-dark">热门课程</h2>
+                <a href="#" class="text-primary hover:text-primary/80 font-medium flex items-center transition-colors text-sm sm:text-base">
+                    查看更多
+                    <i class="fa fa-angle-right ml-1"></i>
+                </a>
+            </div>
+            <div class="space-y-6">
+                <!-- 课程项目1 -->
+                <div class="course-card bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row card-hover transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 active:scale-98">
+                    <div class="relative group w-full md:w-1/3">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225' viewBox='0 0 400 225'%3E%3Crect width='400' height='225' fill='%23f3f4f6'/%3E%3Ctext x='200' y='112' font-family='Arial' font-size='14' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/30/400/225" alt="算法交易与回测" class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105 lazyload" loading="lazy">
+                        <div class="absolute top-3 left-3 bg-primary text-white text-xs px-2 py-1 rounded-full transform transition-transform duration-300 group-hover:scale-105">热门</div>
+                        <div class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full transform transition-transform duration-300 group-hover:scale-105">36课时</div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                            <button class="bg-white text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                <i class="fa fa-play-circle mr-1"></i> 预览课程
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center mb-2">
+                                <span class="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full mr-2 transform transition-transform duration-300 group-hover:scale-105">量化策略</span>
+                                <div class="flex items-center text-yellow-400 transform transition-transform duration-300 group-hover:scale-105">
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star-half-o"></i>
+                                    <span class="text-gray-600 text-xs ml-1">4.7 (258人评价)</span>
+                                </div>
+                            </div>
+                            <h3 class="font-semibold text-lg mb-2 group-hover:text-primary transition-colors transform transition-transform duration-300 group-hover:translate-x-1">算法交易与回测：构建高性能量化交易策略</h3>
+                            <p class="text-gray-600 text-sm mb-3 sm:mb-4 transform transition-transform duration-300 group-hover:translate-x-1">本课程涵盖现代算法交易的核心技术，包括回测框架搭建、策略优化、实盘交易系统构建等内容。</p>
+                            <div class="flex flex-wrap items-center text-xs text-gray-500 mb-3 sm:mb-4 gap-2 sm:gap-4 transform transition-transform duration-300 group-hover:translate-x-1">
+                                <span class="flex items-center"><i class="fa fa-users mr-1"></i> 3,245人学习</span>
+                                <span class="flex items-center"><i class="fa fa-clock-o mr-1"></i> 18小时课程</span>
+                                <span class="flex items-center"><i class="fa fa-calendar mr-1"></i> 2026-01更新</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+                            <div class="flex items-center transform transition-transform duration-300 group-hover:translate-x-1">
+                                <img src="https://picsum.photos/id/100/100/100" alt="讲师头像" class="w-8 h-8 rounded-full mr-2 transform transition-transform duration-300 group-hover:scale-110">
+                                <div>
+                                    <span class="text-sm font-medium">赵老师</span>
+                                    <p class="text-xs text-gray-500">算法交易专家</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-between sm:justify-end">
+                                <div class="text-primary font-bold text-lg transform transition-transform duration-300 group-hover:scale-110">¥459</div>
+                                <div class="flex items-center space-x-2">
+                                    <button class="favorite-btn flex items-center text-gray-500 hover:text-red-500 transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                        <i class="fa fa-heart-o mr-1"></i>
+                                        <span class="text-sm">收藏</span>
+                                    </button>
+                                    <button class="share-btn flex items-center text-gray-500 hover:text-primary transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                        <i class="fa fa-share-alt mr-1"></i>
+                                        <span class="text-sm">分享</span>
+                                    </button>
+                                    <button class="bg-primary text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-primary/90 transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                                        立即报名
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 课程项目2 -->
+                <div class="course-card bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row card-hover transition-all duration-300">
+                    <div class="relative group w-full md:w-1/3">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225' viewBox='0 0 400 225'%3E%3Crect width='400' height='225' fill='%23f3f4f6'/%3E%3Ctext x='200' y='112' font-family='Arial' font-size='14' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/42/400/225" alt="技术分析实战" class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105 lazyload" loading="lazy">
+                        <div class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">28课时</div>
+                    </div>
+                    <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center mb-2">
+                                <span class="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full mr-2">技术分析</span>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star-o"></i>
+                                    <span class="text-gray-600 text-xs ml-1">4.3 (196人评价)</span>
+                                </div>
+                            </div>
+                            <h3 class="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">技术分析实战：K线形态、指标与趋势识别</h3>
+                            <p class="text-gray-600 text-sm mb-3 sm:mb-4">系统学习技术分析方法，掌握各种K线形态、技术指标的应用，以及趋势识别和交易时机把握。</p>
+                            <div class="flex flex-wrap items-center text-xs text-gray-500 mb-3 sm:mb-4 gap-2 sm:gap-4">
+                                <span class="flex items-center"><i class="fa fa-users mr-1"></i> 2,156人学习</span>
+                                <span class="flex items-center"><i class="fa fa-clock-o mr-1"></i> 14小时课程</span>
+                                <span class="flex items-center"><i class="fa fa-calendar mr-1"></i> 2026-01更新</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+                            <div class="flex items-center">
+                                <img src="https://picsum.photos/id/101/100/100" alt="讲师头像" class="w-8 h-8 rounded-full mr-2">
+                                <div>
+                                    <span class="text-sm font-medium">刘老师</span>
+                                    <p class="text-xs text-gray-500">技术分析专家</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-between sm:justify-end">
+                                <div class="text-primary font-bold text-lg">¥329</div>
+                                <div class="flex items-center space-x-2">
+                                    <button class="favorite-btn flex items-center text-gray-500 hover:text-red-500 transition-colors">
+                                        <i class="fa fa-heart-o mr-1"></i>
+                                        <span class="text-sm">收藏</span>
+                                    </button>
+                                    <button class="share-btn flex items-center text-gray-500 hover:text-primary transition-colors">
+                                        <i class="fa fa-share-alt mr-1"></i>
+                                        <span class="text-sm">分享</span>
+                                    </button>
+                                    <button class="bg-primary text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-primary/90 transition-colors text-sm sm:text-base">
+                                        立即报名
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 课程项目3 -->
+                <div class="course-card bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row card-hover transition-all duration-300">
+                    <div class="relative group w-full md:w-1/3">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225' viewBox='0 0 400 225'%3E%3Crect width='400' height='225' fill='%23f3f4f6'/%3E%3Ctext x='200' y='112' font-family='Arial' font-size='14' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/60/400/225" alt="机器学习在量化投资中的应用" class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105 lazyload" loading="lazy">
+                        <div class="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full">新课</div>
+                        <div class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">42课时</div>
+                    </div>
+                    <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center mb-2">
+                                <span class="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full mr-2">量化策略</span>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <span class="text-gray-600 text-xs ml-1">4.9 (156人评价)</span>
+                                </div>
+                            </div>
+                            <h3 class="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">机器学习在量化投资中的应用：从理论到实践</h3>
+                            <p class="text-gray-600 text-sm mb-3 sm:mb-4">学习如何将机器学习算法应用于量化投资，构建预测模型，开发智能交易策略。</p>
+                            <div class="flex flex-wrap items-center text-xs text-gray-500 mb-3 sm:mb-4 gap-2 sm:gap-4">
+                                <span class="flex items-center"><i class="fa fa-users mr-1"></i> 1,876人学习</span>
+                                <span class="flex items-center"><i class="fa fa-clock-o mr-1"></i> 20小时课程</span>
+                                <span class="flex items-center"><i class="fa fa-calendar mr-1"></i> 2026-02更新</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+                            <div class="flex items-center">
+                                <img src="https://picsum.photos/id/102/100/100" alt="讲师头像" class="w-8 h-8 rounded-full mr-2">
+                                <div>
+                                    <span class="text-sm font-medium">陈教授</span>
+                                    <p class="text-xs text-gray-500">机器学习专家</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-between sm:justify-end">
+                                <div class="text-primary font-bold text-lg">¥599</div>
+                                <div class="flex items-center space-x-2">
+                                    <button class="favorite-btn flex items-center text-gray-500 hover:text-red-500 transition-colors">
+                                        <i class="fa fa-heart-o mr-1"></i>
+                                        <span class="text-sm">收藏</span>
+                                    </button>
+                                    <button class="share-btn flex items-center text-gray-500 hover:text-primary transition-colors">
+                                        <i class="fa fa-share-alt mr-1"></i>
+                                        <span class="text-sm">分享</span>
+                                    </button>
+                                    <button class="bg-primary text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-primary/90 transition-colors text-sm sm:text-base">
+                                        立即报名
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 学习路径 -->
+        <section class="mb-16 animate-slide-up" style="animation-delay: 0.4s">
+            <h2 class="text-2xl font-semibold mb-8 text-center sm:text-2xl text-xl text-neutral-dark">推荐学习路径</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                <!-- 入门路径 -->
+                <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4 animate-slide-up" style="animation-delay: 0.5s">
+                        <h3 class="text-xl font-semibold sm:text-xl text-lg">量化投资入门路径</h3>
+                        <div class="bg-blue-100 text-primary text-xs px-3 py-1 rounded-full transform transition-transform duration-300 hover:scale-105">适合初学者</div>
+                    </div>
+                    <div class="relative">
+                        <!-- 连接线 -->
+                        <div class="absolute left-3 top-6 bottom-6 w-0.5 bg-blue-200 z-0"></div>
+                        
+                        <!-- 课程步骤 -->
+                        <div class="relative z-10 space-y-6">
+                            <div class="flex group animate-slide-up" style="animation-delay: 0.6s">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300 cursor-pointer"></div>
+                                <div class="ml-4 flex-1 group-hover:translate-x-1 transition-transform duration-300">
+                                    <h4 class="font-medium mb-1 group-hover:text-primary transition-colors">量化投资基础</h4>
+                                    <p class="text-sm text-gray-600 mb-2">了解量化投资的基本概念、优势和发展历程</p>
+                                    <div class="flex items-center justify-between">
+                                        <a href="#" class="text-primary text-sm hover:underline flex items-center transform hover:scale-105 transition-transform duration-200">
+                                            <i class="fa fa-book mr-1"></i> 量化投资入门与实践
+                                        </a>
+                                        <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded transform transition-transform duration-300 group-hover:scale-105">24课时</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex group animate-slide-up" style="animation-delay: 0.7s">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300 cursor-pointer"></div>
+                                <div class="ml-4 flex-1 group-hover:translate-x-1 transition-transform duration-300">
+                                    <h4 class="font-medium mb-1 group-hover:text-primary transition-colors">Python编程基础</h4>
+                                    <p class="text-sm text-gray-600 mb-2">掌握Python基本语法和数据分析库的使用</p>
+                                    <div class="flex items-center justify-between">
+                                        <a href="#" class="text-primary text-sm hover:underline flex items-center transform hover:scale-105 transition-transform duration-200">
+                                            <i class="fa fa-book mr-1"></i> Python金融数据分析实战
+                                        </a>
+                                        <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded transform transition-transform duration-300 group-hover:scale-105">32课时</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex group animate-slide-up" style="animation-delay: 0.8s">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300 cursor-pointer"></div>
+                                <div class="ml-4 flex-1 group-hover:translate-x-1 transition-transform duration-300">
+                                    <h4 class="font-medium mb-1 group-hover:text-primary transition-colors">技术分析方法</h4>
+                                    <p class="text-sm text-gray-600 mb-2">学习常用技术分析指标和图表形态分析</p>
+                                    <div class="flex items-center justify-between">
+                                        <a href="#" class="text-primary text-sm hover:underline flex items-center transform hover:scale-105 transition-transform duration-200">
+                                            <i class="fa fa-book mr-1"></i> 技术分析实战
+                                        </a>
+                                        <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded transform transition-transform duration-300 group-hover:scale-105">28课时</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex group animate-slide-up" style="animation-delay: 0.9s">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300 cursor-pointer"></div>
+                                <div class="ml-4 flex-1 group-hover:translate-x-1 transition-transform duration-300">
+                                    <h4 class="font-medium mb-1 group-hover:text-primary transition-colors">策略开发与回测</h4>
+                                    <p class="text-sm text-gray-600 mb-2">学习如何开发量化策略并进行历史回测</p>
+                                    <div class="flex items-center justify-between">
+                                        <a href="#" class="text-primary text-sm hover:underline flex items-center transform hover:scale-105 transition-transform duration-200">
+                                            <i class="fa fa-book mr-1"></i> 算法交易与回测
+                                        </a>
+                                        <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded transform transition-transform duration-300 group-hover:scale-105">36课时</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6 text-center animate-slide-up" style="animation-delay: 1s">
+                        <a href="#" class="inline-block px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                            开始学习路径
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 进阶路径 -->
+                <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4 animate-slide-up" style="animation-delay: 0.5s">
+                        <h3 class="text-xl font-semibold sm:text-xl text-lg">量化投资进阶路径</h3>
+                        <div class="bg-purple-100 text-purple-600 text-xs px-3 py-1 rounded-full transform transition-transform duration-300 hover:scale-105">适合有基础者</div>
+                    </div>
+                    <div class="relative">
+                        <!-- 连接线 -->
+                        <div class="absolute left-3 top-6 bottom-6 w-0.5 bg-purple-200 z-0"></div>
+                        
+                        <!-- 课程步骤 -->
+                        <div class="relative z-10 space-y-6">
+                            <div class="flex group animate-slide-up" style="animation-delay: 0.6s">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300 cursor-pointer"></div>
+                                <div class="ml-4 flex-1 group-hover:translate-x-1 transition-transform duration-300">
+                                    <h4 class="font-medium mb-1 group-hover:text-purple-600 transition-colors">金融模型与定价</h4>
+                                    <p class="text-sm text-gray-600 mb-2">深入学习期权定价、风险模型等金融理论</p>
+                                    <div class="flex items-center justify-between">
+                                        <a href="#" class="text-purple-600 text-sm hover:underline flex items-center transform hover:scale-105 transition-transform duration-200">
+                                            <i class="fa fa-book mr-1"></i> 期权定价与交易策略
+                                        </a>
+                                        <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded transform transition-transform duration-300 group-hover:scale-105">28课时</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex group animate-slide-up" style="animation-delay: 0.7s">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300 cursor-pointer"></div>
+                                <div class="ml-4 flex-1 group-hover:translate-x-1 transition-transform duration-300">
+                                    <h4 class="font-medium mb-1 group-hover:text-purple-600 transition-colors">机器学习应用</h4>
+                                    <p class="text-sm text-gray-600 mb-2">将机器学习技术应用于量化投资</p>
+                                    <div class="flex items-center justify-between">
+                                        <a href="#" class="text-purple-600 text-sm hover:underline flex items-center transform hover:scale-105 transition-transform duration-200">
+                                            <i class="fa fa-book mr-1"></i> 机器学习在量化投资中的应用
+                                        </a>
+                                        <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded transform transition-transform duration-300 group-hover:scale-105">42课时</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex group animate-slide-up" style="animation-delay: 0.8s">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300 cursor-pointer"></div>
+                                <div class="ml-4 flex-1 group-hover:translate-x-1 transition-transform duration-300">
+                                    <h4 class="font-medium mb-1 group-hover:text-purple-600 transition-colors">高频交易策略</h4>
+                                    <p class="text-sm text-gray-600 mb-2">学习高频交易的核心技术和策略开发</p>
+                                    <div class="flex items-center justify-between">
+                                        <a href="#" class="text-purple-600 text-sm hover:underline flex items-center transform hover:scale-105 transition-transform duration-200">
+                                            <i class="fa fa-book mr-1"></i> 高频交易实战
+                                        </a>
+                                        <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded transform transition-transform duration-300 group-hover:scale-105">32课时</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex group animate-slide-up" style="animation-delay: 0.9s">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300 cursor-pointer"></div>
+                                <div class="ml-4 flex-1 group-hover:translate-x-1 transition-transform duration-300">
+                                    <h4 class="font-medium mb-1 group-hover:text-purple-600 transition-colors">投资组合优化</h4>
+                                    <p class="text-sm text-gray-600 mb-2">学习现代投资组合理论和优化方法</p>
+                                    <div class="flex items-center justify-between">
+                                        <a href="#" class="text-purple-600 text-sm hover:underline flex items-center transform hover:scale-105 transition-transform duration-200">
+                                            <i class="fa fa-book mr-1"></i> 投资组合管理与优化
+                                        </a>
+                                        <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded transform transition-transform duration-300 group-hover:scale-105">30课时</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6 text-center animate-slide-up" style="animation-delay: 1s">
+                        <a href="#" class="inline-block px-6 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                            开始学习路径
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 学习进度 -->
+        <section class="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-16 transition-all duration-300 hover:shadow-lg animate-slide-up" style="animation-delay: 0.5s">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold sm:text-2xl text-xl text-neutral-dark">我的学习进度</h2>
+                <a href="#" class="text-primary hover:text-primary/80 font-medium flex items-center transition-colors text-sm sm:text-base">
+                    查看全部课程
+                    <i class="fa fa-angle-right ml-1"></i>
+                </a>
+            </div>
+            <div class="space-y-6">
+                <!-- 进行中的课程 -->
+                <div class="border border-gray-100 rounded-lg p-4 transition-all duration-300 hover:border-primary hover:shadow-sm">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='10' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/237/100/100" alt="量化投资入门与实践" class="w-10 h-10 rounded-md mr-3 object-cover lazyload" loading="lazy">
+                            <h3 class="font-medium">量化投资入门与实践</h3>
+                        </div>
+                        <span class="text-sm bg-blue-100 text-primary px-2 py-1 rounded-full">32%</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                        <div class="progress-bar bg-primary h-2.5 rounded-full transition-all duration-1000 ease-out" style="width: 32%"></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-2 text-sm">
+                        <span class="text-gray-600">已学习8课时/共24课时</span>
+                        <a href="#" class="bg-primary text-white px-3 py-1 rounded-lg hover:bg-primary/90 transition-colors">
+                            继续学习
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 进行中的课程2 -->
+                <div class="border border-gray-100 rounded-lg p-4 transition-all duration-300 hover:border-primary hover:shadow-sm">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='10' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/1/100/100" alt="Python金融数据分析实战" class="w-10 h-10 rounded-md mr-3 object-cover lazyload" loading="lazy">
+                            <h3 class="font-medium">Python金融数据分析实战</h3>
+                        </div>
+                        <span class="text-sm bg-blue-100 text-primary px-2 py-1 rounded-full">15%</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                        <div class="progress-bar bg-primary h-2.5 rounded-full transition-all duration-1000 ease-out" style="width: 15%"></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-2 text-sm">
+                        <span class="text-gray-600">已学习5课时/共32课时</span>
+                        <a href="#" class="bg-primary text-white px-3 py-1 rounded-lg hover:bg-primary/90 transition-colors">
+                            继续学习
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 推荐继续学习 -->
+                <div class="border border-gray-100 rounded-lg p-4 bg-blue-50 transition-all duration-300 hover:border-primary hover:shadow-sm">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='10' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/30/100/100" alt="算法交易与回测" class="w-10 h-10 rounded-md mr-3 object-cover lazyload" loading="lazy">
+                            <h3 class="font-medium">算法交易与回测</h3>
+                        </div>
+                        <span class="text-sm bg-green-100 text-green-600 px-2 py-1 rounded-full">推荐课程</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3">基于您的学习进度，推荐您继续学习这门课程，深入了解算法交易技术。</p>
+                    <a href="#" class="bg-primary text-white px-3 py-1 rounded-lg hover:bg-primary/90 transition-colors">
+                        开始学习
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 学员评价 -->
+        <section class="mb-16 animate-slide-up" style="animation-delay: 0.6s">
+            <h2 class="text-2xl font-semibold mb-8 text-center text-neutral-dark">学员评价</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- 评价1 -->
+                <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                    <div class="flex items-center text-yellow-400 mb-4">
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                    </div>
+                    <p class="text-gray-600 mb-4 italic">"课程内容非常丰富，讲解清晰易懂，从零基础开始学习，现在已经能够独立开发简单的量化策略了！"</p>
+                    <div class="flex items-center">
+                        <img src="https://picsum.photos/id/22/100/100" alt="学员头像" class="w-12 h-12 rounded-full mr-3 object-cover border-2 border-primary/20">
+                        <div>
+                            <p class="font-medium">张先生</p>
+                            <p class="text-xs text-gray-500">量化投资入门学员</p>
+                            <div class="text-xs text-gray-400 mt-1">完成课程：量化投资入门与实践</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 评价2 -->
+                <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                    <div class="flex items-center text-yellow-400 mb-4">
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star-half-o"></i>
+                    </div>
+                    <p class="text-gray-600 mb-4 italic">"讲师经验丰富，案例讲解很实用，课程中提供的代码示例和实战项目对我帮助很大，强烈推荐！"</p>
+                    <div class="flex items-center">
+                        <img src="https://picsum.photos/id/29/100/100" alt="学员头像" class="w-12 h-12 rounded-full mr-3 object-cover border-2 border-primary/20">
+                        <div>
+                            <p class="font-medium">李女士</p>
+                            <p class="text-xs text-gray-500">金融分析师</p>
+                            <div class="text-xs text-gray-400 mt-1">完成课程：Python金融数据分析实战</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 评价3 -->
+                <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                    <div class="flex items-center text-yellow-400 mb-4">
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                    </div>
+                    <p class="text-gray-600 mb-4 italic">"学习平台设计很好，课程内容结构清晰，学习路径安排合理，客服响应也很及时，是学习量化投资的好去处！"</p>
+                    <div class="flex items-center">
+                        <img src="https://picsum.photos/id/33/100/100" alt="学员头像" class="w-12 h-12 rounded-full mr-3 object-cover border-2 border-primary/20">
+                        <div>
+                            <p class="font-medium">王先生</p>
+                            <p class="text-xs text-gray-500">程序员</p>
+                            <div class="text-xs text-gray-400 mt-1">完成课程：算法交易与回测</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-10">
+                <a href="#" class="inline-block px-6 py-2.5 border border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-colors font-medium">
+                    查看更多评价
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 图片懒加载JavaScript -->
+    <script>
+        // 图片懒加载功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查图片是否在可视区域
+            function isInViewport(element) {
+                const rect = element.getBoundingClientRect();
+                return (
+                    rect.top >= 0 &&
+                    rect.left >= 0 &&
+                    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+                );
+            }
+
+            // 加载图片
+            function loadImage(img) {
+                if (img.dataset.src) {
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                    img.classList.remove('lazyload');
+                    img.classList.add('loaded');
+                }
+            }
+
+            // 初始化懒加载
+            function initLazyLoad() {
+                const lazyImages = document.querySelectorAll('.lazyload');
+                
+                // 立即加载可视区域内的图片
+                lazyImages.forEach(img => {
+                    if (isInViewport(img)) {
+                        loadImage(img);
+                    }
+                });
+
+                // 滚动时加载图片
+                window.addEventListener('scroll', function() {
+                    const lazyImages = document.querySelectorAll('.lazyload');
+                    lazyImages.forEach(img => {
+                        if (isInViewport(img)) {
+                            loadImage(img);
+                        }
+                    });
+                });
+
+                // 窗口大小改变时加载图片
+                window.addEventListener('resize', function() {
+                    const lazyImages = document.querySelectorAll('.lazyload');
+                    lazyImages.forEach(img => {
+                        if (isInViewport(img)) {
+                            loadImage(img);
+                        }
+                    });
+                });
+            }
+
+            // 初始化
+            initLazyLoad();
+        });
+    </script>
+
+    <!-- 自定义JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+    
+    <script>
+        // 分类切换
+        document.querySelectorAll('.category-pill').forEach(pill => {
+            pill.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active', 'bg-primary', 'text-white'));
+                document.querySelectorAll('.category-pill').forEach(p => p.classList.add('bg-white', 'text-gray-700', 'shadow-sm'));
+                this.classList.add('active', 'bg-primary', 'text-white');
+                this.classList.remove('bg-white', 'text-gray-700', 'shadow-sm');
+                
+                // 这里可以添加加载不同分类课程的逻辑
+                const category = this.textContent.trim();
+                console.log('切换到分类:', category);
+                
+                // 模拟加载动画
+                const coursesSection = document.querySelector('.course-card').parentElement.parentElement;
+                coursesSection.style.opacity = '0.7';
+                setTimeout(() => {
+                    coursesSection.style.opacity = '1';
+                }, 500);
+            });
+        });
+
+        // 课程搜索功能
+        document.getElementById('courseSearch').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            console.log('搜索课程:', searchTerm);
+            
+            // 这里可以添加搜索课程的逻辑
+            if (searchTerm.length > 2) {
+                // 模拟搜索结果加载
+                const coursesSection = document.querySelector('.course-card').parentElement.parentElement;
+                coursesSection.style.opacity = '0.7';
+                setTimeout(() => {
+                    coursesSection.style.opacity = '1';
+                }, 500);
+            }
+        });
+
+        // 搜索按钮点击事件
+        document.querySelector('button.absolute.right-2.top-1\.5').addEventListener('click', function() {
+            const searchTerm = document.getElementById('courseSearch').value.toLowerCase();
+            console.log('点击搜索:', searchTerm);
+            
+            // 这里可以添加搜索课程的逻辑
+            if (searchTerm.length > 0) {
+                // 模拟搜索结果加载
+                const coursesSection = document.querySelector('.course-card').parentElement.parentElement;
+                coursesSection.style.opacity = '0.7';
+                setTimeout(() => {
+                    coursesSection.style.opacity = '1';
+                }, 500);
+            }
+        });
+
+        // 模拟进度条动画
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.querySelectorAll('.progress-bar').forEach(bar => {
+                    const width = bar.style.width;
+                    bar.style.width = '0';
+                    setTimeout(() => {
+                        bar.style.width = width;
+                    }, 300);
+                });
+            }, 500);
+        });
+
+        // 课程卡片悬停效果
+        document.querySelectorAll('.course-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.classList.add('shadow-lg');
+                this.style.transform = 'translateY(-5px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.classList.remove('shadow-lg');
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // 学习路径卡片悬停效果
+        document.querySelectorAll('.bg-white.rounded-xl.shadow-md').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.classList.add('shadow-lg');
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.classList.remove('shadow-lg');
+            });
+        });
+
+        // 评价卡片悬停效果
+        document.querySelectorAll('.bg-white.rounded-xl.shadow-md.p-6').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.classList.add('shadow-lg');
+                this.style.transform = 'translateY(-5px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.classList.remove('shadow-lg');
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // 收藏功能
+        document.querySelectorAll('.favorite-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                if (icon.classList.contains('fa-heart-o')) {
+                    icon.classList.remove('fa-heart-o');
+                    icon.classList.add('fa-heart');
+                    this.classList.add('text-red-500');
+                    this.classList.remove('text-gray-500');
+                    
+                    // 显示收藏成功提示
+                    showToast('收藏成功！');
+                } else {
+                    icon.classList.remove('fa-heart');
+                    icon.classList.add('fa-heart-o');
+                    this.classList.remove('text-red-500');
+                    this.classList.add('text-gray-500');
+                    
+                    // 显示取消收藏提示
+                    showToast('已取消收藏');
+                }
+            });
+        });
+
+        // 分享功能
+        document.querySelectorAll('.share-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 模拟分享面板
+                if (!document.getElementById('sharePanel')) {
+                    const sharePanel = document.createElement('div');
+                    sharePanel.id = 'sharePanel';
+                    sharePanel.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+                    sharePanel.innerHTML = `
+                        <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-semibold">分享课程</h3>
+                                <button id="closeShareBtn" class="text-gray-500 hover:text-gray-700">
+                                    <i class="fa fa-times text-xl"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <p class="text-gray-600">选择分享方式：</p>
+                                
+                                <div class="grid grid-cols-4 gap-4">
+                                    <button class="share-platform flex flex-col items-center justify-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <i class="fa fa-weixin text-2xl text-green-500 mb-2"></i>
+                                        <span class="text-xs">微信</span>
+                                    </button>
+                                    <button class="share-platform flex flex-col items-center justify-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <i class="fa fa-weibo text-2xl text-red-500 mb-2"></i>
+                                        <span class="text-xs">微博</span>
+                                    </button>
+                                    <button class="share-platform flex flex-col items-center justify-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <i class="fa fa-qq text-2xl text-blue-500 mb-2"></i>
+                                        <span class="text-xs">QQ</span>
+                                    </button>
+                                    <button class="share-platform flex flex-col items-center justify-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <i class="fa fa-link text-2xl text-gray-500 mb-2"></i>
+                                        <span class="text-xs">复制链接</span>
+                                    </button>
+                                </div>
+                                
+                                <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                    <div class="flex justify-between items-center">
+                                        <input type="text" value="https://quant-platform.com/courses/123" readonly class="flex-1 text-sm bg-transparent border-none">
+                                        <button id="copyLinkBtn" class="ml-2 px-3 py-1 bg-primary text-white rounded hover:bg-primary/90 transition-colors text-sm">
+                                            复制
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(sharePanel);
+                    
+                    // 关闭分享面板
+                    document.getElementById('closeShareBtn').addEventListener('click', function() {
+                        sharePanel.remove();
+                    });
+                    
+                    // 复制链接
+                    document.getElementById('copyLinkBtn').addEventListener('click', function() {
+                        const linkInput = sharePanel.querySelector('input');
+                        linkInput.select();
+                        document.execCommand('copy');
+                        showToast('链接已复制到剪贴板');
+                    });
+                    
+                    // 分享平台点击
+                    sharePanel.querySelectorAll('.share-platform').forEach(platform => {
+                        platform.addEventListener('click', function() {
+                            const platformName = this.querySelector('span').textContent;
+                            showToast(`分享到${platformName}成功！`);
+                            sharePanel.remove();
+                        });
+                    });
+                }
+            });
+        });
+
+        // 显示提示信息
+        function showToast(message) {
+            // 检查是否已存在toast
+            if (document.getElementById('toast')) {
+                document.getElementById('toast').remove();
+            }
+            
+            const toast = document.createElement('div');
+            toast.id = 'toast';
+            toast.className = 'fixed top-4 right-4 bg-neutral-dark text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300 ease-out translate-x-full opacity-0';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            // 显示toast
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full', 'opacity-0');
+            }, 100);
+            
+            // 3秒后隐藏
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // 实时搜索功能
+        const courseSearch = document.getElementById('courseSearch');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchResults = document.getElementById('searchResults');
+        
+        function performSearch() {
+            const searchTerm = courseSearch.value.toLowerCase().trim();
+            
+            if (searchTerm) {
+                // 显示搜索结果区域
+                searchResults.classList.remove('hidden');
+                searchResults.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-medium">搜索结果: "${searchTerm}"</h4>
+                        <button id="closeSearch" class="text-gray-400 hover:text-gray-600">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        <!-- 模拟搜索结果 -->
+                        <div class="flex items-center p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                            <div class="w-12 h-12 bg-gray-200 rounded mr-3 flex-shrink-0"></div>
+                            <div>
+                                <h5 class="font-medium">量化投资入门与实践</h5>
+                                <p class="text-xs text-gray-500">入门基础 · 张教授</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                            <div class="w-12 h-12 bg-gray-200 rounded mr-3 flex-shrink-0"></div>
+                            <div>
+                                <h5 class="font-medium">Python金融数据分析实战</h5>
+                                <p class="text-xs text-gray-500">Python编程 · 李老师</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                            <div class="w-12 h-12 bg-gray-200 rounded mr-3 flex-shrink-0"></div>
+                            <div>
+                                <h5 class="font-medium">期权定价与交易策略</h5>
+                                <p class="text-xs text-gray-500">金融模型 · 王教授</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // 添加关闭按钮事件
+                document.getElementById('closeSearch').addEventListener('click', function() {
+                    searchResults.classList.add('hidden');
+                });
+            } else {
+                searchResults.classList.add('hidden');
+            }
+        }
+
+        // 搜索按钮点击事件
+        searchBtn.addEventListener('click', performSearch);
+
+        // 搜索框输入事件（实时搜索）
+        courseSearch.addEventListener('input', function() {
+            // 使用防抖函数优化实时搜索
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(performSearch, 300);
+        });
+
+        // 排序功能
+        document.getElementById('sortOptions').addEventListener('change', function() {
+            const sortValue = this.value;
+            console.log('排序方式:', sortValue);
+            
+            // 模拟排序动画
+            const coursesSection = document.querySelector('.course-card').parentElement.parentElement;
+            coursesSection.style.opacity = '0.7';
+            coursesSection.style.transform = 'scale(0.98)';
+            coursesSection.style.transition = 'all 0.3s ease';
+            
+            setTimeout(() => {
+                coursesSection.style.opacity = '1';
+                coursesSection.style.transform = 'scale(1)';
+            }, 300);
+        });
+
+        // 筛选按钮点击事件
+        document.getElementById('filterBtn').addEventListener('click', function() {
+            // 这里可以添加弹出筛选面板的逻辑
+            console.log('打开筛选面板');
+            
+            // 模拟筛选面板
+            if (!document.getElementById('filterPanel')) {
+                const filterPanel = document.createElement('div');
+                filterPanel.id = 'filterPanel';
+                filterPanel.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+                filterPanel.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold">高级筛选</h3>
+                            <button id="closeFilterBtn" class="text-gray-500 hover:text-gray-700">
+                                <i class="fa fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- 价格范围 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">价格范围</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" placeholder="最低" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <span>-</span>
+                                    <input type="number" placeholder="最高" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary">
+                                </div>
+                            </div>
+                            
+                            <!-- 课程时长 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">课程时长</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <option value="">全部时长</option>
+                                    <option value="short">少于10小时</option>
+                                    <option value="medium">10-20小时</option>
+                                    <option value="long">20小时以上</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 课程难度 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">课程难度</label>
+                                <div class="space-y-2">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="beginner" class="mr-2">
+                                        <label for="beginner" class="text-sm">入门级</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="intermediate" class="mr-2">
+                                        <label for="intermediate" class="text-sm">中级</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="advanced" class="mr-2">
+                                        <label for="advanced" class="text-sm">高级</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 讲师 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">讲师</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <option value="">全部讲师</option>
+                                    <option value="zhang">张教授</option>
+                                    <option value="li">李老师</option>
+                                    <option value="wang">王教授</option>
+                                    <option value="zhao">赵老师</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-3 mt-6">
+                            <button id="applyFilterBtn" class="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                                应用筛选
+                            </button>
+                            <button id="resetFilterBtn" class="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                重置
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(filterPanel);
+                
+                // 关闭筛选面板
+                document.getElementById('closeFilterBtn').addEventListener('click', function() {
+                    filterPanel.remove();
+                });
+                
+                // 应用筛选
+                document.getElementById('applyFilterBtn').addEventListener('click', function() {
+                    console.log('应用筛选');
+                    filterPanel.remove();
+                    
+                    // 模拟筛选动画
+                    const coursesSection = document.querySelector('.course-card').parentElement.parentElement;
+                    coursesSection.style.opacity = '0.7';
+                    setTimeout(() => {
+                        coursesSection.style.opacity = '1';
+                    }, 500);
+                });
+                
+                // 重置筛选
+                document.getElementById('resetFilterBtn').addEventListener('click', function() {
+                    console.log('重置筛选');
+                    filterPanel.querySelector('input[type="number"]').value = '';
+                    filterPanel.querySelector('select').selectedIndex = 0;
+                    filterPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                });
+            }
+        });
+
+        // 清除筛选
+        document.getElementById('clearFilters').addEventListener('click', function() {
+            console.log('清除筛选');
+            
+            // 模拟清除筛选动画
+            const coursesSection = document.querySelector('.course-card').parentElement.parentElement;
+            coursesSection.style.opacity = '0.7';
+            setTimeout(() => {
+                coursesSection.style.opacity = '1';
+            }, 500);
+        });
+    </script>
+
+<script>
+// 通用按钮处理函数
+function handleEnrollment(button) {
+    console.log('报名按钮被点击');
+    // 这里可以添加实际的报名逻辑
+    alert('报名功能正在开发中...');
+}
+
+function handleFavorite(button) {
+    console.log('收藏按钮被点击');
+    const icon = button.querySelector('i');
+    if (icon) {
+        if (icon.classList.contains('fa-heart-o')) {
+            icon.classList.remove('fa-heart-o');
+            icon.classList.add('fa-heart');
+            button.classList.add('text-red-500');
+            button.classList.remove('text-gray-500');
+            showToast('收藏成功！');
+        } else {
+            icon.classList.remove('fa-heart');
+            icon.classList.add('fa-heart-o');
+            button.classList.remove('text-red-500');
+            button.classList.add('text-gray-500');
+            showToast('已取消收藏');
+        }
+    }
+}
+
+function handleShare(button) {
+    console.log('分享按钮被点击');
+    // 这里可以添加分享逻辑
+    showToast('分享功能正在开发中...');
+}
+
+function showToast(message) {
+    // 简单的提示信息显示
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课程详情 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 配置Tailwind颜色方案 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af',
+                        secondary: '#3b82f6',
+                        accent: '#0ea5e9',
+                        neutral: '#1f2937',
+                        "neutral-light": '#6b7280',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .transition-custom {
+                transition: all 0.3s ease;
+            }
+        }
+    </style>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .nav-link {
+            position: relative;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: #3b82f6;
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .nav-link.active::after {
+            width: 100%;
+        }
+        .lesson-item {
+            transition: all 0.2s ease;
+        }
+        .lesson-item:hover {
+            background-color: #f9fafb;
+        }
+        .lesson-item.active {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+        }
+        .video-player {
+            aspect-ratio: 16 / 9;
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .tab-button {
+            transition: all 0.2s ease;
+        }
+        .tab-button.active {
+            border-bottom: 2px solid #1e40af;
+            color: #1e40af;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-md fixed w-full top-0 z-50 transition-all duration-300" id="navbar">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex-shrink-0 flex items-center">
+                        <i class="fa fa-line-chart text-primary text-2xl mr-2"></i>
+                        <span class="font-bold text-lg text-primary">Quant Finance</span>
+                    </a>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-center space-x-8">
+                        <a href="/" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-primary">首页</a>
+                        <a href="/data" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-primary">数据中心</a>
+                        <a href="/backtest" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-primary">策略回测</a>
+                        <a href="/models" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-primary">金融模型</a>
+                        <a href="/courses" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-primary active">课程中心</a>
+                        <a href="/about" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-primary">关于平台</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-gray-700 hover:text-primary focus:outline-none">
+                        <i class="fa fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- 移动端菜单 -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg absolute w-full">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="/" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary">首页</a>
+                <a href="/data" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary">数据中心</a>
+                <a href="/backtest" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary">策略回测</a>
+                <a href="/models" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary">金融模型</a>
+                <a href="/courses" class="block px-3 py-2 rounded-md text-base font-medium text-primary bg-blue-50">课程中心</a>
+                <a href="/about" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary">关于平台</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+        <!-- 课程基本信息 -->
+        <section class="mb-8">
+            <div class="flex flex-wrap gap-4 items-center mb-4">
+                <a href="/courses" class="text-primary hover:underline text-sm flex items-center">
+                    <i class="fa fa-angle-left mr-1"></i>
+                    返回课程列表
+                </a>
+                <span class="text-gray-300">/</span>
+                <span class="text-neutral-light text-sm">入门基础</span>
+            </div>
+            <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-neutral mb-2">量化投资入门与实践：从零开始构建量化交易系统</h1>
+            <div class="flex flex-wrap gap-4 items-center text-sm text-neutral-light mb-4">
+                <div class="flex items-center">
+                    <img src="https://picsum.photos/id/64/100/100" alt="讲师头像" class="w-6 h-6 rounded-full mr-2">
+                    <span>张教授</span>
+                </div>
+                <div class="flex items-center">
+                    <i class="fa fa-eye mr-1"></i>
+                    <span>2,456 人学习</span>
+                </div>
+                <div class="flex items-center text-yellow-400">
+                    <i class="fa fa-star mr-1"></i>
+                    <span>4.8 (128人评价)</span>
+                </div>
+                <div class="flex items-center">
+                    <i class="fa fa-clock-o mr-1"></i>
+                    <span>课程总时长: 12小时30分钟</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 课程内容区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- 左侧视频和描述 -->
+            <div class="lg:col-span-3 space-y-8">
+                <!-- 视频播放区域 -->
+                <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                    <div class="video-player bg-black relative flex items-center justify-center">
+                        <img src="https://picsum.photos/id/237/1200/675" alt="课程视频封面" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <button class="w-20 h-20 bg-primary/80 rounded-full flex items-center justify-center text-white transition-custom hover:bg-primary">
+                                <i class="fa fa-play text-2xl ml-1"></i>
+                            </button>
+                        </div>
+                        <div class="absolute bottom-4 right-4 bg-black/60 text-white px-3 py-1 rounded text-sm">
+                            08:45
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-semibold">1.1 量化投资概述与发展历程</h2>
+                            <div class="flex items-center space-x-3">
+                                <button class="text-gray-500 hover:text-primary transition-custom" title="下载">
+                                    <i class="fa fa-download"></i>
+                                </button>
+                                <button class="text-gray-500 hover:text-primary transition-custom" title="收藏">
+                                    <i class="fa fa-bookmark"></i>
+                                </button>
+                                <button class="text-gray-500 hover:text-primary transition-custom" title="分享">
+                                    <i class="fa fa-share-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center mb-6">
+                            <div class="relative w-full bg-gray-200 rounded-full h-2">
+                                <div class="progress-bar bg-primary h-2 rounded-full" style="width: 65%"></div>
+                                <div class="absolute w-3 h-3 bg-primary rounded-full -mt-0.5" style="left: 65%"></div>
+                            </div>
+                            <span class="ml-3 text-sm text-neutral-light">65%</span>
+                        </div>
+                        <div>
+                            <h3 class="font-medium mb-2">本节课要点：</h3>
+                            <ul class="space-y-2 text-sm text-neutral-light">
+                                <li class="flex items-start">
+                                    <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                    <span>理解量化投资的基本概念和特点</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                    <span>了解量化投资在全球的发展历程</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                    <span>掌握量化投资与传统投资的区别</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fa fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                    <span>认识量化投资的优势与局限性</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 课程笔记与讨论 -->
+                <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                    <div class="border-b">
+                        <div class="flex">
+                            <button class="tab-button active px-6 py-4 text-neutral-light">课程笔记</button>
+                            <button class="tab-button px-6 py-4 text-neutral-light">学员讨论</button>
+                            <button class="tab-button px-6 py-4 text-neutral-light">常见问题</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 课程笔记内容 -->
+                    <div class="p-6">
+                        <h3 class="font-semibold mb-4">课程笔记</h3>
+                        <div class="mb-6">
+                            <textarea class="w-full p-4 border border-gray-300 rounded-md focus:border-primary focus:ring focus:ring-primary/20 transition-custom min-h-[150px]" placeholder="在此添加你的笔记..."></textarea>
+                            <div class="flex justify-end mt-3">
+                                <button class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom">
+                                    保存笔记
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="p-4 bg-gray-50 rounded-md">
+                                <div class="flex justify-between items-center mb-2">
+                                    <div class="flex items-center">
+                                        <img src="https://picsum.photos/id/22/100/100" alt="用户头像" class="w-6 h-6 rounded-full mr-2">
+                                        <span class="text-sm font-medium">我</span>
+                                    </div>
+                                    <span class="text-xs text-neutral-light">今天 10:30</span>
+                                </div>
+                                <p class="text-sm text-neutral-light">量化投资是一种利用数学模型和计算机算法进行投资决策的方法，相比传统投资更注重数据驱动和自动化执行。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧课程列表 -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg card-shadow sticky top-24">
+                    <div class="p-4 border-b bg-gray-50">
+                        <h3 class="font-semibold">课程大纲</h3>
+                    </div>
+                    <div class="max-h-[600px] overflow-y-auto">
+                        <!-- 第一章 -->
+                        <div class="border-b">
+                            <div class="px-4 py-3 bg-gray-50 flex justify-between items-center cursor-pointer chapter-header">
+                                <div class="flex items-center">
+                                    <i class="fa fa-chevron-down text-xs text-neutral-light mr-2 transition-transform duration-300"></i>
+                                    <h4 class="font-medium">第1章：量化投资基础</h4>
+                                </div>
+                                <span class="text-xs text-neutral-light">4课时</span>
+                            </div>
+                            <div class="chapter-content">
+                                <div class="lesson-item active px-4 py-3 flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-play-circle text-primary mr-3"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">1.1 量化投资概述与发展历程</p>
+                                            <p class="text-xs text-neutral-light">08:45</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fa fa-lock text-gray-400 mr-2"></i>
+                                    </div>
+                                </div>
+                                <div class="lesson-item px-4 py-3 flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-play-circle text-primary mr-3"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">1.2 量化投资的核心要素</p>
+                                            <p class="text-xs text-neutral-light">12:30</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fa fa-lock text-gray-400 mr-2"></i>
+                                    </div>
+                                </div>
+                                <div class="lesson-item px-4 py-3 flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-play-circle text-primary mr-3"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">1.3 量化投资的主要策略类型</p>
+                                            <p class="text-xs text-neutral-light">15:20</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fa fa-lock text-gray-400 mr-2"></i>
+                                    </div>
+                                </div>
+                                <div class="lesson-item px-4 py-3 flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-play-circle text-primary mr-3"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">1.4 量化投资工具与平台介绍</p>
+                                            <p class="text-xs text-neutral-light">10:15</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fa fa-lock text-gray-400 mr-2"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 第二章 -->
+                        <div class="border-b">
+                            <div class="px-4 py-3 bg-gray-50 flex justify-between items-center cursor-pointer chapter-header">
+                                <div class="flex items-center">
+                                    <i class="fa fa-chevron-down text-xs text-neutral-light mr-2 transition-transform duration-300 rotate-180"></i>
+                                    <h4 class="font-medium">第2章：Python基础与金融库</h4>
+                                </div>
+                                <span class="text-xs text-neutral-light">6课时</span>
+                            </div>
+                            <div class="chapter-content hidden">
+                                <div class="lesson-item px-4 py-3 flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-lock text-gray-400 mr-3"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">2.1 Python基础语法回顾</p>
+                                            <p class="text-xs text-neutral-light">14:25</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fa fa-lock text-gray-400 mr-2"></i>
+                                    </div>
+                                </div>
+                                <div class="lesson-item px-4 py-3 flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-lock text-gray-400 mr-3"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">2.2 NumPy与Pandas基础</p>
+                                            <p class="text-xs text-neutral-light">18:30</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fa fa-lock text-gray-400 mr-2"></i>
+                                    </div>
+                                </div>
+                                <!-- 更多课时... -->
+                            </div>
+                        </div>
+
+                        <!-- 第三章 -->
+                        <div class="border-b">
+                            <div class="px-4 py-3 bg-gray-50 flex justify-between items-center cursor-pointer chapter-header">
+                                <div class="flex items-center">
+                                    <i class="fa fa-chevron-down text-xs text-neutral-light mr-2 transition-transform duration-300 rotate-180"></i>
+                                    <h4 class="font-medium">第3章：数据获取与处理</h4>
+                                </div>
+                                <span class="text-xs text-neutral-light">5课时</span>
+                            </div>
+                            <div class="chapter-content hidden">
+                                <!-- 课时内容 -->
+                            </div>
+                        </div>
+
+                        <!-- 第四章 -->
+                        <div>
+                            <div class="px-4 py-3 bg-gray-50 flex justify-between items-center cursor-pointer chapter-header">
+                                <div class="flex items-center">
+                                    <i class="fa fa-chevron-down text-xs text-neutral-light mr-2 transition-transform duration-300 rotate-180"></i>
+                                    <h4 class="font-medium">第4章：策略开发与回测</h4>
+                                </div>
+                                <span class="text-xs text-neutral-light">9课时</span>
+                            </div>
+                            <div class="chapter-content hidden">
+                                <!-- 课时内容 -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="text-sm">
+                                <span class="font-medium">课程进度：</span>
+                                <span class="text-neutral-light">8/24课时</span>
+                            </div>
+                            <div class="text-sm text-neutral-light">33%</div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
+                            <div class="progress-bar bg-primary h-2 rounded-full" style="width: 33%"></div>
+                        </div>
+                        <button class="w-full py-3 bg-primary text-white rounded-md hover:bg-primary/90 transition-custom">
+                            继续学习
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 推荐课程 -->
+        <section class="mt-16">
+            <h2 class="text-2xl font-semibold mb-6">推荐课程</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- 推荐课程1 -->
+                <div class="bg-white rounded-lg card-shadow overflow-hidden course-card hover:shadow-lg transition-custom">
+                    <div class="relative">
+                        <img src="https://picsum.photos/id/1/400/225" alt="Python金融数据分析" class="w-full h-36 object-cover">
+                        <div class="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">32课时</div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-medium text-sm mb-2 line-clamp-2">Python金融数据分析实战：从数据获取到可视化</h3>
+                        <div class="flex items-center text-yellow-400 mb-2">
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star-o text-xs"></i>
+                            <span class="text-gray-600 text-xs ml-1">4.2</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-primary font-bold text-sm">¥399</span>
+                            <span class="text-xs text-neutral-light">1,256人学习</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 推荐课程2 -->
+                <div class="bg-white rounded-lg card-shadow overflow-hidden course-card hover:shadow-lg transition-custom">
+                    <div class="relative">
+                        <img src="https://picsum.photos/id/42/400/225" alt="技术分析实战" class="w-full h-36 object-cover">
+                        <div class="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">26课时</div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-medium text-sm mb-2 line-clamp-2">技术分析实战：K线形态、指标与趋势识别</h3>
+                        <div class="flex items-center text-yellow-400 mb-2">
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star-half-o text-xs"></i>
+                            <span class="text-gray-600 text-xs ml-1">4.3</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-primary font-bold text-sm">¥329</span>
+                            <span class="text-xs text-neutral-light">968人学习</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 推荐课程3 -->
+                <div class="bg-white rounded-lg card-shadow overflow-hidden course-card hover:shadow-lg transition-custom">
+                    <div class="relative">
+                        <img src="https://picsum.photos/id/30/400/225" alt="算法交易与回测" class="w-full h-36 object-cover">
+                        <div class="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">30课时</div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-medium text-sm mb-2 line-clamp-2">算法交易与回测：构建高性能量化交易策略</h3>
+                        <div class="flex items-center text-yellow-400 mb-2">
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star-half-o text-xs"></i>
+                            <span class="text-gray-600 text-xs ml-1">4.7</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-primary font-bold text-sm">¥459</span>
+                            <span class="text-xs text-neutral-light">1,580人学习</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 推荐课程4 -->
+                <div class="bg-white rounded-lg card-shadow overflow-hidden course-card hover:shadow-lg transition-custom">
+                    <div class="relative">
+                        <img src="https://picsum.photos/id/60/400/225" alt="机器学习在量化投资中的应用" class="w-full h-36 object-cover">
+                        <div class="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">36课时</div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-medium text-sm mb-2 line-clamp-2">机器学习在量化投资中的应用：从理论到实践</h3>
+                        <div class="flex items-center text-yellow-400 mb-2">
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <i class="fa fa-star text-xs"></i>
+                            <span class="text-gray-600 text-xs ml-1">4.9</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-primary font-bold text-sm">¥599</span>
+                            <span class="text-xs text-neutral-light">720人学习</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-neutral text-white py-12">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fa fa-line-chart text-2xl mr-2"></i>
+                        <span class="font-bold text-lg">Quant Finance</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">专业的股票分析与量化投资平台，为投资者提供全面的数据服务和投资工具。</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-4">产品服务</h3>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="/data" class="hover:text-white transition-custom">数据中心</a></li>
+                        <li><a href="/backtest" class="hover:text-white transition-custom">策略回测</a></li>
+                        <li><a href="/models" class="hover:text-white transition-custom">金融模型</a></li>
+                        <li><a href="/courses" class="hover:text-white transition-custom">课程中心</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-4">关于我们</h3>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="/about" class="hover:text-white transition-custom">平台介绍</a></li>
+                        <li><a href="/features" class="hover:text-white transition-custom">功能特性</a></li>
+                        <li><a href="/contact" class="hover:text-white transition-custom">联系方式</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-4">关注我们</h3>
+                    <div class="flex space-x-4 mb-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-custom"><i class="fa fa-weibo text-xl"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-custom"><i class="fa fa-wechat text-xl"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-custom"><i class="fa fa-qq text-xl"></i></a>
+                    </div>
+                    <p class="text-gray-400 text-sm">客服电话: 400-123-4567</p>
+                    <p class="text-gray-400 text-sm">邮箱: support@quantfinance.com</p>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-sm text-gray-500">
+                <p>© 2024 Quant Finance Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 导航栏滚动效果
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 10) {
+                navbar.classList.add('shadow-md');
+                navbar.classList.add('bg-white/95');
+            } else {
+                navbar.classList.remove('shadow-md');
+                navbar.classList.remove('bg-white/95');
+            }
+        });
+
+        // 移动端菜单切换
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 章节展开/收起
+        document.querySelectorAll('.chapter-header').forEach(header => {
+            header.addEventListener('click', function() {
+                const content = this.nextElementSibling;
+                const icon = this.querySelector('i.fa-chevron-down');
+                
+                content.classList.toggle('hidden');
+                icon.classList.toggle('rotate-180');
+            });
+        });
+
+        // 课时选择
+        document.querySelectorAll('.lesson-item').forEach(lesson => {
+            lesson.addEventListener('click', function() {
+                document.querySelectorAll('.lesson-item').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 这里可以添加加载对应课时内容的逻辑
+            });
+        });
+
+        // 标签切换
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 这里可以添加切换对应标签内容的逻辑
+            });
+        });
+
+        // 模拟视频播放
+        document.querySelector('.video-player button').addEventListener('click', function() {
+            // 在实际应用中，这里会触发视频播放
+            alert('视频将开始播放');
+        });
+
+        // 模拟进度条动画
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.querySelectorAll('.progress-bar').forEach(bar => {
+                    const width = bar.style.width;
+                    bar.style.width = '0';
+                    setTimeout(() => {
+                        bar.style.width = width;
+                    }, 300);
+                });
+            }, 500);
+        });
+    </script>
+    
+
+</body>
+</html>

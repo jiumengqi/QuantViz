@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>市场监控 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 配置Tailwind颜色方案 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-16">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12 animate-fade-in">
+            <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-neutral-dark mb-4">市场监控</h1>
+            <p class="text-neutral-medium max-w-3xl mx-auto">实时监控全球市场动态，掌握投资机会</p>
+        </div>
+
+        <!-- 持仓监控 -->
+        {% if portfolio_holdings %}
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.1s">
+            <h2 class="text-2xl font-semibold mb-6">持仓监控 <span class="text-sm font-normal text-neutral-medium">（基于Tushare数据源）</span></h2>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">持仓数量</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">成本价</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">现价</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">市值</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">日涨跌</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">持仓盈亏</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for h in portfolio_holdings %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="font-medium">{{ h.name }}</div>
+                                        <div class="text-xs text-neutral-medium">{{ h.symbol }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">{{ h.quantity }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">¥{{ "%.2f"|format(h.avg_cost|float) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">¥{{ "%.2f"|format(h.current_price|float) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">¥{{ "%.2f"|format(h.market_value|float) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right {{ 'text-green-500' if h.change_percent >= 0 else 'text-red-500' }}">
+                                        {{ '+' if h.change_percent >= 0 else '' }}{{ "%.2f"|format(h.change_percent) }}%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right {{ 'text-green-500' if h.cost_change_pct >= 0 else 'text-red-500' }}">
+                                        {{ '+' if h.cost_change_pct >= 0 else '' }}{{ "%.2f"|format(h.cost_change_pct) }}%
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- 全球指数 -->
+        <section class="mb-12 animate-slide-up">
+            <h2 class="text-2xl font-semibold mb-6">全球指数</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {% for index in market_data.indices %}
+                    <div class="bg-white rounded-xl shadow-md p-4 card-hover">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="font-medium">{{ index.name }}</h3>
+                                <p class="text-xs text-neutral-medium">{{ index.code }}</p>
+                            </div>
+                            <span class="text-sm font-bold {{ 'text-green-500' if index.change_percent >= 0 else 'text-red-500' }}">
+                                {{ index.change_percent }}%
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <span class="text-xl font-bold">{{ index.price }}</span>
+                            <span class="text-sm {{ 'text-green-500' if index.change >= 0 else 'text-red-500' }}">
+                                {{ '+' if index.change >= 0 else '' }}{{ index.change }}
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- 板块表现 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.2s">
+            <h2 class="text-2xl font-semibold mb-6">板块表现</h2>
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {% for sector in market_data.sectors %}
+                        <div class="border rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium">{{ sector.name }}</span>
+                                <span class="text-sm font-semibold {{ 'text-green-500' if sector.change >= 0 else 'text-red-500' }}">
+                                    {{ sector.change }}%
+                                </span>
+                            </div>
+                            <div class="mt-2 h-2 bg-gray-200 rounded-full">
+                                <div class="h-2 rounded-full transition-all duration-1000 ease-out" style="width: {{ 50 + sector.change * 10 }}%; {{ 'background-color: #10b981' if sector.change >= 0 else 'background-color: #ef4444' }}"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- 热门股票 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.3s">
+            <h2 class="text-2xl font-semibold mb-6">热门股票</h2>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">代码</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">涨跌幅</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for stock in market_data.hot_stocks %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div>
+                                            <div class="font-medium">{{ stock.name }}</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-medium">
+                                        {{ stock.symbol }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">
+                                        {{ stock.price }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right {{ 'text-green-500' if stock.change_percent >= 0 else 'text-red-500' }}">
+                                        {{ stock.change_percent }}%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <a href="#" class="text-primary hover:text-primary/80 mr-3">详情</a>
+                                        <a href="#" class="text-green-600 hover:text-green-700">添加到观察</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 市场新闻 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.4s">
+            <h2 class="text-2xl font-semibold mb-6">市场新闻</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for news in market_data.market_news %}
+                    <div class="bg-white rounded-xl shadow-md p-5 card-hover">
+                        <h3 class="font-semibold mb-3 line-clamp-2">{{ news.title }}</h3>
+                        <div class="flex justify-between items-center text-sm text-neutral-medium mb-4">
+                            <span>{{ news.source }}</span>
+                            <span>{{ news.time }}</span>
+                        </div>
+                        <a href="{{ news.url }}" class="text-primary hover:text-primary/80 flex items-center">
+                            阅读全文
+                            <i class="fa fa-angle-right ml-1"></i>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- 市场概览图表 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.5s">
+            <h2 class="text-2xl font-semibold mb-6">市场概览</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 市场趋势 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="font-semibold mb-4">市场趋势</h3>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="marketTrendChart"></canvas>
+                    </div>
+                </div>
+                <!-- 板块对比 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="font-semibold mb-4">板块对比</h3>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="sectorComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 快速操作 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.6s">
+            <h2 class="text-2xl font-semibold mb-6">快速操作</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <a href="{{ url_for('portfolio.watchlist') }}" class="bg-white rounded-xl shadow-md p-6 flex items-center card-hover">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-primary text-2xl mr-4">
+                        <i class="fa fa-star"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold">股票观察列表</h3>
+                        <p class="text-neutral-medium text-sm">管理您关注的股票</p>
+                    </div>
+                </a>
+                <a href="{{ url_for('portfolio.optimize_portfolio_page') }}" class="bg-white rounded-xl shadow-md p-6 flex items-center card-hover">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-2xl mr-4">
+                        <i class="fa fa-line-chart"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold">投资组合优化</h3>
+                        <p class="text-neutral-medium text-sm">使用Markowitz模型优化资产配置</p>
+                    </div>
+                </a>
+                <a href="{{ url_for('portfolio.portfolio_index') }}" class="bg-white rounded-xl shadow-md p-6 flex items-center card-hover">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-2xl mr-4">
+                        <i class="fa fa-briefcase"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold">投资组合管理</h3>
+                        <p class="text-neutral-medium text-sm">管理您的投资组合</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // 页面加载完成后执行
+        window.addEventListener('DOMContentLoaded', function() {
+            // 市场趋势图表 - 使用真实数据
+            const marketTrendCtx = document.getElementById('marketTrendChart').getContext('2d');
+            const indexNames = market_data.indices.map(i => i.name);
+            const indexPrices = market_data.indices.map(i => i.price);
+            
+            new Chart(marketTrendCtx, {
+                type: 'bar',
+                data: {
+                    labels: indexNames,
+                    datasets: [{
+                        label: '指数点位',
+                        data: indexPrices,
+                        backgroundColor: [
+                            'rgba(22, 93, 255, 0.7)',
+                            'rgba(54, 207, 201, 0.7)',
+                            'rgba(114, 46, 209, 0.7)',
+                            'rgba(255, 125, 0, 0.7)'
+                        ],
+                        borderColor: ['#165DFF', '#36CFC9', '#722ED1', '#FF7D00'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+
+            // 板块对比图表
+            const sectorComparisonCtx = document.getElementById('sectorComparisonChart').getContext('2d');
+            new Chart(sectorComparisonCtx, {
+                type: 'bar',
+                data: {
+                    labels: market_data.sectors.map(sector => sector.name),
+                    datasets: [{
+                        label: '涨跌幅 (%)',
+                        data: market_data.sectors.map(sector => sector.change),
+                        backgroundColor: market_data.sectors.map(sector => sector.color === 'green' ? '#10b981' : '#ef4444'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '涨跌幅 (%)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 模拟市场数据更新
+            setInterval(function() {
+                document.querySelectorAll('.card-hover').forEach(card => {
+                    // 添加轻微的动画效果
+                    card.style.transform = 'translateY(-2px)';
+                    setTimeout(() => {
+                        card.style.transform = 'translateY(0)';
+                    }, 200);
+                });
+            }, 5000);
+        });
+    </script>
+
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 助手配置 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    {% include 'components/header.html' %}
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- 标题 -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-primary">
+                    <i class="fa fa-android mr-2"></i>AI 助手配置
+                </h1>
+                <p class="text-neutral-medium mt-2">配置 DeepSeek AI 助手的参数和功能</p>
+            </div>
+
+            <!-- 配置卡片 -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <!-- API 状态 -->
+                <div class="mb-6 p-4 rounded-lg {% if api_available %}bg-green-50 border border-green-200{% else %}bg-red-50 border border-red-200{% endif %}">
+                    <div class="flex items-center">
+                        <i class="fa {% if api_available %}fa-check-circle text-green-500{% else %}fa-times-circle text-red-500{% endif %} mr-3 text-xl"></i>
+                        <div>
+                            <p class="font-medium {% if api_available %}text-green-700{% else %}text-red-700{% endif %}">
+                                API 状态: {% if api_available %}已连接{% else %}未配置{% endif %}
+                            </p>
+                            <p class="text-sm {% if api_available %}text-green-600{% else %}text-red-600{% endif %}">
+                                {% if api_available %}模型: {{ model }}{% else %}请配置 API 密钥{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API 密钥配置 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-neutral-dark mb-2">
+                        <i class="fa fa-key mr-1"></i> DeepSeek API 密钥
+                    </label>
+                    <div class="flex">
+                        <input type="password" id="api_key" value="{{ current_key }}" 
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                            placeholder="sk-xxxxxxxxxxxxxxxx">
+                        <button onclick="toggleKeyVisibility()" class="px-4 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-gray-200">
+                            <i class="fa fa-eye" id="eye_icon"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-neutral-medium mt-2">
+                        从 <a href="https://platform.deepseek.com" target="_blank" class="text-primary hover:underline">DeepSeek 平台</a> 获取 API 密钥
+                    </p>
+                </div>
+
+                <!-- 模型选择 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-neutral-dark mb-2">
+                        <i class="fa fa-cube mr-1"></i> 模型选择
+                    </label>
+                    <select id="model_select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <option value="deepseek-chat" {% if model == 'deepseek-chat' %}selected{% endif %}>DeepSeek Chat (通用对话)</option>
+                        <option value="deepseek-coder" {% if model == 'deepseek-coder' %}selected{% endif %}>DeepSeek Coder (代码专用)</option>
+                    </select>
+                </div>
+
+                <!-- 温度参数 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-neutral-dark mb-2">
+                        <i class="fa fa-sliders mr-1"></i> 回答创造性 (Temperature)
+                    </label>
+                    <div class="flex items-center space-x-4">
+                        <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7"
+                            class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <span id="temp_value" class="text-sm font-medium text-primary w-8">0.7</span>
+                    </div>
+                    <p class="text-xs text-neutral-medium mt-2">
+                        较低的值(0-0.3)更精确，较高的值(0.7-1)更有创造性
+                    </p>
+                </div>
+
+                <!-- 最大回复长度 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-neutral-dark mb-2">
+                        <i class="fa fa-text-width mr-1"></i> 最大回复长度
+                    </label>
+                    <select id="max_tokens" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <option value="1024">1024 字符 (简短)</option>
+                        <option value="2048" selected>2048 字符 (标准)</option>
+                        <option value="4096">4096 字符 (详细)</option>
+                    </select>
+                </div>
+
+                <!-- 系统提示词 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-neutral-dark mb-2">
+                        <i class="fa fa-comment mr-1"></i> AI 角色设定
+                    </label>
+                    <textarea id="system_prompt" rows="4"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                        placeholder="定义 AI 助手的角色和行为...">{{ system_prompt }}</textarea>
+                    <p class="text-xs text-neutral-medium mt-2">
+                        定义 AI 助手的专业领域和回答风格
+                    </p>
+                </div>
+
+                <!-- 保存按钮 -->
+                <div class="flex justify-end space-x-4">
+                    <button onclick="resetConfig()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        <i class="fa fa-refresh mr-1"></i> 重置默认
+                    </button>
+                    <button onclick="saveConfig()" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                        <i class="fa fa-save mr-1"></i> 保存配置
+                    </button>
+                </div>
+            </div>
+
+            <!-- 使用说明 -->
+            <div class="mt-6 bg-blue-50 rounded-lg p-4">
+                <h3 class="font-medium text-blue-700 mb-2">
+                    <i class="fa fa-info-circle mr-1"></i> 使用说明
+                </h3>
+                <ul class="text-sm text-blue-600 space-y-1">
+                    <li>• DeepSeek API 密钥需要在 <a href="https://platform.deepseek.com" target="_blank" class="underline">官方平台</a> 注册获取</li>
+                    <li>• 修改配置后需要重启应用才能生效</li>
+                    <li>• Temperature 参数影响回答的随机性和创造性</li>
+                    <li>• 系统提示词定义 AI 的专业领域和回答风格</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+        // 温度滑块更新
+        document.getElementById('temperature').addEventListener('input', function() {
+            document.getElementById('temp_value').textContent = this.value;
+        });
+
+        // 切换密钥可见性
+        function toggleKeyVisibility() {
+            const input = document.getElementById('api_key');
+            const icon = document.getElementById('eye_icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa fa-eye';
+            }
+        }
+
+        // 保存配置
+        function saveConfig() {
+            const config = {
+                api_key: document.getElementById('api_key').value,
+                model: document.getElementById('model_select').value,
+                temperature: parseFloat(document.getElementById('temperature').value),
+                max_tokens: parseInt(document.getElementById('max_tokens').value),
+                system_prompt: document.getElementById('system_prompt').value
+            };
+
+            fetch('/api/ai/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('配置已保存！请重启应用生效。', 'success');
+                } else {
+                    showToast('保存失败: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('网络错误，请稍后再试', 'error');
+            });
+        }
+
+        // 重置配置
+        function resetConfig() {
+            document.getElementById('model_select').value = 'deepseek-chat';
+            document.getElementById('temperature').value = 0.7;
+            document.getElementById('temp_value').textContent = '0.7';
+            document.getElementById('max_tokens').value = '2048';
+            document.getElementById('system_prompt').value = `你是一个专业的股票分析与量化投资助手，名叫"量化小助手"。
+
+你可以帮助用户：
+1. 解答股票、期货、基金等金融产品相关问题
+2. 解释技术指标（如MA、MACD、RSI、KDJ、布林带等）的含义和使用方法
+3. 介绍量化交易策略（如均线交叉策略、RSI策略、海龟策略等）
+4. 讨论投资组合管理和风险控制
+5. 解读金融市场动态和行情分析
+
+请用简洁、专业的语言回答问题。如果涉及具体投资建议，请提醒用户注意风险。
+保持友好、耐心的态度。`;
+            showToast('已重置为默认配置', 'info');
+        }
+
+        // Toast 提示
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            toast.innerHTML = `<i class="fa fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : 'info'}-circle mr-2"></i>${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+</html>

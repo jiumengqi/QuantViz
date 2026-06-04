@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功能介绍 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 页面内容 -->
+    <main class="container mx-auto px-4 pt-28 pb-16">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12">
+            <h1 class="text-[clamp(1.75rem,4vw,3rem)] font-bold text-neutral-dark mb-4">功能介绍</h1>
+            <p class="text-neutral-medium text-lg max-w-2xl mx-auto">全面了解我们平台的核心功能和优势</p>
+        </div>
+
+        <!-- 主要功能卡片 -->
+        <section class="mb-16">
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 功能卡片1：数据中心 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover">
+                    <div class="h-48 bg-primary/10 flex items-center justify-center">
+                        <i class="fa fa-database text-primary text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-3 text-neutral-dark">数据中心</h3>
+                        <p class="text-neutral-medium mb-4">
+                            提供全面的股票历史数据、实时行情、基本面数据和技术指标分析，支持多维度数据筛选和导出。
+                        </p>
+                        <ul class="space-y-2 mb-4">
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">历史价格数据（日/周/月）</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">财务报表分析</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">技术指标计算</span>
+                            </li>
+                        </ul>
+                        <a href="/data" class="inline-block text-primary font-medium hover:underline">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 功能卡片2：策略回测 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover">
+                    <div class="h-48 bg-secondary/10 flex items-center justify-center">
+                        <i class="fa fa-code-fork text-secondary text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-3 text-neutral-dark">策略回测</h3>
+                        <p class="text-neutral-medium mb-4">
+                            高性能回测引擎，支持多种交易策略的验证和优化，提供完整的绩效分析报告和可视化图表。
+                        </p>
+                        <ul class="space-y-2 mb-4">
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">均线交叉、RSI等经典策略</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">多参数优化</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">风险收益分析</span>
+                            </li>
+                        </ul>
+                        <a href="/backtest" class="inline-block text-primary font-medium hover:underline">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 功能卡片3：金融模型 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover">
+                    <div class="h-48 bg-success/10 flex items-center justify-center">
+                        <i class="fa fa-calculator text-success text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-3 text-neutral-dark">金融模型</h3>
+                        <p class="text-neutral-medium mb-4">
+                            集成专业金融计算模型，包括期权定价、风险评估、投资组合优化等高级分析工具。
+                        </p>
+                        <ul class="space-y-2 mb-4">
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">Black-Scholes期权定价</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">VaR风险计算</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">投资组合优化</span>
+                            </li>
+                        </ul>
+                        <a href="/models" class="inline-block text-primary font-medium hover:underline">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 功能卡片4：市场分析 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover">
+                    <div class="h-48 bg-warning/10 flex items-center justify-center">
+                        <i class="fa fa-bar-chart text-warning text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-3 text-neutral-dark">市场分析</h3>
+                        <p class="text-neutral-medium mb-4">
+                            综合市场数据，提供行业分析、板块轮动、资金流向等深度市场洞察，辅助投资决策。
+                        </p>
+                        <ul class="space-y-2 mb-4">
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">行业表现排名</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">资金流向监控</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">市场情绪分析</span>
+                            </li>
+                        </ul>
+                        <a href="/analysis" class="inline-block text-primary font-medium hover:underline">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 功能卡片5：投资课程 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover">
+                    <div class="h-48 bg-danger/10 flex items-center justify-center">
+                        <i class="fa fa-book text-danger text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-3 text-neutral-dark">投资课程</h3>
+                        <p class="text-neutral-medium mb-4">
+                            系统化的投资知识体系，从基础知识到高级量化策略，帮助用户提升投资技能。
+                        </p>
+                        <ul class="space-y-2 mb-4">
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">量化投资基础</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">策略设计与实现</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">风险管理</span>
+                            </li>
+                        </ul>
+                        <a href="/courses" class="inline-block text-primary font-medium hover:underline">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 功能卡片6：API服务 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover">
+                    <div class="h-48 bg-primary/10 flex items-center justify-center">
+                        <i class="fa fa-plug text-primary text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-3 text-neutral-dark">API服务</h3>
+                        <p class="text-neutral-medium mb-4">
+                            提供标准化API接口，支持数据获取、策略回测等功能的程序化调用，方便二次开发。
+                        </p>
+                        <ul class="space-y-2 mb-4">
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">RESTful API</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">Python SDK</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-check text-success mr-2"></i>
+                                <span class="text-sm text-neutral-dark">详细文档</span>
+                            </li>
+                        </ul>
+                        <a href="/data" class="inline-block text-primary font-medium hover:underline">
+                            查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 功能对比 -->
+        <section class="bg-white rounded-xl shadow-lg p-8 mb-16">
+            <h2 class="text-2xl font-bold mb-8 text-center text-neutral-dark">功能对比</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-neutral-light">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 bg-neutral-light text-left text-xs font-medium text-neutral-medium uppercase tracking-wider">功能</th>
+                            <th class="px-6 py-3 bg-neutral-light text-center text-xs font-medium text-neutral-medium uppercase tracking-wider">免费版</th>
+                            <th class="px-6 py-3 bg-neutral-light text-center text-xs font-medium text-neutral-medium uppercase tracking-wider">高级版</th>
+                            <th class="px-6 py-3 bg-neutral-light text-center text-xs font-medium text-neutral-medium uppercase tracking-wider">专业版</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-neutral-light">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">基础数据查询</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success"><i class="fa fa-check-circle"></i></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success"><i class="fa fa-check-circle"></i></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success"><i class="fa fa-check-circle"></i></td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">实时行情</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-warning">延迟15分钟</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success">实时</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success">实时</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">基础回测功能</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success"><i class="fa fa-check-circle"></i></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success"><i class="fa fa-check-circle"></i></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success"><i class="fa fa-check-circle"></i></td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">多参数优化</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-danger"><i class="fa fa-times-circle"></i></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success"><i class="fa fa-check-circle"></i></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success"><i class="fa fa-check-circle"></i></td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">高级金融模型</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-danger"><i class="fa fa-times-circle"></i></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success"><i class="fa fa-check-circle"></i></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success"><i class="fa fa-check-circle"></i></td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">API访问</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-danger"><i class="fa fa-times-circle"></i></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">有限次数</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-success">无限次数</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 用户评价 -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-bold mb-8 text-center text-neutral-dark">用户评价</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- 评价1 -->
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex items-center mb-4">
+                        <img src="https://picsum.photos/id/1001/60/60" alt="用户头像" class="w-12 h-12 rounded-full mr-4">
+                        <div>
+                            <h4 class="font-semibold text-neutral-dark">张投资者</h4>
+                            <div class="flex text-warning">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-neutral-medium italic">
+                        "这个平台的数据中心非常全面，让我能够深入分析股票基本面。回测功能也很强大，帮助我验证了自己的交易策略，大大提高了投资效率。"
+                    </p>
+                </div>
+
+                <!-- 评价2 -->
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex items-center mb-4">
+                        <img src="https://picsum.photos/id/1002/60/60" alt="用户头像" class="w-12 h-12 rounded-full mr-4">
+                        <div>
+                            <h4 class="font-semibold text-neutral-dark">李量化分析师</h4>
+                            <div class="flex text-warning">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star-half-o"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-neutral-medium italic">
+                        "作为量化分析师，我非常欣赏平台提供的API服务和高级回测功能。多参数优化节省了我大量时间，而专业的风险分析工具让我的策略更加稳健。"
+                    </p>
+                </div>
+
+                <!-- 评价3 -->
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex items-center mb-4">
+                        <img src="https://picsum.photos/id/1003/60/60" alt="用户头像" class="w-12 h-12 rounded-full mr-4">
+                        <div>
+                            <h4 class="font-semibold text-neutral-dark">王新手投资者</h4>
+                            <div class="flex text-warning">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star-o"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-neutral-medium italic">
+                        "刚开始接触量化投资，平台的投资课程帮了我大忙。界面友好，操作简单，即使是新手也能快速上手。金融模型工具让我对投资有了更深入的理解。"
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+</body>
+</html>

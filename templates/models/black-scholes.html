@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black-Scholes期权定价模型 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E40AF',
+                        secondary: '#3B82F6',
+                        accent: '#F59E0B',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .nav-link { position: relative; }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: #3B82F6;
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after { width: 100%; }
+        .nav-link.active::after { width: 100%; }
+        .form-input:focus {
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    {% include 'components/header.html' %}
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+        <div class="text-center mb-12">
+            <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-gray-800 mb-4">Black-Scholes期权定价模型</h1>
+            <p class="text-gray-500 max-w-3xl mx-auto">经典的欧式期权定价公式，用于计算期权的理论价值与希腊字母</p>
+        </div>
+
+        <!-- 模型介绍 -->
+        <section class="mb-12 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">模型介绍</h2>
+            <p class="text-gray-500 mb-4">Black-Scholes模型是由Fischer Black和Myron Scholes于1973年提出的用于计算欧式期权理论价值的数学模型。</p>
+            <div class="bg-gray-50 p-4 rounded-md">
+                <h3 class="font-medium mb-2">Black-Scholes公式</h3>
+                <p class="text-center font-mono mb-4">C = S·N(d₁) - K·e^(-rT)·N(d₂)</p>
+                <p class="text-center font-mono mb-4">P = K·e^(-rT)·N(-d₂) - S·N(-d₁)</p>
+                <ul class="text-sm space-y-1 mt-2">
+                    <li>S = 标的资产当前价格 | K = 行权价格 | r = 无风险利率</li>
+                    <li>T = 到期时间（年） | σ = 波动率 | N(x) = 标准正态分布CDF</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 计算工具 -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <!-- 输入表单 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-6">期权定价计算器</h2>
+                <form id="option-calculator-form" class="space-y-4">
+                    <div>
+                        <label for="spot-price" class="block text-sm font-medium text-gray-700 mb-1">标的资产价格 (S)</label>
+                        <input type="number" id="spot-price" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md" value="100" min="0" step="0.01" required>
+                    </div>
+                    <div>
+                        <label for="strike-price" class="block text-sm font-medium text-gray-700 mb-1">行权价格 (K)</label>
+                        <input type="number" id="strike-price" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md" value="105" min="0" step="0.01" required>
+                    </div>
+                    <div>
+                        <label for="risk-free-rate" class="block text-sm font-medium text-gray-700 mb-1">无风险利率 (r)</label>
+                        <div class="relative">
+                            <input type="number" id="risk-free-rate" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md" value="3" min="0" step="0.01" required>
+                            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="volatility" class="block text-sm font-medium text-gray-700 mb-1">波动率 (σ)</label>
+                        <div class="relative">
+                            <input type="number" id="volatility" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md" value="25" min="0" step="0.01" required>
+                            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="time-to-maturity" class="block text-sm font-medium text-gray-700 mb-1">到期时间 (T)</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="time-to-maturity" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md" value="0.5" min="0" step="0.01" required>
+                            <span class="text-gray-500">年</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">期权类型</label>
+                        <div class="flex space-x-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="option_type" value="call" class="form-radio text-primary" checked>
+                                <span class="ml-2">看涨期权 (Call)</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="option_type" value="put" class="form-radio text-primary">
+                                <span class="ml-2">看跌期权 (Put)</span>
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" id="calc-btn" class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 transition-colors flex items-center justify-center">
+                        <i class="fa fa-calculator mr-2"></i>计算期权价格
+                    </button>
+                </form>
+
+                <!-- 隐含波动率计算 -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold mb-4">隐含波动率计算</h3>
+                    <div class="mb-3">
+                        <label for="market-price" class="block text-sm font-medium text-gray-700 mb-1">市场期权价格</label>
+                        <input type="number" id="market-price" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md" value="5.0" min="0" step="0.01">
+                    </div>
+                    <button type="button" id="calc-iv-btn" class="w-full bg-accent text-white py-2 px-4 rounded-md hover:bg-accent/90 transition-colors flex items-center justify-center">
+                        <i class="fa fa-search mr-2"></i>计算隐含波动率
+                    </button>
+                    <div id="iv-result" class="mt-3 hidden bg-yellow-50 rounded-lg p-3 text-sm"></div>
+                </div>
+            </div>
+
+            <!-- 计算结果 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-6">计算结果</h2>
+                <div id="result-container" class="space-y-4">
+                    <!-- 期权价格 -->
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h3 class="font-medium mb-3">期权价格</h3>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-500">看涨期权 (Call)：</span>
+                            <span id="call-price" class="font-semibold text-primary text-xl">¥--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">看跌期权 (Put)：</span>
+                            <span id="put-price" class="font-semibold text-red-500 text-xl">¥--</span>
+                        </div>
+                    </div>
+
+                    <!-- 希腊字母 -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="font-medium mb-3">希腊字母 (Greeks)</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-gray-500 text-sm">Δ Delta：</span>
+                                <span id="delta" class="font-semibold">--</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-gray-500 text-sm">Γ Gamma：</span>
+                                <span id="gamma" class="font-semibold">--</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-gray-500 text-sm">Θ Theta：</span>
+                                <span id="theta" class="font-semibold">--</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-gray-500 text-sm">V Vega：</span>
+                                <span id="vega" class="font-semibold">--</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500 text-sm">P Rho：</span>
+                                <span id="rho" class="font-semibold">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 计算参数 -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="font-medium mb-3">中间参数</h3>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div class="flex justify-between"><span class="text-gray-500">d₁：</span><span id="d1" class="font-semibold">--</span></div>
+                            <div class="flex justify-between"><span class="text-gray-500">d₂：</span><span id="d2" class="font-semibold">--</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 可视化分析 -->
+        <section class="bg-white rounded-lg shadow-md p-6 mb-12">
+            <h2 class="text-xl font-semibold mb-6">期权价值可视化分析</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-lg font-medium mb-4">标的价格与期权价值关系</h3>
+                    <div class="h-64 bg-gray-50 rounded-lg p-2">
+                        <canvas id="option-price-chart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-medium mb-4">Delta 与 Gamma 分析</h3>
+                    <div class="h-64 bg-gray-50 rounded-lg p-2">
+                        <canvas id="greeks-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 模型应用 -->
+        <section class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">实际应用与注意事项</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="font-medium mb-2">应用场景</h3>
+                    <ul class="list-disc list-inside text-gray-500 space-y-1 pl-4">
+                        <li>评估期权的理论价值，判断市场价格是否被低估或高估</li>
+                        <li>通过隐含波动率判断市场对标的资产波动的预期</li>
+                        <li>使用希腊字母进行期权组合风险管理</li>
+                        <li>为期权交易策略制定提供理论基础</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-medium mb-2">模型局限性</h3>
+                    <ul class="list-disc list-inside text-gray-500 space-y-1 pl-4">
+                        <li>假设波动率恒定，而实际市场中波动率往往是变化的</li>
+                        <li>假设无风险利率恒定</li>
+                        <li>只适用于欧式期权，不适用于美式期权</li>
+                        <li>假设市场无摩擦（无交易成本、税收等）</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+        let optionPriceChart = null;
+        let greeksChart = null;
+
+        // HTML转义函数 - 防止XSS攻击
+        function escapeHTML(str) {
+            if (str == null) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+
+        // 正态分布CDF
+        function normcdf(x) {
+            const a1 =  0.254829592;
+            const a2 = -0.284496736;
+            const a3 =  1.421413741;
+            const a4 = -1.453152027;
+            const a5 =  1.061405429;
+            const p  =  0.3275911;
+            const sign = x < 0 ? -1 : 1;
+            x = Math.abs(x) / Math.sqrt(2);
+            const t = 1.0 / (1.0 + p * x);
+            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+            return 0.5 * (1.0 + sign * y);
+        }
+
+        // 正态分布PDF
+        function normpdf(x) {
+            return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+        }
+
+        function getFormData() {
+            return {
+                spot: parseFloat(document.getElementById('spot-price').value),
+                strike: parseFloat(document.getElementById('strike-price').value),
+                rate: parseFloat(document.getElementById('risk-free-rate').value),
+                volatility: parseFloat(document.getElementById('volatility').value),
+                time: parseFloat(document.getElementById('time-to-maturity').value),
+                option_type: document.querySelector('input[name="option_type"]:checked').value
+            };
+        }
+
+        async function calculateOption(e) {
+            e.preventDefault();
+            const btn = document.getElementById('calc-btn');
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>计算中...';
+            btn.disabled = true;
+
+            const fd = getFormData();
+
+            try {
+                const resp = await fetch('/models/api/black-scholes/calculate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(fd)
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    updateResults(data, fd.option_type);
+                    updateCharts(fd.spot, fd.strike, fd.rate / 100, fd.volatility / 100, fd.time);
+                } else {
+                    alert('计算失败: ' + (data.error || '未知错误'));
+                }
+            } catch (err) {
+                // 回退到前端计算
+                fallbackCalculate(fd);
+            } finally {
+                btn.innerHTML = '<i class="fa fa-calculator mr-2"></i>计算期权价格';
+                btn.disabled = false;
+            }
+        }
+
+        function fallbackCalculate(fd) {
+            const S = fd.spot, K = fd.strike, r = fd.rate / 100, sigma = fd.volatility / 100, T = fd.time;
+            const d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / (sigma * Math.sqrt(T));
+            const d2 = d1 - sigma * Math.sqrt(T);
+
+            const callPrice = S * normcdf(d1) - K * Math.exp(-r * T) * normcdf(d2);
+            const putPrice = K * Math.exp(-r * T) * normcdf(-d2) - S * normcdf(-d1);
+
+            const isCall = fd.option_type === 'call';
+            const delta = isCall ? normcdf(d1) : normcdf(d1) - 1;
+            const gamma = normpdf(d1) / (S * sigma * Math.sqrt(T));
+            const thetaTerm = -(S * normpdf(d1) * sigma) / (2 * Math.sqrt(T));
+            const discount = Math.exp(-r * T);
+            const thetaAnnual = isCall ? thetaTerm - r * K * discount * normcdf(d2) : thetaTerm + r * K * discount * normcdf(-d2);
+            const theta = thetaAnnual / 365;
+            const vega = S * Math.sqrt(T) * normpdf(d1) * 0.01;
+            const rho = (isCall ? 1 : -1) * K * T * discount * normcdf(isCall ? d2 : -d2) * 0.01;
+
+            document.getElementById('call-price').textContent = '¥' + callPrice.toFixed(4);
+            document.getElementById('put-price').textContent = '¥' + putPrice.toFixed(4);
+            document.getElementById('delta').textContent = delta.toFixed(4);
+            document.getElementById('gamma').textContent = gamma.toFixed(4);
+            document.getElementById('theta').textContent = theta.toFixed(4);
+            document.getElementById('vega').textContent = vega.toFixed(4);
+            document.getElementById('rho').textContent = rho.toFixed(4);
+            document.getElementById('d1').textContent = d1.toFixed(4);
+            document.getElementById('d2').textContent = d2.toFixed(4);
+
+            updateCharts(S, K, r, sigma, T);
+        }
+
+        function updateResults(data, optType) {
+            document.getElementById('call-price').textContent = '¥' + (optType === 'call' ? data.price.toFixed(4) : '--');
+            document.getElementById('put-price').textContent = '¥' + (optType === 'put' ? data.price.toFixed(4) : '--');
+            document.getElementById('delta').textContent = data.delta.toFixed(4);
+            document.getElementById('gamma').textContent = data.gamma.toFixed(4);
+            document.getElementById('theta').textContent = data.theta.toFixed(4);
+            document.getElementById('vega').textContent = data.vega.toFixed(4);
+            document.getElementById('rho').textContent = data.rho.toFixed(4);
+            document.getElementById('d1').textContent = data.d1.toFixed(4);
+            document.getElementById('d2').textContent = data.d2.toFixed(4);
+        }
+
+        function updateCharts(S0, K, r, sigma, T) {
+            const prices = Array.from({length: 40}, (_, i) => S0 * 0.5 + (S0 * 1.0 / 39) * i);
+            const callPrices = [], putPrices = [], deltas = [], gammas = [];
+
+            prices.forEach(S => {
+                const d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / (sigma * Math.sqrt(T));
+                const d2 = d1 - sigma * Math.sqrt(T);
+                const discount = Math.exp(-r * T);
+                callPrices.push(S * normcdf(d1) - K * discount * normcdf(d2));
+                putPrices.push(K * discount * normcdf(-d2) - S * normcdf(-d1));
+                deltas.push(normcdf(d1));
+                gammas.push(normpdf(d1) / (S * sigma * Math.sqrt(T)));
+            });
+
+            const priceLabels = prices.map(p => p.toFixed(0));
+
+            // 期权价格图
+            const ctx1 = document.getElementById('option-price-chart').getContext('2d');
+            if (optionPriceChart) optionPriceChart.destroy();
+            optionPriceChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: priceLabels,
+                    datasets: [{
+                        label: '看涨期权',
+                        data: callPrices,
+                        borderColor: '#3b82f6',
+                        borderWidth: 2, tension: 0.2
+                    }, {
+                        label: '看跌期权',
+                        data: putPrices,
+                        borderColor: '#ef4444',
+                        borderWidth: 2, tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: {
+                        x: { title: { display: true, text: '标的资产价格 (元)' } },
+                        y: { title: { display: true, text: '期权价值 (元)' }, beginAtZero: true }
+                    }
+                }
+            });
+
+            // Greeks图
+            const ctx2 = document.getElementById('greeks-chart').getContext('2d');
+            if (greeksChart) greeksChart.destroy();
+            greeksChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: priceLabels,
+                    datasets: [{
+                        label: 'Delta',
+                        data: deltas,
+                        borderColor: '#3b82f6',
+                        borderWidth: 2, tension: 0.2,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Gamma',
+                        data: gammas,
+                        borderColor: '#10b981',
+                        borderWidth: 2, tension: 0.2,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'top' } },
+                    scales: {
+                        x: { title: { display: true, text: '标的资产价格 (元)' } },
+                        y: { type: 'linear', display: true, position: 'left',
+                            title: { display: true, text: 'Delta' }, min: 0, max: 1 },
+                        y1: { type: 'linear', display: true, position: 'right',
+                            title: { display: true, text: 'Gamma' }, min: 0,
+                            grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+        }
+
+        // 隐含波动率计算
+        async function calculateIV() {
+            const fd = getFormData();
+            const marketPrice = parseFloat(document.getElementById('market-price').value);
+            if (!marketPrice || marketPrice <= 0) {
+                alert('请输入有效的市场期权价格');
+                return;
+            }
+
+            const btn = document.getElementById('calc-iv-btn');
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>计算中...';
+            btn.disabled = true;
+
+            try {
+                const resp = await fetch('/models/api/black-scholes/implied-volatility', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        spot: fd.spot,
+                        strike: fd.strike,
+                        time: fd.time,
+                        rate: fd.rate,
+                        market_price: marketPrice,
+                        option_type: fd.option_type
+                    })
+                });
+                const data = await resp.json();
+                const div = document.getElementById('iv-result');
+                div.classList.remove('hidden');
+                if (data.success) {
+                    div.innerHTML = `
+                        <p><strong>隐含波动率：</strong>${data.implied_volatility_pct.toFixed(2)}%</p>
+                        <p><strong>理论价格：</strong>¥${data.theoretical_price.toFixed(4)}</p>
+                        <p><strong>价格偏差：</strong>¥${data.price_diff.toFixed(4)}</p>
+                    `;
+                    div.className = 'mt-3 bg-green-50 rounded-lg p-3 text-sm';
+                } else {
+                    div.innerHTML = `<p class="text-red-600">计算失败: ${escapeHTML(data.error || '未知错误')}</p>`;
+                    div.className = 'mt-3 bg-red-50 rounded-lg p-3 text-sm';
+                }
+            } catch (err) {
+                // 回退到前端牛顿法
+                fallbackIV(fd, marketPrice);
+            } finally {
+                btn.innerHTML = '<i class="fa fa-search mr-2"></i>计算隐含波动率';
+                btn.disabled = false;
+            }
+        }
+
+        function fallbackIV(fd, marketPrice) {
+            const S = fd.spot, K = fd.strike, r = fd.rate / 100, T = fd.time;
+            let sigma = Math.sqrt(2 * Math.abs(Math.log(S / K) + r * T) / T);
+            sigma = Math.max(sigma, 0.01);
+
+            for (let i = 0; i < 100; i++) {
+                const d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / (sigma * Math.sqrt(T));
+                const d2 = d1 - sigma * Math.sqrt(T);
+                const isCall = fd.option_type === 'call';
+                const price = isCall
+                    ? S * normcdf(d1) - K * Math.exp(-r * T) * normcdf(d2)
+                    : K * Math.exp(-r * T) * normcdf(-d2) - S * normcdf(-d1);
+                const diff = price - marketPrice;
+                if (Math.abs(diff) < 1e-6) break;
+                const vega = S * Math.sqrt(T) * normpdf(d1);
+                if (Math.abs(vega) < 1e-10) break;
+                sigma = sigma - diff / vega;
+                if (sigma <= 0) { sigma = 0.001; break; }
+            }
+
+            const ivPct = (Math.max(sigma, 0.001) * 100).toFixed(2);
+            const div = document.getElementById('iv-result');
+            div.classList.remove('hidden');
+            div.innerHTML = `<p><strong>隐含波动率（本地计算）：</strong>${ivPct}%</p>`;
+            div.className = 'mt-3 bg-yellow-50 rounded-lg p-3 text-sm';
+        }
+
+        document.getElementById('option-calculator-form').addEventListener('submit', calculateOption);
+        document.getElementById('calc-iv-btn').addEventListener('click', calculateIV);
+
+        // 初始加载
+        window.addEventListener('load', function() {
+            const fd = getFormData();
+            fallbackCalculate(fd);
+        });
+    </script>
+</body>
+</html>

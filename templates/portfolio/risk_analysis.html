@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投资组合风险分析 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-16">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12 animate-fade-in">
+            <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-neutral-dark mb-4">投资组合风险分析</h1>
+            <p class="text-neutral-medium max-w-3xl mx-auto">全面分析投资组合的风险状况，帮助您做出更明智的投资决策</p>
+        </div>
+
+        <!-- 风险分析控制面板 -->
+        <section class="bg-white rounded-xl shadow-lg p-6 mb-10">
+            <h2 class="text-xl font-semibold mb-6">风险分析设置</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-neutral-dark mb-2">置信水平</label>
+                    <select id="confidence-level" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <option value="95">95%</option>
+                        <option value="99">99%</option>
+                        <option value="90">90%</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-neutral-dark mb-2">计算方法</label>
+                    <select id="calculation-method" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <option value="historical">历史模拟法</option>
+                        <option value="parametric">参数法</option>
+                        <option value="monte_carlo">蒙特卡洛模拟法</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-neutral-dark mb-2">时间范围</label>
+                    <select id="time-horizon" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <option value="1">1天</option>
+                        <option value="5">5天</option>
+                        <option value="20">1个月</option>
+                        <option value="60">3个月</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button id="analyze-risk-btn" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center">
+                    <i class="fa fa-line-chart mr-2"></i> 开始风险分析
+                </button>
+            </div>
+        </section>
+
+        <!-- 风险指标概览 -->
+        <section class="mb-12 animate-slide-up">
+            <h2 class="text-2xl font-semibold mb-6">风险指标概览</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="risk-metrics-grid">
+                <!-- 风险指标卡片将通过JavaScript动态生成 -->
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-medium">95% VaR</h3>
+                            <p class="text-xs text-neutral-medium">每日风险价值</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                            <i class="fa fa-exclamation-triangle text-red-500"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-red-500">--</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-medium">99% VaR</h3>
+                            <p class="text-xs text-neutral-medium">每日风险价值</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                            <i class="fa fa-exclamation-triangle text-red-500"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-red-500">--</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-medium">年化波动率</h3>
+                            <p class="text-xs text-neutral-medium">投资组合波动程度</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <i class="fa fa-area-chart text-blue-500"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-blue-500">--</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-medium">夏普比率</h3>
+                            <p class="text-xs text-neutral-medium">风险调整收益</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <i class="fa fa-line-chart text-green-500"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-green-500">--</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 详细风险分析 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <!-- 风险贡献分析 -->
+            <section class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-6">风险贡献分析</h2>
+                <div class="h-80">
+                    <canvas id="risk-contribution-chart"></canvas>
+                </div>
+                <div class="mt-6 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">配置比例</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">风险贡献</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">风险贡献比例</th>
+                            </tr>
+                        </thead>
+                        <tbody id="risk-contribution-table" class="bg-white divide-y divide-gray-200">
+                            <!-- 风险贡献数据将通过JavaScript动态生成 -->
+                            <tr>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">加载中...</div>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">--</div>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">--</div>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">--</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 风险价值分析 -->
+            <section class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-6">风险价值分析</h2>
+                <div class="h-80">
+                    <canvas id="var-comparison-chart"></canvas>
+                </div>
+                <div class="mt-6 grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">风险价值解释</h3>
+                        <p class="text-sm text-gray-600">
+                            风险价值(VaR)表示在一定置信水平下，投资组合在给定时间范围内可能遭受的最大损失。
+                        </p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">风险缓解建议</h3>
+                        <p class="text-sm text-gray-600" id="risk-recommendation">
+                            点击"开始风险分析"按钮获取详细建议
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 收益率分布分析 -->
+        <section class="bg-white rounded-xl shadow-lg p-6 mb-12">
+            <h2 class="text-xl font-semibold mb-6">收益率分布分析</h2>
+            <div class="h-80">
+                <canvas id="returns-distribution-chart"></canvas>
+            </div>
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-sm font-medium text-gray-500 mb-1">偏度</h3>
+                    <div class="text-lg font-bold text-gray-900" id="skewness-value">--</div>
+                    <p class="text-xs text-gray-500">衡量分布的不对称性</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-sm font-medium text-gray-500 mb-1">峰度</h3>
+                    <div class="text-lg font-bold text-gray-900" id="kurtosis-value">--</div>
+                    <p class="text-xs text-gray-500">衡量分布的尾部厚度</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-sm font-medium text-gray-500 mb-1">最大回撤</h3>
+                    <div class="text-lg font-bold text-gray-900" id="max-drawdown-value">--</div>
+                    <p class="text-xs text-gray-500">历史最大损失</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 风险缓解策略 -->
+        <section class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-6">风险缓解策略</h2>
+            <div id="risk-mitigation-strategies" class="space-y-4">
+                <!-- 风险缓解策略将通过JavaScript动态生成 -->
+                <div class="flex items-start">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mr-4">
+                        <i class="fa fa-lightbulb-o text-blue-500"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-neutral-dark mb-1">等待分析结果</h3>
+                        <p class="text-neutral-medium">点击"开始风险分析"按钮获取个性化的风险缓解策略</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // 页面加载完成后执行
+        window.addEventListener('DOMContentLoaded', function() {
+            // 初始化图表
+            initCharts();
+            
+            // 绑定分析按钮事件
+            document.getElementById('analyze-risk-btn').addEventListener('click', function() {
+                this.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 分析中...';
+                this.disabled = true;
+                
+                // 模拟API调用延迟
+                setTimeout(() => {
+                    analyzeRisk();
+                    this.innerHTML = '<i class="fa fa-line-chart mr-2"></i> 开始风险分析';
+                    this.disabled = false;
+                }, 1000);
+            });
+        });
+        
+        // 初始化图表
+        function initCharts() {
+            // 风险贡献图表
+            const riskContributionCtx = document.getElementById('risk-contribution-chart').getContext('2d');
+            window.riskContributionChart = new Chart(riskContributionCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['加载中...'],
+                    datasets: [{
+                        data: [1],
+                        backgroundColor: ['#e5e7eb'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+            
+            // VaR对比图表
+            const varComparisonCtx = document.getElementById('var-comparison-chart').getContext('2d');
+            window.varComparisonChart = new Chart(varComparisonCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['95% VaR', '99% VaR', 'CVaR 95%', 'CVaR 99%'],
+                    datasets: [{
+                        label: '风险价值',
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#ef4444', '#dc2626', '#f87171', '#fca5a5'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // 收益率分布图表
+            const returnsDistributionCtx = document.getElementById('returns-distribution-chart').getContext('2d');
+            window.returnsDistributionChart = new Chart(returnsDistributionCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['-3%', '-2%', '-1%', '0%', '1%', '2%', '3%'],
+                    datasets: [{
+                        label: '收益率频率',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: '#165DFF',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 风险分析函数
+        function analyzeRisk() {
+            // 模拟投资组合数据
+            const portfolioData = {
+                returns: Array.from({length: 30}, () => (Math.random() - 0.48) * 0.04),
+                holdings: [
+                    {symbol: 'AAPL', name: '苹果公司', allocation: 15},
+                    {symbol: 'MSFT', name: '微软公司', allocation: 12},
+                    {symbol: 'GOOGL', name: 'Alphabet公司', allocation: 8},
+                    {symbol: 'AMZN', name: '亚马逊公司', allocation: 10},
+                    {symbol: 'TSLA', name: '特斯拉公司', allocation: 7},
+                    {symbol: '000001.SZ', name: '平安银行', allocation: 15},
+                    {symbol: '600519.SH', name: '贵州茅台', allocation: 10},
+                    {symbol: '601318.SH', name: '中国平安', allocation: 13}
+                ],
+                portfolio_value: 1000000
+            };
+            
+            // 发送风险分析请求
+            fetch('/portfolio/api/risk-analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(portfolioData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateRiskMetrics(data.risk_metrics);
+                    updateRiskContribution(data.risk_contribution);
+                    updateCharts(data.risk_metrics, data.risk_contribution);
+                    updateRiskMitigationStrategies(data.risk_metrics);
+                } else {
+                    console.error('风险分析失败:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('风险分析API调用失败:', error);
+                // 使用模拟数据
+                useMockData();
+            });
+        }
+        
+        // 使用模拟数据
+        function useMockData() {
+            // 模拟风险指标
+            const risk_metrics = {
+                var_95: 0.025,
+                var_99: 0.042,
+                cvar_95: 0.032,
+                cvar_99: 0.051,
+                downside_risk: 0.018,
+                sortino_ratio: 1.5,
+                max_drawdown: -0.18,
+                kurtosis: 2.5,
+                skewness: -0.2,
+                volatility: 0.15,
+                average_return: 0.12,
+                sharpe_ratio: 0.8
+            };
+            
+            // 模拟风险贡献
+            const risk_contribution = [
+                {symbol: 'AAPL', name: '苹果公司', allocation: 15, risk_contribution: 0.022, risk_contribution_percent: 18},
+                {symbol: 'MSFT', name: '微软公司', allocation: 12, risk_contribution: 0.018, risk_contribution_percent: 15},
+                {symbol: 'GOOGL', name: 'Alphabet公司', allocation: 8, risk_contribution: 0.012, risk_contribution_percent: 10},
+                {symbol: 'AMZN', name: '亚马逊公司', allocation: 10, risk_contribution: 0.015, risk_contribution_percent: 12},
+                {symbol: 'TSLA', name: '特斯拉公司', allocation: 7, risk_contribution: 0.014, risk_contribution_percent: 11},
+                {symbol: '000001.SZ', name: '平安银行', allocation: 15, risk_contribution: 0.016, risk_contribution_percent: 13},
+                {symbol: '600519.SH', name: '贵州茅台', allocation: 10, risk_contribution: 0.01, risk_contribution_percent: 8},
+                {symbol: '601318.SH', name: '中国平安', allocation: 13, risk_contribution: 0.018, risk_contribution_percent: 15}
+            ];
+            
+            updateRiskMetrics(risk_metrics);
+            updateRiskContribution(risk_contribution);
+            updateCharts(risk_metrics, risk_contribution);
+            updateRiskMitigationStrategies(risk_metrics);
+        }
+        
+        // 更新风险指标
+        function updateRiskMetrics(metrics) {
+            const grid = document.getElementById('risk-metrics-grid');
+            grid.innerHTML = `
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-medium">95% VaR</h3>
+                            <p class="text-xs text-neutral-medium">每日风险价值</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                            <i class="fa fa-exclamation-triangle text-red-500"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-red-500">${(metrics.var_95 * 100).toFixed(2)}%</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-medium">99% VaR</h3>
+                            <p class="text-xs text-neutral-medium">每日风险价值</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                            <i class="fa fa-exclamation-triangle text-red-500"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-red-500">${(metrics.var_99 * 100).toFixed(2)}%</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-medium">年化波动率</h3>
+                            <p class="text-xs text-neutral-medium">投资组合波动程度</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <i class="fa fa-area-chart text-blue-500"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-blue-500">${(metrics.volatility * 100).toFixed(2)}%</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-medium">夏普比率</h3>
+                            <p class="text-xs text-neutral-medium">风险调整收益</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <i class="fa fa-line-chart text-green-500"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-green-500">${metrics.sharpe_ratio.toFixed(2)}</div>
+                </div>
+            `;
+            
+            // 更新偏度、峰度和最大回撤
+            document.getElementById('skewness-value').textContent = metrics.skewness.toFixed(2);
+            document.getElementById('kurtosis-value').textContent = metrics.kurtosis.toFixed(2);
+            document.getElementById('max-drawdown-value').textContent = `${(metrics.max_drawdown * 100).toFixed(2)}%`;
+        }
+        
+        // 更新风险贡献
+        function updateRiskContribution(contribution) {
+            const table = document.getElementById('risk-contribution-table');
+            table.innerHTML = '';
+            
+            contribution.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${item.symbol}</div>
+                        <div class="text-xs text-gray-500">${item.name}</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${item.allocation}%</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${(item.risk_contribution * 100).toFixed(2)}%</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${item.risk_contribution_percent}%</div>
+                    </td>
+                `;
+                table.appendChild(row);
+            });
+        }
+        
+        // 更新图表
+        function updateCharts(metrics, contribution) {
+            // 更新风险贡献图表
+            window.riskContributionChart.data.labels = contribution.map(item => item.symbol);
+            window.riskContributionChart.data.datasets[0].data = contribution.map(item => item.risk_contribution_percent);
+            window.riskContributionChart.data.datasets[0].backgroundColor = [
+                '#165DFF', '#36CFC9', '#722ED1', '#F53F3F',
+                '#FF7D00', '#00B42A', '#86909C', '#1D2129'
+            ];
+            window.riskContributionChart.update();
+            
+            // 更新VaR对比图表
+            window.varComparisonChart.data.datasets[0].data = [
+                metrics.var_95 * 100,
+                metrics.var_99 * 100,
+                metrics.cvar_95 * 100,
+                metrics.cvar_99 * 100
+            ];
+            window.varComparisonChart.update();
+            
+            // 生成收益率分布数据
+            const returns = Array.from({length: 1000}, () => (Math.random() - 0.48) * 0.08);
+            const bins = [-0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03];
+            const frequencies = new Array(bins.length).fill(0);
+            
+            returns.forEach(ret => {
+                for (let i = 0; i < bins.length; i++) {
+                    if (ret < bins[i] + 0.01 && ret >= bins[i]) {
+                        frequencies[i]++;
+                        break;
+                    }
+                }
+            });
+            
+            // 更新收益率分布图表
+            window.returnsDistributionChart.data.datasets[0].data = frequencies;
+            window.returnsDistributionChart.update();
+        }
+        
+        // 更新风险缓解策略
+        function updateRiskMitigationStrategies(metrics) {
+            const strategies = document.getElementById('risk-mitigation-strategies');
+            strategies.innerHTML = `
+                <div class="flex items-start">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mr-4">
+                        <i class="fa fa-lightbulb-o text-blue-500"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-neutral-dark mb-1">资产多样化</h3>
+                        <p class="text-neutral-medium">考虑增加低相关性资产，如债券或黄金，以降低整体组合风险</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0 mr-4">
+                        <i class="fa fa-balance-scale text-green-500"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-neutral-dark mb-1">风险调整</h3>
+                        <p class="text-neutral-medium">降低高风险资产如特斯拉的配置比例，增加稳定资产如微软的配置</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0 mr-4">
+                        <i class="fa fa-calendar text-purple-500"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-neutral-dark mb-1">定期再平衡</h3>
+                        <p class="text-neutral-medium">建议每季度进行一次投资组合再平衡，以维持目标风险水平</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0 mr-4">
+                        <i class="fa fa-shield text-orange-500"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-neutral-dark mb-1">对冲策略</h3>
+                        <p class="text-neutral-medium">考虑使用期权等衍生品对冲极端市场风险</p>
+                    </div>
+                </div>
+            `;
+            
+            // 更新风险建议
+            document.getElementById('risk-recommendation').textContent = `
+                基于当前风险分析，建议将投资组合的年化波动率控制在${(metrics.volatility * 100 * 0.9).toFixed(1)}%以下，
+                可以通过调整资产配置实现这一目标。
+            `;
+        }
+    </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas显示测试
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('图表加载中...', canvas.width/2, canvas.height/2);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

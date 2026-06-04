@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安全设置 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 配置Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+            .sidebar-active {
+                @apply bg-primary/10 text-primary border-r-4 border-primary;
+            }
+            .sidebar-item {
+                @apply flex items-center px-4 py-3 text-gray-700 hover:bg-primary/5 transition-all duration-300 transform hover:translate-x-1;
+            }
+            .sidebar-item-active {
+                @apply sidebar-active;
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark min-h-screen flex flex-col">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- 侧边栏导航 -->
+        <aside class="w-64 bg-white border-r border-gray-200 shadow-sm hidden md:block transition-all duration-300 ease-in-out">
+            <div class="p-6 gradient-bg text-white">
+                <h2 class="text-xl font-bold">管理中心</h2>
+                <p class="text-sm mt-1 opacity-90">系统管理与配置</p>
+            </div>
+            <nav class="mt-6">
+                <ul class="space-y-1">
+                    <li>
+                        <a href="{{ url_for('auth.admin_dashboard') }}" class="sidebar-item">
+                            <i class="fa fa-users w-5 h-5 mr-3"></i>
+                            <span>用户管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.system_settings') }}" class="sidebar-item">
+                            <i class="fa fa-cogs w-5 h-5 mr-3"></i>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.content_management') }}" class="sidebar-item">
+                            <i class="fa fa-book w-5 h-5 mr-3"></i>
+                            <span>内容管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('data.data_index') }}" class="sidebar-item">
+                            <i class="fa fa-database w-5 h-5 mr-3"></i>
+                            <span>数据管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.system_stats') }}" class="sidebar-item">
+                            <i class="fa fa-bar-chart w-5 h-5 mr-3"></i>
+                            <span>系统统计</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.operation_logs') }}" class="sidebar-item">
+                            <i class="fa fa-history w-5 h-5 mr-3"></i>
+                            <span>操作日志</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.security_settings') }}" class="sidebar-item sidebar-item-active">
+                            <i class="fa fa-shield w-5 h-5 mr-3"></i>
+                            <span>安全设置</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.profile') }}" class="sidebar-item">
+                            <i class="fa fa-user w-5 h-5 mr-3"></i>
+                            <span>个人资料</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 移动端侧边栏切换按钮 -->
+        <div class="md:hidden fixed bottom-6 right-6 z-50">
+            <button id="sidebarToggle" class="bg-primary text-white p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-110">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+
+        <!-- 内容区域 -->
+        <main class="flex-1 overflow-y-auto p-4 md:p-8">
+            <div class="max-w-7xl mx-auto">
+                <!-- 页面标题 -->
+                <div class="mb-8">
+                    <h1 class="text-2xl font-bold text-neutral-dark mb-2">安全设置</h1>
+                    <p class="text-gray-600">管理系统安全配置和用户访问控制</p>
+                </div>
+
+                <!-- 显示消息 -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="mb-4 p-4 rounded-lg {{ 'bg-green-100 text-green-700' if category == 'success' else 'bg-red-100 text-red-700' }} animate-fade-in">
+                                <div class="flex items-center">
+                                    <i class="fa {{ 'fa-check-circle' if category == 'success' else 'fa-exclamation-circle' }} mr-2"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- 安全设置卡片 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- 登录安全设置 -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fa fa-lock text-primary mr-2"></i>
+                            登录安全设置
+                        </h3>
+                        <form method="POST" action="#">
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="login_attempt_limit" class="block text-sm font-medium text-gray-700 mb-1">登录尝试限制</label>
+                                    <input type="number" id="login_attempt_limit" name="login_attempt_limit" value="{{ security_settings.login_attempt_limit }}" min="1" max="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <p class="text-xs text-gray-500 mt-1">达到此次数后，账户将被临时锁定</p>
+                                </div>
+                                <div>
+                                    <label for="lockout_duration" class="block text-sm font-medium text-gray-700 mb-1">锁定持续时间（分钟）</label>
+                                    <input type="number" id="lockout_duration" name="lockout_duration" value="{{ security_settings.lockout_duration }}" min="1" max="60" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <p class="text-xs text-gray-500 mt-1">账户被锁定的时间长度</p>
+                                </div>
+                                <div class="pt-4">
+                                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-1">
+                                        <i class="fa fa-save mr-2"></i> 保存设置
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 密码安全设置 -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fa fa-key text-primary mr-2"></i>
+                            密码安全设置
+                        </h3>
+                        <form method="POST" action="#">
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="password_min_length" class="block text-sm font-medium text-gray-700 mb-1">密码最小长度</label>
+                                    <input type="number" id="password_min_length" name="password_min_length" value="{{ security_settings.password_min_length }}" min="6" max="20" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <p class="text-xs text-gray-500 mt-1">密码必须包含的最少字符数</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">密码要求</label>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="require_uppercase" name="require_uppercase" {% if security_settings.require_uppercase %}checked{% endif %} class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <label for="require_uppercase" class="ml-2 block text-sm text-gray-700">需要大写字母</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="require_lowercase" name="require_lowercase" {% if security_settings.require_lowercase %}checked{% endif %} class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <label for="require_lowercase" class="ml-2 block text-sm text-gray-700">需要小写字母</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="require_digit" name="require_digit" {% if security_settings.require_digit %}checked{% endif %} class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <label for="require_digit" class="ml-2 block text-sm text-gray-700">需要数字</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="require_special" name="require_special" {% if security_settings.require_special %}checked{% endif %} class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                        <label for="require_special" class="ml-2 block text-sm text-gray-700">需要特殊字符</label>
+                                    </div>
+                                </div>
+                                <div class="pt-4">
+                                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-1">
+                                        <i class="fa fa-save mr-2"></i> 保存设置
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 安全状态卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">账户安全</h3>
+                            <i class="fa fa-user-shield text-green-500 text-xl"></i>
+                        </div>
+                        <p class="text-gray-600">所有管理员账户已启用双重认证</p>
+                        <div class="mt-4 flex items-center">
+                            <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                            <span class="text-sm text-green-600 font-medium">安全</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">密码策略</h3>
+                            <i class="fa fa-key text-green-500 text-xl"></i>
+                        </div>
+                        <p class="text-gray-600">强密码策略已启用，定期密码更新</p>
+                        <div class="mt-4 flex items-center">
+                            <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                            <span class="text-sm text-green-600 font-medium">安全</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">系统更新</h3>
+                            <i class="fa fa-refresh text-yellow-500 text-xl"></i>
+                        </div>
+                        <p class="text-gray-600">有可用的安全更新，建议及时安装</p>
+                        <div class="mt-4 flex items-center">
+                            <span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span>
+                            <span class="text-sm text-yellow-600 font-medium">需要注意</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 安全日志 -->
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fa fa-shield text-primary mr-2"></i>
+                        安全日志
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">事件</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP地址</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2026-02-07 10:30:00</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">管理员登录</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">admin</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">127.0.0.1</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">成功</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2026-02-07 09:15:00</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">密码修改</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">admin</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">127.0.0.1</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">成功</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2026-02-06 16:20:00</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">用户权限变更</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">admin</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">127.0.0.1</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">成功</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 移动端侧边栏 -->
+    <div id="mobileSidebar" class="fixed inset-0 bg-black/50 z-50 hidden md:hidden">
+        <div class="bg-white w-64 h-full shadow-lg transform transition-transform duration-300 ease-in-out">
+            <div class="p-6 gradient-bg text-white flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold">管理中心</h2>
+                    <p class="text-sm mt-1 opacity-90">系统管理与配置</p>
+                </div>
+                <button id="closeSidebar" class="text-white hover:text-white/80">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <nav class="mt-6">
+                <ul class="space-y-1">
+                    <li>
+                        <a href="{{ url_for('auth.admin_dashboard') }}" class="sidebar-item">
+                            <i class="fa fa-users w-5 h-5 mr-3"></i>
+                            <span>用户管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.system_settings') }}" class="sidebar-item">
+                            <i class="fa fa-cogs w-5 h-5 mr-3"></i>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.content_management') }}" class="sidebar-item">
+                            <i class="fa fa-book w-5 h-5 mr-3"></i>
+                            <span>内容管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('data.data_index') }}" class="sidebar-item">
+                            <i class="fa fa-database w-5 h-5 mr-3"></i>
+                            <span>数据管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.system_stats') }}" class="sidebar-item">
+                            <i class="fa fa-bar-chart w-5 h-5 mr-3"></i>
+                            <span>系统统计</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.operation_logs') }}" class="sidebar-item">
+                            <i class="fa fa-history w-5 h-5 mr-3"></i>
+                            <span>操作日志</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.security_settings') }}" class="sidebar-item sidebar-item-active">
+                            <i class="fa fa-shield w-5 h-5 mr-3"></i>
+                            <span>安全设置</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.profile') }}" class="sidebar-item">
+                            <i class="fa fa-user w-5 h-5 mr-3"></i>
+                            <span>个人资料</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 移动端侧边栏切换
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('mobileSidebar').classList.remove('hidden');
+            setTimeout(() => {
+                document.querySelector('#mobileSidebar > div').classList.remove('translate-x-[-100%]');
+                document.querySelector('#mobileSidebar > div').classList.add('translate-x-0');
+            }, 10);
+        });
+
+        // 关闭侧边栏
+        document.getElementById('closeSidebar').addEventListener('click', function() {
+            document.querySelector('#mobileSidebar > div').classList.remove('translate-x-0');
+            document.querySelector('#mobileSidebar > div').classList.add('translate-x-[-100%]');
+            setTimeout(() => {
+                document.getElementById('mobileSidebar').classList.add('hidden');
+            }, 300);
+        });
+
+        // 点击侧边栏外部关闭
+        document.getElementById('mobileSidebar').addEventListener('click', function(e) {
+            if (e.target === this) {
+                document.querySelector('#mobileSidebar > div').classList.remove('translate-x-0');
+                document.querySelector('#mobileSidebar > div').classList.add('translate-x-[-100%]');
+                setTimeout(() => {
+                    document.getElementById('mobileSidebar').classList.add('hidden');
+                }, 300);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!-- 管理员浮动操作工具栏 - 仅管理员可见 -->
+{% if current_user.is_authenticated and current_user.is_admin %}
+<style>
+    #admin-toolbar-btn {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 1000;
+    }
+    #admin-toolbar-btn .gear-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #722ED1 0%, #165DFF 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 4px 16px rgba(114, 46, 209, 0.4);
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    #admin-toolbar-btn .gear-btn:hover {
+        transform: rotate(90deg) scale(1.1);
+        box-shadow: 0 6px 24px rgba(114, 46, 209, 0.5);
+    }
+    #admin-toolbar-btn .gear-btn .pulse-ring {
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 2px solid rgba(114, 46, 209, 0.3);
+        animation: admin-pulse 2s infinite;
+    }
+    @keyframes admin-pulse {
+        0% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(1.4); opacity: 0; }
+    }
+    #admin-toolbar-menu {
+        position: fixed;
+        bottom: 84px;
+        right: 24px;
+        z-index: 999;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        transform: scale(0);
+        transform-origin: bottom right;
+        transition: transform 0.2s ease;
+        min-width: 200px;
+    }
+    #admin-toolbar-menu.show {
+        transform: scale(1);
+    }
+    #admin-toolbar-menu a,
+    #admin-toolbar-menu button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 14px;
+        color: #1D2129;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: left;
+        text-decoration: none;
+    }
+    #admin-toolbar-menu a:hover,
+    #admin-toolbar-menu button:hover {
+        background: #F2F3F5;
+        color: #165DFF;
+    }
+    #admin-toolbar-menu a i,
+    #admin-toolbar-menu button i {
+        width: 18px;
+        text-align: center;
+        font-size: 16px;
+    }
+    #admin-toolbar-menu .divider {
+        border-top: 1px solid #E5E6EB;
+        margin: 4px 0;
+    }
+    #admin-toolbar-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 998;
+        display: none;
+    }
+    #admin-toolbar-overlay.show {
+        display: block;
+    }
+</style>
+
+<div id="admin-toolbar-btn">
+    <button class="gear-btn" onclick="toggleAdminMenu()" title="管理工具">
+        <span class="pulse-ring"></span>
+        <i class="fa fa-cog"></i>
+    </button>
+</div>
+
+<div id="admin-toolbar-overlay" onclick="closeAdminMenu()"></div>
+
+<div id="admin-toolbar-menu">
+    <a href="#" onclick="editCurrentPage(); closeAdminMenu(); return false;">
+        <i class="fa fa-edit text-blue-500"></i> 编辑此页面内容
+    </a>
+    <a href="{{ url_for('auth.admin_dashboard') }}">
+        <i class="fa fa-shield text-purple-500"></i> 返回管理面板
+    </a>
+    <div class="divider"></div>
+    <a href="{{ url_for('auth.system_settings') }}">
+        <i class="fa fa-cogs text-gray-500"></i> 系统设置
+    </a>
+    <a href="{{ url_for('auth.operation_logs') }}">
+        <i class="fa fa-history text-gray-500"></i> 操作日志
+    </a>
+    <div class="divider"></div>
+    <button onclick="clearPageCache(); closeAdminMenu();">
+        <i class="fa fa-refresh text-orange-500"></i> 清除缓存
+    </button>
+</div>
+
+<script>
+    (function() {
+        let menuOpen = false;
+
+        window.toggleAdminMenu = function() {
+            menuOpen = !menuOpen;
+            document.getElementById('admin-toolbar-menu').classList.toggle('show', menuOpen);
+            document.getElementById('admin-toolbar-overlay').classList.toggle('show', menuOpen);
+            const gearBtn = document.querySelector('#admin-toolbar-btn .gear-btn');
+            if (menuOpen) {
+                gearBtn.style.transform = 'rotate(90deg) scale(1.1)';
+            } else {
+                gearBtn.style.transform = 'rotate(0deg) scale(1)';
+            }
+        };
+
+        window.closeAdminMenu = function() {
+            menuOpen = false;
+            document.getElementById('admin-toolbar-menu').classList.remove('show');
+            document.getElementById('admin-toolbar-overlay').classList.remove('show');
+            const gearBtn = document.querySelector('#admin-toolbar-btn .gear-btn');
+            gearBtn.style.transform = 'rotate(0deg) scale(1)';
+        };
+
+        window.editCurrentPage = function() {
+            const currentPath = window.location.pathname;
+            // 根据当前路径跳转到对应的编辑页面
+            if (currentPath.includes('/admin')) {
+                window.location.href = '{{ url_for("auth.admin_dashboard") }}';
+            } else if (currentPath.includes('/courses')) {
+                window.location.href = '{{ url_for("auth.content_management") }}';
+            } else if (currentPath.includes('/knowledge')) {
+                window.location.href = '{{ url_for("auth.content_management") }}';
+            } else if (currentPath === '/' || currentPath === '') {
+                window.location.href = '{{ url_for("auth.content_management") }}';
+            } else {
+                window.location.href = '{{ url_for("auth.admin_dashboard") }}';
+            }
+        };
+
+        window.clearPageCache = function() {
+            // 清除 localStorage 缓存
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('cache_') || key.startsWith('stock_') || key.startsWith('data_'))) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            
+            // 显示提示
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;background:#10B981;color:white;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:slideInRight 0.3s ease;';
+            toast.innerHTML = '<i class="fa fa-check-circle mr-2"></i>缓存已清除 (' + keysToRemove.length + ' 项)';
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+            location.reload();
+        };
+
+        // 添加动画 keyframes
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+            @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        `;
+        document.head.appendChild(styleSheet);
+    })();
+</script>
+{% endif %}

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投资组合详情 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 配置Tailwind颜色方案 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-16">
+        <!-- 页面标题 -->
+        <div class="mb-8 animate-fade-in">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-neutral-dark mb-2">{{ portfolio.name }}</h1>
+                    <p class="text-neutral-medium">{{ portfolio.description }}</p>
+                    <p class="text-sm text-neutral-medium mt-1">创建于 {{ portfolio.created_at }}</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="exportPortfolioCSV()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center">
+                        <i class="fa fa-file-text-o mr-2"></i> 导出CSV
+                    </button>
+                    <button onclick="exportPortfolioPDF()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center">
+                        <i class="fa fa-file-pdf-o mr-2"></i> 导出PDF
+                    </button>
+                    <a href="{{ url_for('portfolio.optimize_portfolio_page') }}" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                        优化投资组合
+                    </a>
+                    <a href="{{ url_for('portfolio.risk_analysis_page', portfolio_id=portfolio.id) }}" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+                        风险分析
+                    </a>
+                    <a href="{{ url_for('portfolio.performance_attribution_page', portfolio_id=portfolio.id) }}" class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors">
+                        绩效归因分析
+                    </a>
+                    <a href="{{ url_for('portfolio.portfolio_index') }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:border-primary hover:text-primary transition-colors">
+                        返回列表
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 投资组合概览 -->
+        <section class="mb-12 animate-slide-up">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-sm font-medium text-neutral-medium">总资产</h3>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">实时</span>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-2xl font-bold">¥{{ portfolio.total_value.toLocaleString() }}</span>
+                        <span class="ml-2 text-sm {{ 'text-green-500' if portfolio.performance.daily >= 0 else 'text-red-500' }}">
+                            {{ '+' if portfolio.performance.daily >= 0 else '' }}{{ portfolio.performance.daily }}%
+                        </span>
+                    </div>
+                    <p class="text-xs text-neutral-medium mt-2">今日</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-sm font-medium text-neutral-medium">现金余额</h3>
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">可用</span>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-2xl font-bold">¥{{ portfolio.cash_balance.toLocaleString() }}</span>
+                        <span class="ml-2 text-sm text-neutral-medium">({{ (portfolio.cash_balance / portfolio.total_value * 100):.1f }}%)</span>
+                    </div>
+                    <p class="text-xs text-neutral-medium mt-2">可用于交易</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-sm font-medium text-neutral-medium">年化收益</h3>
+                        <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">年度</span>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-2xl font-bold {{ 'text-green-500' if portfolio.performance.yearly >= 0 else 'text-red-500' }}">
+                            {{ portfolio.performance.yearly }}%
+                        </span>
+                        <span class="ml-2 text-sm text-neutral-medium">今年</span>
+                    </div>
+                    <p class="text-xs text-neutral-medium mt-2">自成立以来: {{ portfolio.performance.since_inception }}%</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-sm font-medium text-neutral-medium">风险指标</h3>
+                        <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">评估</span>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-2xl font-bold">{{ portfolio.risk_metrics.sharpe_ratio }}</span>
+                        <span class="ml-2 text-sm text-neutral-medium">夏普比率</span>
+                    </div>
+                    <p class="text-xs text-neutral-medium mt-2">波动率: {{ portfolio.risk_metrics.volatility }}%</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 性能图表 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.2s">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">历史表现</h2>
+                    <div class="h-80">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">资产配置</h2>
+                    <div class="h-80">
+                        <canvas id="allocationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 持仓明细 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.3s">
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6 border-b border-gray-100">
+                    <h2 class="text-lg font-semibold">持仓明细</h2>
+                    <p class="text-sm text-neutral-medium">当前持有的资产</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">代码</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">市值</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">占比</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for holding in portfolio.holdings %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">{{ holding.symbol }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-500">{{ holding.name }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ holding.quantity }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ holding.price }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">¥{{ holding.value.toLocaleString() }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            <div class="text-sm font-medium text-gray-900 min-w-[40px]">{{ holding.allocation }}%</div>
+                                            <div class="flex-1 ml-2 h-2 bg-gray-200 rounded-full">
+                                                <div class="h-2 bg-blue-500 rounded-full" style="width: {{ holding.allocation }}%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div class="flex space-x-2">
+                                            <a href="#" class="text-blue-600 hover:text-blue-900 transition-colors">买入</a>
+                                            <a href="#" class="text-red-600 hover:text-red-900 transition-colors">卖出</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 交易历史 -->
+        <section class="mb-12 animate-slide-up" style="animation-delay: 0.4s">
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6 border-b border-gray-100">
+                    <h2 class="text-lg font-semibold">交易历史</h2>
+                    <p class="text-sm text-neutral-medium">最近的交易记录</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">代码</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">金额</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for transaction in portfolio.transactions %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-500">{{ transaction.date }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ 'bg-green-100 text-green-800' if transaction.type == '买入' else 'bg-red-100 text-red-800' }}">
+                                            {{ transaction.type }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">{{ transaction.symbol }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-500">{{ transaction.name }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ transaction.quantity }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-500">{{ transaction.price }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">¥{{ transaction.amount.toLocaleString() }}</div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // 页面加载完成后执行
+        window.addEventListener('DOMContentLoaded', function() {
+            // 性能图表
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            const performanceChart = new Chart(performanceCtx, {
+                type: 'line',
+                data: {
+                    labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+                    datasets: [{
+                        label: '投资组合价值',
+                        data: [135000, 142000, 138000, 145000, 148000, 150000],
+                        borderColor: '#165DFF',
+                        backgroundColor: 'rgba(22, 93, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#165DFF',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `价值: ¥${context.parsed.y.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '¥' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 资产配置图表
+            const allocationCtx = document.getElementById('allocationChart').getContext('2d');
+            const allocationChart = new Chart(allocationCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['股票', '债券', '现金', '其他'],
+                    datasets: [{
+                        data: [
+                            {{ portfolio.allocation.stocks }},
+                            {{ portfolio.allocation.bonds }},
+                            {{ portfolio.allocation.cash }},
+                            {{ portfolio.allocation.alternatives }}
+                        ],
+                        backgroundColor: [
+                            '#165DFF',
+                            '#36CFC9',
+                            '#722ED1',
+                            '#FF7D00'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.parsed}%`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        });
+    </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas显示测试
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('图表加载中...', canvas.width/2, canvas.height/2);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+
+    // 投资组合导出函数
+    const portfolioId = {{ portfolio.id }};
+
+    // 导出持仓数据为CSV
+    async function exportPortfolioCSV() {
+        try {
+            const response = await fetch(`/api/export/portfolio/${portfolioId}/csv`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `portfolio_${portfolioId}_holdings.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                alert('CSV导出成功');
+            } else {
+                const data = await response.json();
+                alert('导出失败: ' + (data.error || '未知错误'));
+            }
+        } catch (error) {
+            alert('导出失败: ' + error.message);
+        }
+    }
+
+    // 导出投资组合报告为PDF
+    async function exportPortfolioPDF() {
+        try {
+            const response = await fetch(`/api/export/portfolio/${portfolioId}/pdf`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `portfolio_${portfolioId}_report.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                alert('PDF导出成功');
+            } else {
+                const data = await response.json();
+                alert('导出失败: ' + (data.error || '未知错误'));
+            }
+        } catch (error) {
+            alert('导出失败: ' + error.message);
+        }
+    }
+
+    // 将导出函数暴露到全局
+    window.exportPortfolioCSV = exportPortfolioCSV;
+    window.exportPortfolioPDF = exportPortfolioPDF;
+});
+</script>
+
+</body>
+</html>

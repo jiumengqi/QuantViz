@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品更新日志 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #165DFF;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 3px #165DFF;
+        }
+        .feature-tag {
+            transition: all 0.3s ease;
+        }
+        .feature-tag:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    {% include 'components/header.html' %}
+
+    <main class="container mx-auto px-4 pt-28 pb-16">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12">
+            <h1 class="text-[clamp(1.75rem,4vw,3rem)] font-bold text-neutral-dark mb-4">
+                <i class="fa fa-history text-primary mr-3"></i>产品更新日志
+            </h1>
+            <p class="text-neutral-medium text-lg max-w-2xl mx-auto">记录平台的每一次成长与进步，感谢您的一路陪伴</p>
+        </div>
+
+        <!-- 版本历史 -->
+        <div class="max-w-4xl mx-auto">
+            <!-- v3.0 -->
+            <div class="relative border-l-4 border-primary/30 pl-8 pb-12">
+                <div class="timeline-item relative pl-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <span class="text-2xl font-bold text-primary mr-3">v3.0</span>
+                                <span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">最新版本</span>
+                            </div>
+                            <span class="text-neutral-medium"><i class="fa fa-calendar mr-1"></i>2026-06-04</span>
+                        </div>
+                        <h3 class="text-lg font-semibold text-neutral-dark mb-4">用户反馈系统与产品更新日志</h3>
+                        
+                        <div class="space-y-3 mb-4">
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">新增用户反馈系统</span>
+                                    <p class="text-neutral-medium text-sm">提供Bug报告、功能建议和新功能请求功能</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">管理员反馈管理后台</span>
+                                    <p class="text-neutral-medium text-sm">支持回复反馈、更新状态、筛选查看</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">产品更新日志页面</span>
+                                    <p class="text-neutral-medium text-sm">用户可查看平台历史版本和功能更新</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-star text-yellow-500 mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">界面优化</span>
+                                    <p class="text-neutral-medium text-sm">新增导航栏入口，提升用户体验</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <span class="feature-tag px-3 py-1 bg-primary/10 text-primary rounded-full text-sm cursor-default">新功能</span>
+                            <span class="feature-tag px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm cursor-default">用户体验</span>
+                            <span class="feature-tag px-3 py-1 bg-accent/10 text-accent rounded-full text-sm cursor-default">系统优化</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v2.5 -->
+                <div class="timeline-item relative pl-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-2xl font-bold text-neutral-dark mr-3">v2.5</span>
+                            <span class="text-neutral-medium"><i class="fa fa-calendar mr-1"></i>2026-01-15</span>
+                        </div>
+                        <h3 class="text-lg font-semibold text-neutral-dark mb-4">投资组合管理增强</h3>
+                        
+                        <div class="space-y-3 mb-4">
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">投资组合业绩归因分析</span>
+                                    <p class="text-neutral-medium text-sm">引入Brinson模型，分析组合收益来源</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">风险分析模块</span>
+                                    <p class="text-neutral-medium text-sm">VaR风险价值计算，支持多种置信水平</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">市场监控面板</span>
+                                    <p class="text-neutral-medium text-sm">实时监控市场动态，预警价格波动</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <span class="feature-tag px-3 py-1 bg-primary/10 text-primary rounded-full text-sm cursor-default">新功能</span>
+                            <span class="feature-tag px-3 py-1 bg-green-500/10 text-green-600 rounded-full text-sm cursor-default">风险控制</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v2.0 -->
+                <div class="timeline-item relative pl-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-2xl font-bold text-neutral-dark mr-3">v2.0</span>
+                            <span class="text-neutral-medium"><i class="fa fa-calendar mr-1"></i>2025-10-01</span>
+                        </div>
+                        <h3 class="text-lg font-semibold text-neutral-dark mb-4">量化策略与回测系统</h3>
+                        
+                        <div class="space-y-3 mb-4">
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">策略回测引擎</span>
+                                    <p class="text-neutral-medium text-sm">支持多种策略模板，包括均线交叉、RSI等</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">回测历史管理</span>
+                                    <p class="text-neutral-medium text-sm">记录回测结果，支持历史数据导出</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">AI智能助手</span>
+                                    <p class="text-neutral-medium text-sm">集成AI助手，回答用户问题</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <span class="feature-tag px-3 py-1 bg-primary/10 text-primary rounded-full text-sm cursor-default">核心功能</span>
+                            <span class="feature-tag px-3 py-1 bg-accent/10 text-accent rounded-full text-sm cursor-default">AI</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v1.5 -->
+                <div class="timeline-item relative pl-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-2xl font-bold text-neutral-dark mr-3">v1.5</span>
+                            <span class="text-neutral-medium"><i class="fa fa-calendar mr-1"></i>2025-06-01</span>
+                        </div>
+                        <h3 class="text-lg font-semibold text-neutral-dark mb-4">金融模型库</h3>
+                        
+                        <div class="space-y-3 mb-4">
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">Black-Scholes期权定价模型</span>
+                                    <p class="text-neutral-medium text-sm">支持期权价格计算和希腊字母分析</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">Markowitz投资组合优化</span>
+                                    <p class="text-neutral-medium text-sm">基于均值-方差模型的组合优化</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">债券定价模型</span>
+                                    <p class="text-neutral-medium text-sm">支持债券收益率和价格计算</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">时间序列预测模型</span>
+                                    <p class="text-neutral-medium text-sm">ARIMA、GARCH模型用于股价预测</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <span class="feature-tag px-3 py-1 bg-primary/10 text-primary rounded-full text-sm cursor-default">金融模型</span>
+                            <span class="feature-tag px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm cursor-default">量化分析</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v1.0 -->
+                <div class="timeline-item relative pl-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-2xl font-bold text-neutral-dark mr-3">v1.0</span>
+                            <span class="text-neutral-medium"><i class="fa fa-calendar mr-1"></i>2025-01-01</span>
+                        </div>
+                        <h3 class="text-lg font-semibold text-neutral-dark mb-4">平台基础功能</h3>
+                        
+                        <div class="space-y-3 mb-4">
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">用户认证系统</span>
+                                    <p class="text-neutral-medium text-sm">注册、登录、个人资料管理</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">数据中心</span>
+                                    <p class="text-neutral-medium text-sm">股票数据查询、指数数据、市场概览</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">数据分析</span>
+                                    <p class="text-neutral-medium text-sm">技术指标计算、相关性分析、因子分析</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa fa-plus-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <span class="font-medium">通知系统</span>
+                                    <p class="text-neutral-medium text-sm">站内通知、消息提醒</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <span class="feature-tag px-3 py-1 bg-primary/10 text-primary rounded-full text-sm cursor-default">首发版本</span>
+                            <span class="feature-tag px-3 py-1 bg-green-500/10 text-green-600 rounded-full text-sm cursor-default">基础功能</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部提示 -->
+            <div class="text-center mt-8 text-neutral-medium">
+                <p><i class="fa fa-clock-o mr-1"></i>我们会持续更新平台，为您提供更好的服务</p>
+                <p class="mt-2">了解更多：<a href="{{ url_for('feedback.submit_feedback') }}" class="text-primary hover:underline">提交反馈</a></p>
+            </div>
+        </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+</body>
+</html>

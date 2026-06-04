@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>风险管理 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- 页面标题 -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-neutral-dark mb-2">风险管理</h1>
+            <p class="text-neutral-medium">配置仓位管理、止损止盈规则，控制投资组合风险</p>
+        </div>
+
+        <!-- Tab 导航 -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button class="tab-btn active px-6 py-3 font-medium text-primary border-b-2 border-primary" data-tab="position">
+                仓位管理
+            </button>
+            <button class="tab-btn px-6 py-3 font-medium text-neutral-medium hover:text-primary" data-tab="stop-loss">
+                止损止盈
+            </button>
+            <button class="tab-btn px-6 py-3 font-medium text-neutral-medium hover:text-primary" data-tab="risk-metrics">
+                风险指标
+            </button>
+            <button class="tab-btn px-6 py-3 font-medium text-neutral-medium hover:text-primary" data-tab="position-risk">
+                持仓风险
+            </button>
+        </div>
+
+        <!-- 仓位管理 Tab -->
+        <section id="position-tab" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 仓位配置 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">仓位配置</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-neutral-dark mb-2">仓位分配方法</label>
+                        <select id="position-method" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            <option value="fixed">固定仓位</option>
+                            <option value="kelly">凯利公式</option>
+                            <option value="equal_weight">等权重</option>
+                            <option value="volatility_weight">波动率加权</option>
+                            <option value="risk_parity">风险平价</option>
+                        </select>
+                    </div>
+
+                    <div id="fixed-ratio-config" class="mb-4">
+                        <label class="block text-sm font-medium text-neutral-dark mb-2">固定配置比例 (%)</label>
+                        <input type="number" id="fixed-ratio" value="10" min="1" max="100" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    </div>
+
+                    <div id="kelly-config" class="hidden mb-4 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-neutral-dark mb-2">凯利系数</label>
+                            <select id="kelly-multiplier" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                <option value="0.25">半凯利 (0.5x)</option>
+                                <option value="0.5" selected>四分之一凯利 (0.25x)</option>
+                                <option value="0.125">八分之一凯利 (0.125x)</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-dark mb-2">胜率 (%)</label>
+                                <input type="number" id="win-rate" value="50" min="0" max="100" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-dark mb-2">盈亏比</label>
+                                <input type="number" id="win-loss-ratio" value="2" min="0" step="0.1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-neutral-dark mb-2">最大单持仓比例 (%)</label>
+                            <input type="number" id="max-position-size" value="20" min="1" max="100" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-neutral-dark mb-2">最大持仓数量</label>
+                            <input type="number" id="max-positions" value="10" min="1" max="50" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 仓位计算 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">仓位计算</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-neutral-dark mb-2">股票代码</label>
+                        <input type="text" id="calc-symbol" placeholder="如: 600519.SH" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-neutral-dark mb-2">当前价格</label>
+                            <input type="number" id="calc-price" step="0.01" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-neutral-dark mb-2">投资组合价值</label>
+                            <input type="number" id="calc-portfolio-value" value="1000000" step="1000" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                    </div>
+
+                    <div id="volatility-config" class="mb-4">
+                        <label class="block text-sm font-medium text-neutral-dark mb-2">波动率 (%)</label>
+                        <input type="number" id="calc-volatility" value="20" min="0" step="0.1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    </div>
+
+                    <button id="calculate-position-btn" class="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                        <i class="fa fa-calculator mr-2"></i>计算仓位
+                    </button>
+
+                    <!-- 计算结果 -->
+                    <div id="position-result" class="mt-6 hidden">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h3 class="font-medium mb-3">计算结果</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-sm text-neutral-medium">建议配置比例</p>
+                                    <p class="text-xl font-bold text-primary" id="result-ratio">--</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-neutral-medium">建议金额</p>
+                                    <p class="text-xl font-bold text-green-500" id="result-amount">--</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-neutral-medium">建议股数</p>
+                                    <p class="text-xl font-bold text-secondary" id="result-quantity">--</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-neutral-medium">凯利比例</p>
+                                    <p class="text-xl font-bold text-accent" id="result-kelly">--</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 持仓限制检查 -->
+            <div class="mt-6 bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4">持仓限制检查</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-neutral-medium">当前持仓数量</span>
+                            <span class="font-bold" id="current-position-count">0</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-primary h-2 rounded-full" id="position-count-bar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-neutral-medium mt-1">最大: <span id="max-position-limit">10</span></p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-neutral-medium">行业集中度</span>
+                            <span class="font-bold" id="industry-concentration">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-yellow-500 h-2 rounded-full" id="industry-bar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-neutral-medium mt-1">限制: 30%</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-neutral-medium">最大单持仓</span>
+                            <span class="font-bold" id="max-single-position">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-red-500 h-2 rounded-full" id="single-position-bar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-neutral-medium mt-1">限制: 20%</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 止损止盈 Tab -->
+        <section id="stop-loss-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 止损配置 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">止损配置</h2>
+                    
+                    <div class="mb-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="stop-loss-enabled" checked class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                            <span class="ml-2 text-sm font-medium text-neutral-dark">启用止损</span>
+                        </label>
+                    </div>
+
+                    <div id="stop-loss-settings">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-neutral-dark mb-2">止损类型</label>
+                            <select id="stop-loss-type" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                <option value="fixed">固定比例止损</option>
+                                <option value="trailing">移动止损</option>
+                            </select>
+                        </div>
+
+                        <div id="fixed-stop-config">
+                            <label class="block text-sm font-medium text-neutral-dark mb-2">止损比例 (%)</label>
+                            <input type="number" id="fixed-stop-ratio" value="5" min="0.5" max="50" step="0.5" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            <p class="text-xs text-neutral-medium mt-1">亏损达到此比例时触发止损</p>
+                        </div>
+
+                        <div id="trailing-stop-config" class="hidden">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-neutral-dark mb-2">移动止损比例 (%)</label>
+                                <input type="number" id="trailing-stop-ratio" value="10" min="0.5" max="50" step="0.5" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-dark mb-2">回撤触发 (%)</label>
+                                <input type="number" id="trailing-callback" value="2" min="0.5" max="20" step="0.5" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                <p class="text-xs text-neutral-medium mt-1">从最高点回撤超过此比例时触发</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 止盈配置 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">止盈配置</h2>
+                    
+                    <div class="mb-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="take-profit-enabled" checked class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                            <span class="ml-2 text-sm font-medium text-neutral-dark">启用止盈</span>
+                        </label>
+                    </div>
+
+                    <div id="take-profit-settings">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-neutral-dark mb-2">止盈类型</label>
+                            <select id="take-profit-type" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                <option value="fixed">固定比例止盈</option>
+                                <option value="trailing">移动止盈</option>
+                            </select>
+                        </div>
+
+                        <div id="fixed-profit-config">
+                            <label class="block text-sm font-medium text-neutral-dark mb-2">止盈比例 (%)</label>
+                            <input type="number" id="fixed-profit-ratio" value="15" min="1" max="100" step="0.5" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            <p class="text-xs text-neutral-medium mt-1">盈利达到此比例时触发止盈</p>
+                        </div>
+
+                        <div id="trailing-profit-config" class="hidden">
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-dark mb-2">回撤触发 (%)</label>
+                                <input type="number" id="trailing-profit-callback" value="3" min="0.5" max="20" step="0.5" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                <p class="text-xs text-neutral-medium mt-1">从最高点回撤超过此比例时触发</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 止损止盈检查 -->
+            <div class="mt-6 bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4">止损止盈检查</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-dark mb-2">股票代码</label>
+                        <input type="text" id="check-symbol" placeholder="如: 600519.SH" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-dark mb-2">买入价格</label>
+                        <input type="number" id="check-avg-cost" step="0.01" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-dark mb-2">当前价格</label>
+                        <input type="number" id="check-current-price" step="0.01" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-dark mb-2">持仓数量</label>
+                        <input type="number" id="check-quantity" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    </div>
+                </div>
+                <button id="check-stop-loss-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                    <i class="fa fa-check mr-2"></i>检查止损止盈
+                </button>
+
+                <!-- 检查结果 -->
+                <div id="stop-loss-result" class="mt-6 hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 止损结果 -->
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h3 class="font-medium mb-3 flex items-center">
+                                <i class="fa fa-exclamation-triangle text-red-500 mr-2"></i>止损状态
+                            </h3>
+                            <div id="stop-loss-status">
+                                <p class="text-sm text-neutral-medium">未触发</p>
+                            </div>
+                            <div class="mt-3">
+                                <p class="text-sm text-neutral-medium">当前亏损</p>
+                                <p class="text-lg font-bold text-red-500" id="current-loss">--</p>
+                            </div>
+                        </div>
+                        <!-- 止盈结果 -->
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h3 class="font-medium mb-3 flex items-center">
+                                <i class="fa fa-flag-checkered text-green-500 mr-2"></i>止盈状态
+                            </h3>
+                            <div id="take-profit-status">
+                                <p class="text-sm text-neutral-medium">未触发</p>
+                            </div>
+                            <div class="mt-3">
+                                <p class="text-sm text-neutral-medium">当前盈利</p>
+                                <p class="text-lg font-bold text-green-500" id="current-profit">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 风险指标 Tab -->
+        <section id="risk-metrics-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- VaR 指标 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">风险价值 (VaR)</h2>
+                    <div class="h-64">
+                        <canvas id="var-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 风险指标卡片 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">风险指标概览</h2>
+                    <div class="grid grid-cols-2 gap-4" id="risk-metrics-cards">
+                        <div class="bg-red-50 rounded-lg p-4">
+                            <p class="text-sm text-neutral-medium">95% VaR</p>
+                            <p class="text-xl font-bold text-red-500" id="var-95-value">--</p>
+                            <p class="text-xs text-neutral-medium">最大日损失</p>
+                        </div>
+                        <div class="bg-orange-50 rounded-lg p-4">
+                            <p class="text-sm text-neutral-medium">99% VaR</p>
+                            <p class="text-xl font-bold text-orange-500" id="var-99-value">--</p>
+                            <p class="text-xs text-neutral-medium">极端情况损失</p>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <p class="text-sm text-neutral-medium">年化波动率</p>
+                            <p class="text-xl font-bold text-blue-500" id="volatility-value">--</p>
+                            <p class="text-xs text-neutral-medium">波动程度</p>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <p class="text-sm text-neutral-medium">夏普比率</p>
+                            <p class="text-xl font-bold text-green-500" id="sharpe-value">--</p>
+                            <p class="text-xs text-neutral-medium">风险调整收益</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 详细风险指标 -->
+            <div class="mt-6 bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4">详细风险指标</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">指标</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">数值</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">解释</th>
+                            </tr>
+                        </thead>
+                        <tbody id="risk-metrics-table" class="divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-900">CVaR (95%)</td>
+                                <td class="px-4 py-3 text-sm font-medium" id="cvar-95-td">--</td>
+                                <td class="px-4 py-3 text-sm text-neutral-medium">平均尾部损失</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-900">最大回撤</td>
+                                <td class="px-4 py-3 text-sm font-medium text-red-500" id="max-drawdown-td">--</td>
+                                <td class="px-4 py-3 text-sm text-neutral-medium">历史最大跌幅</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-900">索提诺比率</td>
+                                <td class="px-4 py-3 text-sm font-medium" id="sortino-td">--</td>
+                                <td class="px-4 py-3 text-sm text-neutral-medium">下行风险调整收益</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-900">偏度</td>
+                                <td class="px-4 py-3 text-sm font-medium" id="skewness-td">--</td>
+                                <td class="px-4 py-3 text-sm text-neutral-medium">收益分布对称性</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-900">峰度</td>
+                                <td class="px-4 py-3 text-sm font-medium" id="kurtosis-td">--</td>
+                                <td class="px-4 py-3 text-sm text-neutral-medium">尾部风险程度</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <button id="calculate-risk-btn" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                <i class="fa fa-calculator mr-2"></i>计算风险指标
+            </button>
+        </section>
+
+        <!-- 持仓风险 Tab -->
+        <section id="position-risk-tab" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4">持仓风险分析</h2>
+                
+                <!-- 简化的持仓数据输入 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-neutral-dark mb-2">输入持仓数据 (JSON格式)</label>
+                    <textarea id="holdings-data" rows="6" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder='[{"symbol": "600519.SH", "name": "贵州茅台", "quantity": 100, "avg_cost": 1800, "current_price": 1850, "industry": "白酒", "market_value": 185000}]'></textarea>
+                    <button id="load-holdings-btn" class="mt-2 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+                        <i class="fa fa-upload mr-2"></i>加载数据
+                    </button>
+                </div>
+            </div>
+
+            <!-- 持仓风险表格 -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4">持仓风险明细</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">股票</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">持仓市值</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">配置比例</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">盈亏</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">风险贡献</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">行业</th>
+                            </tr>
+                        </thead>
+                        <tbody id="position-risk-table" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="6" class="px-4 py-8 text-center text-neutral-medium">
+                                    请加载持仓数据
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 行业分布 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">行业配置分布</h2>
+                    <div class="h-64">
+                        <canvas id="industry-chart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">风险贡献分布</h2>
+                    <div class="h-64">
+                        <canvas id="risk-contribution-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    {% include 'components/footer.html' %}
+
+    <script>
+        // Tab 切换
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 移除所有 active 状态
+                document.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.remove('active', 'text-primary', 'border-b-2', 'border-primary');
+                    b.classList.add('text-neutral-medium');
+                });
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+
+                // 添加 active 状态
+                this.classList.add('active', 'text-primary', 'border-b-2', 'border-primary');
+                this.classList.remove('text-neutral-medium');
+                document.getElementById(this.dataset.tab + '-tab').classList.remove('hidden');
+            });
+        });
+
+        // 仓位方法切换
+        document.getElementById('position-method').addEventListener('change', function() {
+            const method = this.value;
+            document.getElementById('fixed-ratio-config').classList.add('hidden');
+            document.getElementById('kelly-config').classList.add('hidden');
+            document.getElementById('volatility-config').classList.add('hidden');
+
+            if (method === 'fixed') {
+                document.getElementById('fixed-ratio-config').classList.remove('hidden');
+            } else if (method === 'kelly') {
+                document.getElementById('kelly-config').classList.remove('hidden');
+            } else if (method === 'volatility_weight' || method === 'risk_parity') {
+                document.getElementById('volatility-config').classList.remove('hidden');
+            }
+        });
+
+        // 止损类型切换
+        document.getElementById('stop-loss-type').addEventListener('change', function() {
+            const type = this.value;
+            document.getElementById('fixed-stop-config').classList.add('hidden');
+            document.getElementById('trailing-stop-config').classList.add('hidden');
+
+            if (type === 'fixed') {
+                document.getElementById('fixed-stop-config').classList.remove('hidden');
+            } else if (type === 'trailing') {
+                document.getElementById('trailing-stop-config').classList.remove('hidden');
+            }
+        });
+
+        // 止盈类型切换
+        document.getElementById('take-profit-type').addEventListener('change', function() {
+            const type = this.value;
+            document.getElementById('fixed-profit-config').classList.add('hidden');
+            document.getElementById('trailing-profit-config').classList.add('hidden');
+
+            if (type === 'fixed') {
+                document.getElementById('fixed-profit-config').classList.remove('hidden');
+            } else if (type === 'trailing') {
+                document.getElementById('trailing-profit-config').classList.remove('hidden');
+            }
+        });
+
+        // 仓位计算
+        document.getElementById('calculate-position-btn').addEventListener('click', function() {
+            const data = {
+                method: document.getElementById('position-method').value,
+                fixed_ratio: parseFloat(document.getElementById('fixed-ratio').value) / 100,
+                kelly_multiplier: parseFloat(document.getElementById('kelly-multiplier').value),
+                max_position_size: parseFloat(document.getElementById('max-position-size').value) / 100,
+                portfolio_value: parseFloat(document.getElementById('calc-portfolio-value').value),
+                price: parseFloat(document.getElementById('calc-price').value),
+                symbol: document.getElementById('calc-symbol').value,
+                volatility: parseFloat(document.getElementById('calc-volatility').value) / 100,
+                win_rate: parseFloat(document.getElementById('win-rate').value) / 100,
+                avg_win: parseFloat(document.getElementById('win-loss-ratio').value),
+                avg_loss: 1
+            };
+
+            fetch('/risk_analysis/api/position-size', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    const ps = result.position_size;
+                    document.getElementById('result-ratio').textContent = ps.ratio_percent.toFixed(2) + '%';
+                    document.getElementById('result-amount').textContent = '¥' + ps.allocated_amount.toLocaleString();
+                    document.getElementById('result-quantity').textContent = ps.quantity + ' 股';
+                    document.getElementById('result-kelly').textContent = (result.kelly_ratio_percent || 0).toFixed(2) + '%';
+                    document.getElementById('position-result').classList.remove('hidden');
+                }
+            })
+            .catch(err => console.error('Error:', err));
+        });
+
+        // 止损止盈检查
+        document.getElementById('check-stop-loss-btn').addEventListener('click', function() {
+            const symbol = document.getElementById('check-symbol').value;
+            const avgCost = parseFloat(document.getElementById('check-avg-cost').value);
+            const currentPrice = parseFloat(document.getElementById('check-current-price').value);
+            const quantity = parseFloat(document.getElementById('check-quantity').value);
+
+            if (!symbol || !avgCost || !currentPrice || !quantity) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            const stopLossData = {
+                symbol: symbol,
+                avg_cost: avgCost,
+                current_price: currentPrice,
+                quantity: quantity,
+                stop_loss_enabled: document.getElementById('stop-loss-enabled').checked,
+                stop_loss_type: document.getElementById('stop-loss-type').value,
+                fixed_stop_loss_ratio: parseFloat(document.getElementById('fixed-stop-ratio').value) / 100,
+                trailing_stop_ratio: parseFloat(document.getElementById('trailing-stop-ratio').value) / 100
+            };
+
+            const takeProfitData = {
+                symbol: symbol,
+                avg_cost: avgCost,
+                current_price: currentPrice,
+                quantity: quantity,
+                take_profit_enabled: document.getElementById('take-profit-enabled').checked,
+                take_profit_type: document.getElementById('take-profit-type').value,
+                fixed_take_profit_ratio: parseFloat(document.getElementById('fixed-profit-ratio').value) / 100,
+                trailing_callback: parseFloat(document.getElementById('trailing-profit-callback').value) / 100
+            };
+
+            // 检查止损
+            fetch('/risk_analysis/api/stop-loss-check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(stopLossData)
+            })
+            .then(res => res.json())
+            .then(result => {
+                const lossRatio = result.current_loss_ratio;
+                const lossAmount = result.current_loss_amount;
+                
+                document.getElementById('current-loss').textContent = 
+                    (lossRatio * 100).toFixed(2) + '% (¥' + Math.abs(lossAmount).toLocaleString() + ')';
+
+                if (result.stop_loss_triggered) {
+                    document.getElementById('stop-loss-status').innerHTML = 
+                        '<p class="text-red-500 font-medium">触发止损</p><p class="text-sm">' + result.stop_loss_info.reason + '</p>';
+                } else {
+                    document.getElementById('stop-loss-status').innerHTML = '<p class="text-green-500">未触发</p>';
+                }
+            });
+
+            // 检查止盈
+            fetch('/risk_analysis/api/take-profit-check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(takeProfitData)
+            })
+            .then(res => res.json())
+            .then(result => {
+                const profitRatio = result.current_profit_ratio;
+                const profitAmount = result.current_profit_amount;
+                
+                document.getElementById('current-profit').textContent = 
+                    (profitRatio * 100).toFixed(2) + '% (¥' + Math.abs(profitAmount).toLocaleString() + ')';
+
+                if (result.take_profit_triggered) {
+                    document.getElementById('take-profit-status').innerHTML = 
+                        '<p class="text-green-500 font-medium">触发止盈</p><p class="text-sm">' + result.take_profit_info.reason + '</p>';
+                } else {
+                    document.getElementById('take-profit-status').innerHTML = '<p class="text-neutral-medium">未触发</p>';
+                }
+            });
+
+            document.getElementById('stop-loss-result').classList.remove('hidden');
+        });
+
+        // 计算风险指标
+        let varChart = null;
+        
+        document.getElementById('calculate-risk-btn').addEventListener('click', function() {
+            fetch('/risk_analysis/api/risk-metrics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    const m = result.risk_metrics;
+                    
+                    // 更新指标卡片
+                    document.getElementById('var-95-value').textContent = (m.var_95 * 100).toFixed(2) + '%';
+                    document.getElementById('var-99-value').textContent = (m.var_99 * 100).toFixed(2) + '%';
+                    document.getElementById('volatility-value').textContent = (m.volatility * 100).toFixed(2) + '%';
+                    document.getElementById('sharpe-value').textContent = m.sharpe_ratio.toFixed(2);
+
+                    // 更新详细表格
+                    document.getElementById('cvar-95-td').textContent = (m.cvar_95 * 100).toFixed(2) + '%';
+                    document.getElementById('max-drawdown-td').textContent = (m.max_drawdown * 100).toFixed(2) + '%';
+                    document.getElementById('sortino-td').textContent = m.sortino_ratio.toFixed(2);
+                    document.getElementById('skewness-td').textContent = m.skewness.toFixed(2);
+                    document.getElementById('kurtosis-td').textContent = m.kurtosis.toFixed(2);
+
+                    // 更新图表
+                    updateVarChart(m);
+                }
+            })
+            .catch(err => console.error('Error:', err));
+        });
+
+        function updateVarChart(metrics) {
+            const ctx = document.getElementById('var-chart').getContext('2d');
+            
+            if (varChart) {
+                varChart.destroy();
+            }
+            
+            varChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['95% VaR', '99% VaR', 'CVaR 95%', 'CVaR 99%'],
+                    datasets: [{
+                        label: '风险价值 (%)',
+                        data: [
+                            metrics.var_95 * 100,
+                            metrics.var_99 * 100,
+                            metrics.cvar_95 * 100,
+                            metrics.cvar_99 * 100
+                        ],
+                        backgroundColor: ['#ef4444', '#dc2626', '#f87171', '#fca5a5']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // 加载持仓数据
+        let industryChart = null;
+        let riskContributionChart = null;
+
+        document.getElementById('load-holdings-btn').addEventListener('click', function() {
+            const holdingsText = document.getElementById('holdings-data').value;
+            
+            try {
+                const holdings = JSON.parse(holdingsText);
+                const portfolioValue = holdings.reduce((sum, h) => sum + (h.market_value || 0), 0);
+
+                // 计算风险
+                fetch('/risk_analysis/api/position-risk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ portfolio_value: portfolioValue, holdings: holdings })
+                })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        updatePositionRiskTable(result.position_risks);
+                        updateIndustryChart(result.industry_risks);
+                        updateRiskContributionChart(result.position_risks);
+                    }
+                });
+            } catch (e) {
+                alert('JSON 格式错误: ' + e.message);
+            }
+        });
+
+        function updatePositionRiskTable(positions) {
+            const tbody = document.getElementById('position-risk-table');
+            tbody.innerHTML = '';
+
+            positions.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-4 py-3">
+                        <div class="text-sm font-medium text-gray-900">${p.symbol}</div>
+                        <div class="text-xs text-gray-500">${p.name}</div>
+                    </td>
+                    <td class="px-4 py-3 text-sm">¥${p.market_value.toLocaleString()}</td>
+                    <td class="px-4 py-3 text-sm">${(p.allocation * 100).toFixed(2)}%</td>
+                    <td class="px-4 py-3 text-sm ${p.profit_loss >= 0 ? 'text-green-500' : 'text-red-500'}">
+                        ${p.profit_loss >= 0 ? '+' : ''}${(p.profit_loss_ratio * 100).toFixed(2)}%
+                    </td>
+                    <td class="px-4 py-3 text-sm">${(p.risk_contribution * 100).toFixed(2)}%</td>
+                    <td class="px-4 py-3 text-sm">${p.industry}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateIndustryChart(industryRisks) {
+            const ctx = document.getElementById('industry-chart').getContext('2d');
+            
+            if (industryChart) industryChart.destroy();
+            
+            const labels = Object.keys(industryRisks);
+            const data = labels.map(ind => industryRisks[ind].allocation * 100);
+
+            industryChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#165DFF', '#36CFC9', '#722ED1', '#F53F3F', '#FF7D00', '#00B42A']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function updateRiskContributionChart(positions) {
+            const ctx = document.getElementById('risk-contribution-chart').getContext('2d');
+            
+            if (riskContributionChart) riskContributionChart.destroy();
+            
+            const labels = positions.map(p => p.symbol);
+            const data = positions.map(p => p.risk_contribution * 100);
+
+            riskContributionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '风险贡献 (%)',
+                        data: data,
+                        backgroundColor: '#165DFF'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

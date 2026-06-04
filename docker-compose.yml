@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # 主应用服务
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quantviz-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_CONFIG=production
+      - FLASK_DEBUG=false
+      - TUSHARE_API_KEY=${TUSHARE_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}
+      - DATABASE_URL=sqlite:///quant_platform_new.db
+    volumes:
+      # 持久化数据
+      - ./instance:/app/instance
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - quantviz-network
+
+networks:
+  quantviz-network:
+    driver: bridge

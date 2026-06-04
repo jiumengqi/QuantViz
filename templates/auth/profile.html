@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人资料 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 配置Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+    <style>
+        .avatar-upload-wrapper {
+            position: relative;
+        }
+        .avatar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            cursor: pointer;
+        }
+        .avatar-upload-wrapper:hover .avatar-overlay {
+            opacity: 1;
+        }
+        .keyboard-hint {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .keyboard-hint kbd {
+            background: #444;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        #avatar-input {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-16">
+        <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="gradient-bg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold">个人资料</h1>
+                        <p class="text-sm mt-1">管理您的账户信息</p>
+                    </div>
+                    <div class="text-sm opacity-80">
+                        <i class="fa fa-keyboard-o mr-1"></i> 按 <kbd>Ctrl+E</kbd> 快速编辑
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <!-- 显示消息 -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="mb-4 p-3 rounded-lg {{ 'bg-green-100 text-green-700' if category == 'success' else 'bg-red-100 text-red-700' }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="space-y-6">
+                    <!-- 头像区域 -->
+                    <div class="flex items-center">
+                        <div class="avatar-upload-wrapper">
+                            {% if user.avatar %}
+                                <img src="{{ url_for('auth.get_avatar', filename=user.avatar) }}" 
+                                     alt="用户头像" 
+                                     class="w-24 h-24 rounded-full object-cover border-4 border-neutral-100"
+                                     id="avatar-img">
+                            {% else %}
+                                <div class="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-neutral-100"
+                                     style="background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);"
+                                     id="avatar-placeholder">
+                                    {{ user.username[0].upper() }}
+                                </div>
+                            {% endif %}
+                            <div class="avatar-overlay" onclick="document.getElementById('avatar-input').click()">
+                                <i class="fa fa-camera text-white text-2xl"></i>
+                            </div>
+                        </div>
+                        <input type="file" id="avatar-input" accept=".jpg,.jpeg,.png,.gif" onchange="uploadAvatar(this)">
+                        <div class="ml-6">
+                            <h2 class="text-xl font-bold">{{ user.username }}</h2>
+                            <p class="text-gray-600">{{ user.email }}</p>
+                            <p class="text-sm text-gray-500 mt-1">点击头像更换照片 (最大 2MB)</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 个人简介 -->
+                    {% if user.bio %}
+                    <div class="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">
+                            <i class="fa fa-user-circle-o mr-1"></i> 个人简介
+                        </h3>
+                        <p class="text-gray-700">{{ user.bio }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">账户信息</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">{{ user.username }}</div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">{{ user.email }}</div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">电话</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">{{ user.phone or '未设置' }}</div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">角色</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">
+                                        {{ '管理员' if user.is_admin else '普通用户' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">偏好设置</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">主题</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">
+                                        {{ '深色' if user.theme_preference == 'dark' else '浅色' }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">行情刷新频率</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">{{ user.refresh_frequency }} 秒</div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">邮件通知</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">
+                                        {{ '已开启' if user.notification_email else '已关闭' }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">浏览器通知</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">
+                                        {{ '已开启' if user.notification_browser else '已关闭' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 回测设置 -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">回测默认设置</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">默认资金</label>
+                                <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">¥ {{ "%.2f"|format(user.backtest_default_capital) }}</div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">默认手续费</label>
+                                <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">{{ "%.2f"|format(user.backtest_default_fee * 100) }}%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">账户活动</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">注册日期</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">
+                                        {{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">最后登录</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">
+                                        {% if user.last_login %}
+                                            {{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        {% else %}
+                                            从未登录
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">账户状态</label>
+                                    <div class="p-2 border border-gray-300 rounded-lg bg-gray-50">
+                                        {{ '活跃' if user.is_active else '禁用' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-4">
+                        <a href="{{ url_for('auth.edit_profile') }}" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center flex-1 min-w-[150px]">
+                            <i class="fa fa-pencil mr-2"></i> 编辑资料
+                        </a>
+                        <a href="{{ url_for('auth.change_password') }}" class="px-6 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors flex items-center justify-center flex-1 min-w-[150px]">
+                            <i class="fa fa-lock mr-2"></i> 修改密码
+                        </a>
+                        <a href="{{ url_for('auth.logout') }}" class="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center flex-1 min-w-[150px]">
+                            <i class="fa fa-sign-out mr-2"></i> 退出登录
+                        </a>
+                        {% if user.is_admin %}
+                            <a href="{{ url_for('auth.admin_dashboard') }}" class="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center flex-1 min-w-[150px]">
+                                <i class="fa fa-cog mr-2"></i> 管理员面板
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 快捷键提示 -->
+    <div class="keyboard-hint" id="keyboard-hint" style="display: none;">
+        <kbd>Ctrl</kbd> + <kbd>E</kbd> 编辑资料
+    </div>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- 头像上传脚本 -->
+    <script>
+        // 头像上传
+        function uploadAvatar(input) {
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+                
+                // 验证文件大小
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('文件大小超过 2MB 限制');
+                    return;
+                }
+                
+                // 验证文件类型
+                var allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('不支持的文件格式，请上传 jpg、png 或 gif 格式');
+                    return;
+                }
+                
+                var formData = new FormData();
+                formData.append('avatar', file);
+                
+                fetch('{{ url_for("auth.upload_avatar") }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 更新头像显示
+                        var avatarImg = document.getElementById('avatar-img');
+                        var avatarPlaceholder = document.getElementById('avatar-placeholder');
+                        if (avatarImg) {
+                            avatarImg.src = data.avatar_url + '?t=' + new Date().getTime();
+                        } else if (avatarPlaceholder) {
+                            // 替换placeholder为img
+                            var newImg = document.createElement('img');
+                            newImg.src = data.avatar_url + '?t=' + new Date().getTime();
+                            newImg.alt = '用户头像';
+                            newImg.className = 'w-24 h-24 rounded-full object-cover border-4 border-neutral-100';
+                            newImg.id = 'avatar-img';
+                            avatarPlaceholder.replaceWith(newImg);
+                        }
+                        alert('头像上传成功');
+                    } else {
+                        alert(data.message || '上传失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('上传错误:', error);
+                    alert('上传失败，请重试');
+                });
+            }
+        }
+        
+        // 键盘快捷键提示
+        document.addEventListener('keydown', function(e) {
+            // 显示快捷键提示（用户按下Ctrl时显示）
+            if (e.ctrlKey && e.key === 'e') {
+                e.preventDefault();
+                window.location.href = '{{ url_for("auth.edit_profile") }}';
+            }
+        });
+        
+        // 鼠标移动时显示快捷键提示（5秒后自动消失）
+        var hintTimeout;
+        document.addEventListener('mousemove', function() {
+            var hint = document.getElementById('keyboard-hint');
+            hint.style.display = 'flex';
+            clearTimeout(hintTimeout);
+            hintTimeout = setTimeout(function() {
+                hint.style.display = 'none';
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

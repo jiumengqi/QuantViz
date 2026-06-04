@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>风险价值(VaR)模型 - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- Chart.js Zoom Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <!-- 配置Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E40AF', // 深蓝作为主色调
+                        secondary: '#3B82F6', // 亮蓝作为辅助色
+                        accent: '#F59E0B', // 橙色作为强调色
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-all-300 {
+                transition: all 300ms ease;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <!-- 面包屑导航 -->
+        <div class="mb-6">
+            <nav class="flex" aria-label="面包屑">
+                <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                    <li class="inline-flex items-center">
+                        <a href="/" class="text-gray-500 hover:text-primary">
+                            <i class="fa fa-home mr-2"></i>首页
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fa fa-chevron-right text-gray-400 text-xs mx-2"></i>
+                            <a href="/models" class="text-gray-500 hover:text-primary">金融模型</a>
+                        </div>
+                    </li>
+                    <li aria-current="page">
+                        <div class="flex items-center">
+                            <i class="fa fa-chevron-right text-gray-400 text-xs mx-2"></i>
+                            <span class="text-primary font-medium">风险价值(VaR)模型</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+
+        <!-- 页面标题 -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">风险价值(VaR)模型</h1>
+            <p class="text-gray-600">评估投资组合在给定置信水平下的最大可能损失</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 左侧：参数设置 -->
+            <div class="lg:col-span-1 bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">参数设置</h2>
+                <form id="var-form">
+                    <div class="mb-4">
+                        <label for="stock-codes" class="block text-gray-700 font-medium mb-2">股票代码 (逗号分隔)</label>
+                        <input type="text" id="stock-codes" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="600036.SH,601318.SH,600519.SH" placeholder="例如: 600036.SH,601318.SH">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="weights" class="block text-gray-700 font-medium mb-2">权重 (逗号分隔)</label>
+                        <input type="text" id="weights" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="0.4,0.3,0.3" placeholder="例如: 0.4,0.3,0.3">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="confidence" class="block text-gray-700 font-medium mb-2">置信水平 (%)</label>
+                        <select id="confidence" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            <option value="90">90%</option>
+                            <option value="95" selected>95%</option>
+                            <option value="99">99%</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="time-horizon" class="block text-gray-700 font-medium mb-2">时间范围 (天)</label>
+                        <input type="number" id="time-horizon" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="1" min="1">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="investment" class="block text-gray-700 font-medium mb-2">投资额 (元)</label>
+                        <input type="number" id="investment" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="1000000" min="0">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2">计算方法</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="method" value="parametric" class="w-4 h-4 text-primary focus:ring-primary border-gray-300" checked>
+                                <span class="ml-2">参数法</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="method" value="historical" class="w-4 h-4 text-primary focus:ring-primary border-gray-300">
+                                <span class="ml-2">历史模拟法</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="method" value="monte_carlo" class="w-4 h-4 text-primary focus:ring-primary border-gray-300">
+                                <span class="ml-2">蒙特卡洛模拟</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="calculate-var" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
+                        <i class="fa fa-calculator mr-2"></i>计算VaR
+                    </button>
+                </form>
+            </div>
+            
+            <!-- 右侧：结果展示 -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- VaR结果摘要 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">VaR计算结果</h2>
+                    <div id="var-result" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <p class="text-gray-600 text-sm">每日VaR (95%置信水平)</p>
+                                <p class="text-3xl font-bold text-primary" id="daily-var">--</p>
+                                <p class="text-gray-500 text-sm">约占投资的 <span id="daily-var-percent">--</span>%</p>
+                            </div>
+                            <div class="bg-orange-50 p-4 rounded-lg">
+                                <p class="text-gray-600 text-sm">每日CVaR (95%置信水平)</p>
+                                <p class="text-3xl font-bold text-orange-500" id="daily-cvar">--</p>
+                                <p class="text-gray-500 text-sm">预期尾部损失</p>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <p class="text-gray-600 text-sm">投资组合波动率</p>
+                                <p class="text-3xl font-bold text-green-600" id="portfolio-volatility">--</p>
+                                <p class="text-gray-500 text-sm">年化波动率</p>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-gray-700"><i class="fa fa-info-circle text-blue-500 mr-2"></i> 说明：在95%置信水平下，投资组合在未来一天内的最大可能损失不超过VaR值。</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 风险分布图表 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">风险分布</h2>
+                    <div class="h-80">
+                        <canvas id="var-distribution-chart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 投资组合权重 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">投资组合权重</h2>
+                    <div class="h-64">
+                        <canvas id="portfolio-weights-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">股票分析与量化投资平台</h3>
+                    <p class="text-gray-400">专业的量化投资工具，助力投资者做出更明智的决策。</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">功能模块</h4>
+                    <ul class="space-y-2">
+                        <li><a href="/data" class="text-gray-400 hover:text-white transition-colors">数据中心</a></li>
+                        <li><a href="/models" class="text-gray-400 hover:text-white transition-colors">金融模型</a></li>
+                        <li><a href="/backtest" class="text-gray-400 hover:text-white transition-colors">策略回测</a></li>
+                        <li><a href="/courses" class="text-gray-400 hover:text-white transition-colors">投资课程</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">关于我们</h4>
+                    <ul class="space-y-2">
+                        <li><a href="/about" class="text-gray-400 hover:text-white transition-colors">平台简介</a></li>
+                        <li><a href="/contact" class="text-gray-400 hover:text-white transition-colors">联系我们</a></li>
+                        <li><a href="/features" class="text-gray-400 hover:text-white transition-colors">核心优势</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">关注我们</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-weixin text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-weibo text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-github text-2xl"></i>
+                        </a>
+                    </div>
+                    <p class="text-gray-400 mt-4">订阅我们的量化投资通讯</p>
+                    <div class="mt-2 flex">
+                        <input type="email" placeholder="您的邮箱地址" class="px-4 py-2 rounded-l-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800">
+                        <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-r-md transition-colors">
+                            订阅
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
+                <p>&copy; 2024 股票分析与量化投资平台. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 移动端菜单切换
+        document.getElementById('menuBtn')?.addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // 初始化图表
+        let varDistributionChart, portfolioWeightsChart;
+        
+        function initCharts() {
+            // 风险分布图
+            const varCtx = document.getElementById('var-distribution-chart').getContext('2d');
+            varDistributionChart = new Chart(varCtx, {
+                type: 'bar',
+                data: {
+                    labels: generateLabels(),
+                    datasets: [{
+                        label: '损失分布',
+                        data: generateDistributionData(),
+                        backgroundColor: function(context) {
+                            const value = context.dataset.data[context.dataIndex];
+                            return value < 0 ? 'rgba(239, 68, 68, 0.6)' : 'rgba(59, 130, 246, 0.6)';
+                        },
+                        borderColor: function(context) {
+                            const value = context.dataset.data[context.dataIndex];
+                            return value < 0 ? 'rgba(239, 68, 68, 1)' : 'rgba(59, 130, 246, 1)';
+                        },
+                        borderWidth: 1,
+                        hoverBackgroundColor: function(context) {
+                            const value = context.dataset.data[context.dataIndex];
+                            return value < 0 ? 'rgba(239, 68, 68, 0.8)' : 'rgba(59, 130, 246, 0.8)';
+                        },
+                        hoverBorderColor: function(context) {
+                            const value = context.dataset.data[context.dataIndex];
+                            return value < 0 ? 'rgba(239, 68, 68, 1)' : 'rgba(59, 130, 246, 1)';
+                        },
+                        hoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 10
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#165DFF',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `概率: ${context.parsed.y.toFixed(2)}%`;
+                                },
+                                title: function(tooltipItems) {
+                                    return `收益率: ${tooltipItems[0].label}%`;
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'xy'
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'xy'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '每日收益率 (%)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '概率 (%)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+            
+            // 投资组合权重饼图
+            const weightsCtx = document.getElementById('portfolio-weights-chart').getContext('2d');
+            portfolioWeightsChart = new Chart(weightsCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['招商银行', '中国平安', '贵州茅台'],
+                    datasets: [{
+                        data: [0.4, 0.3, 0.3],
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(245, 158, 11, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(245, 158, 11, 1)'
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 10,
+                        hoverBackgroundColor: [
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(245, 158, 11, 1)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 10,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#165DFF',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${(context.parsed * 100).toFixed(1)}%`;
+                                },
+                                title: function(tooltipItems) {
+                                    return '投资组合权重';
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    interaction: {
+                        intersect: true,
+                        mode: 'nearest'
+                    }
+                }
+            });
+        }
+        
+        // 生成模拟数据
+        function generateLabels() {
+            const labels = [];
+            for (let i = -5; i <= 5; i += 0.5) {
+                labels.push(i.toFixed(1));
+            }
+            return labels;
+        }
+        
+        function generateDistributionData() {
+            const data = [];
+            const center = 10; // 中心位置
+            for (let i = 0; i < 21; i++) {
+                // 生成正态分布形状的模拟数据
+                const x = (i - center) * 0.5;
+                const y = Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+                data.push(y * 30); // 缩放数据使其更明显
+            }
+            return data;
+        }
+        
+        // 计算VaR
+        function calculateVaR() {
+            const stockCodes = document.getElementById('stock-codes').value;
+            const weights = document.getElementById('weights').value;
+            const investment = parseFloat(document.getElementById('investment').value) || 1000000;
+            const confidence = parseFloat(document.getElementById('confidence').value) / 100;
+            const timeHorizon = parseInt(document.getElementById('time-horizon').value) || 1;
+            const method = document.querySelector('input[name="method"]:checked').value;
+            
+            // 显示加载状态
+            const calculateBtn = document.getElementById('calculate-var');
+            calculateBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>计算中...';
+            calculateBtn.disabled = true;
+            
+            // 模拟收益率数据（实际应用中应该从API获取）
+            const returns = generateMockReturns(100);
+            
+            // 调用后端API计算风险指标
+            fetch('/models/api/risk/calculate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    returns: returns,
+                    confidence_level: confidence,
+                    time_horizon: timeHorizon,
+                    method: method
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 计算最终结果（考虑投资金额）
+                    const dailyVaR = (investment * Math.abs(data.var)).toFixed(2);
+                    const dailyCVaR = (investment * Math.abs(data.cvar)).toFixed(2);
+                    const dailyVarPercent = (Math.abs(data.var) * 100).toFixed(2);
+                    const volatility = (Math.sqrt(252) * Math.abs(data.var) * 100).toFixed(2);
+                    
+                    // 更新结果展示
+                    document.getElementById('daily-var').textContent = `¥${dailyVaR}`;
+                    document.getElementById('daily-var-percent').textContent = dailyVarPercent;
+                    document.getElementById('daily-cvar').textContent = `¥${dailyCVaR}`;
+                    document.getElementById('portfolio-volatility').textContent = `${volatility}%`;
+                } else {
+                    alert('计算失败: ' + (data.error || '未知错误'));
+                }
+            })
+            .catch(error => {
+                console.error('计算VaR时出错:', error);
+                alert('计算失败，请稍后重试');
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                calculateBtn.innerHTML = '<i class="fa fa-calculator mr-2"></i>计算VaR';
+                calculateBtn.disabled = false;
+            });
+        }
+        
+        // 生成模拟收益率数据
+        function generateMockReturns(count) {
+            const returns = [];
+            for (let i = 0; i < count; i++) {
+                // 生成正态分布的随机收益率
+                const u1 = Math.random();
+                const u2 = Math.random();
+                const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                returns.push(z * 0.02); // 标准差为2%
+            }
+            return returns;
+        }
+        
+        // 页面加载后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            calculateVaR(); // 初始计算一次
+            
+            // 计算按钮点击事件
+            document.getElementById('calculate-var').addEventListener('click', calculateVaR);
+        });
+    </script>
+    
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

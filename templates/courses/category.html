@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ category_name }} - 股票分析与量化投资平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 配置Tailwind颜色方案 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-16">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12 animate-fade-in">
+            <h1 class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-neutral-dark mb-4">{{ category_name }}</h1>
+            <p class="text-neutral-medium max-w-3xl mx-auto">探索{{ category_name }}相关的精品课程，提升您的投资分析能力</p>
+            <div class="mt-6 flex justify-center gap-3">
+                <div class="flex items-center bg-white px-4 py-2 rounded-lg shadow-sm animate-slide-up" style="animation-delay: 0.1s">
+                    <i class="fa fa-book text-primary mr-2"></i>
+                    <span class="text-sm font-medium">精品课程</span>
+                </div>
+                <div class="flex items-center bg-white px-4 py-2 rounded-lg shadow-sm animate-slide-up" style="animation-delay: 0.2s">
+                    <i class="fa fa-users text-primary mr-2"></i>
+                    <span class="text-sm font-medium">专业讲师</span>
+                </div>
+                <div class="flex items-center bg-white px-4 py-2 rounded-lg shadow-sm animate-slide-up" style="animation-delay: 0.3s">
+                    <i class="fa fa-certificate text-primary mr-2"></i>
+                    <span class="text-sm font-medium">学习认证</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分类过滤器 -->
+        <div class="mb-8 animate-slide-up" style="animation-delay: 0.4s">
+            <div class="bg-white rounded-xl shadow-md p-4">
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ url_for('courses.courses_index') }}" class="px-4 py-2 rounded-lg text-sm font-medium {{ 'bg-primary text-white' if category == 'all' else 'bg-gray-100 text-gray-700 hover:bg-gray-200' }} transition-colors">
+                        全部课程
+                    </a>
+                    <a href="{{ url_for('courses.course_category', category='basic') }}" class="px-4 py-2 rounded-lg text-sm font-medium {{ 'bg-primary text-white' if category == 'basic' else 'bg-gray-100 text-gray-700 hover:bg-gray-200' }} transition-colors">
+                        基础知识
+                    </a>
+                    <a href="{{ url_for('courses.course_category', category='pricing') }}" class="px-4 py-2 rounded-lg text-sm font-medium {{ 'bg-primary text-white' if category == 'pricing' else 'bg-gray-100 text-gray-700 hover:bg-gray-200' }} transition-colors">
+                        资产定价
+                    </a>
+                    <a href="{{ url_for('courses.course_category', category='risk') }}" class="px-4 py-2 rounded-lg text-sm font-medium {{ 'bg-primary text-white' if category == 'risk' else 'bg-gray-100 text-gray-700 hover:bg-gray-200' }} transition-colors">
+                        风险管理
+                    </a>
+                    <a href="{{ url_for('courses.course_category', category='portfolio') }}" class="px-4 py-2 rounded-lg text-sm font-medium {{ 'bg-primary text-white' if category == 'portfolio' else 'bg-gray-100 text-gray-700 hover:bg-gray-200' }} transition-colors">
+                        投资组合
+                    </a>
+                    <a href="{{ url_for('courses.course_category', category='quant') }}" class="px-4 py-2 rounded-lg text-sm font-medium {{ 'bg-primary text-white' if category == 'quant' else 'bg-gray-100 text-gray-700 hover:bg-gray-200' }} transition-colors">
+                        量化策略
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 课程列表 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 animate-slide-up" style="animation-delay: 0.5s">
+            <!-- 课程卡片1 -->
+            <div class="course-card bg-white rounded-xl shadow-md overflow-hidden card-hover transition-all duration-300 hover:shadow-xl hover:-translate-y-2 transform active:scale-98">
+                <div class="relative group">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340' viewBox='0 0 600 340'%3E%3Crect width='600' height='340' fill='%23f3f4f6'/%3E%3Ctext x='300' y='170' font-family='Arial' font-size='16' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/237/600/340" alt="量化投资入门与实践" class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105 lazyload" loading="lazy">
+                    <div class="absolute top-3 left-3 bg-primary text-white text-xs px-2 py-1 rounded-full transform transition-transform duration-300 group-hover:scale-105">畅销课程</div>
+                    <div class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">24课时</div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                        <button class="bg-white text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                            <i class="fa fa-play-circle mr-1"></i> 预览课程
+                        </button>
+                    </div>
+                </div>
+                <div class="p-5">
+                    <div class="flex items-center mb-3">
+                        <span class="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full mr-2 transform transition-transform duration-300 group-hover:scale-105">基础知识</span>
+                        <div class="flex items-center text-yellow-400 transform transition-transform duration-300 group-hover:scale-105">
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star-half-o"></i>
+                            <span class="text-gray-600 text-xs ml-1">4.8 (326)</span>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2 line-clamp-2 h-12 group-hover:text-primary transition-colors transform transition-transform duration-300 group-hover:translate-x-1">量化投资入门与实践：从零开始构建量化交易系统</h3>
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2 h-10 transform transition-transform duration-300 group-hover:translate-x-1">本课程适合零基础学员，从量化投资基础概念开始，逐步学习如何使用Python构建自己的量化交易系统。</p>
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center transform transition-transform duration-300 group-hover:translate-x-1">
+                            <img src="https://picsum.photos/id/64/100/100" alt="讲师头像" class="w-8 h-8 rounded-full mr-2 transform transition-transform duration-300 group-hover:scale-110">
+                            <div>
+                                <span class="text-sm font-medium">张教授</span>
+                            </div>
+                        </div>
+                        <div class="text-primary font-bold transform transition-transform duration-300 group-hover:scale-110">¥299</div>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-gray-500 mb-3 transform transition-transform duration-300 group-hover:translate-x-1">
+                        <span class="flex items-center"><i class="fa fa-users mr-1"></i> 1,258人学习</span>
+                        <span class="flex items-center"><i class="fa fa-calendar mr-1"></i> 2026-01更新</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <button class="favorite-btn flex items-center text-gray-500 hover:text-red-500 transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                            <i class="fa fa-heart-o mr-1"></i>
+                            <span class="text-sm">收藏</span>
+                        </button>
+                        <button class="share-btn flex items-center text-gray-500 hover:text-primary transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                            <i class="fa fa-share-alt mr-1"></i>
+                            <span class="text-sm">分享</span>
+                        </button>
+                        <button class="bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200" onclick="handleEnrollment(this)" >
+                            立即报名
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 课程卡片2 -->
+            <div class="course-card bg-white rounded-xl shadow-md overflow-hidden card-hover transition-all duration-300 hover:shadow-xl hover:-translate-y-2 transform active:scale-98">
+                <div class="relative group">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340' viewBox='0 0 600 340'%3E%3Crect width='600' height='340' fill='%23f3f4f6'/%3E%3Ctext x='300' y='170' font-family='Arial' font-size='16' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/1/600/340" alt="Python金融数据分析" class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105 lazyload" loading="lazy">
+                    <div class="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full">新课上线</div>
+                    <div class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">32课时</div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                        <button class="bg-white text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                            <i class="fa fa-play-circle mr-1"></i> 预览课程
+                        </button>
+                    </div>
+                </div>
+                <div class="p-5">
+                    <div class="flex items-center mb-3">
+                        <span class="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full mr-2">Python编程</span>
+                        <div class="flex items-center text-yellow-400">
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star-o"></i>
+                            <span class="text-gray-600 text-xs ml-1">4.2 (189)</span>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2 line-clamp-2 h-12">Python金融数据分析实战：从数据获取到可视化</h3>
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2 h-10">掌握如何使用Python进行金融数据的获取、清洗、处理和可视化分析，提升数据分析能力。</p>
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center">
+                            <img src="https://picsum.photos/id/91/100/100" alt="讲师头像" class="w-8 h-8 rounded-full mr-2">
+                            <div>
+                                <span class="text-sm font-medium">李老师</span>
+                            </div>
+                        </div>
+                        <div class="text-primary font-bold">¥399</div>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-gray-500 mb-3">
+                        <span class="flex items-center"><i class="fa fa-users mr-1"></i> 856人学习</span>
+                        <span class="flex items-center"><i class="fa fa-calendar mr-1"></i> 2026-02更新</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <button class="favorite-btn flex items-center text-gray-500 hover:text-red-500 transition-colors">
+                            <i class="fa fa-heart-o mr-1"></i>
+                            <span class="text-sm">收藏</span>
+                        </button>
+                        <button class="share-btn flex items-center text-gray-500 hover:text-primary transition-colors">
+                            <i class="fa fa-share-alt mr-1"></i>
+                            <span class="text-sm">分享</span>
+                        </button>
+                        <button class="bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors" onclick="handleEnrollment(this)" >
+                            立即报名
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 课程卡片3 -->
+            <div class="course-card bg-white rounded-xl shadow-md overflow-hidden card-hover transition-all duration-300 hover:shadow-xl hover:-translate-y-2 transform active:scale-98">
+                <div class="relative group">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340' viewBox='0 0 600 340'%3E%3Crect width='600' height='340' fill='%23f3f4f6'/%3E%3Ctext x='300' y='170' font-family='Arial' font-size='16' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3E课程封面%3C/text%3E%3C/svg%3E" data-src="https://picsum.photos/id/20/600/340" alt="期权定价与交易策略" class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105 lazyload" loading="lazy">
+                    <div class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">28课时</div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                        <button class="bg-white text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-colors transform hover:scale-105 active:scale-95 transition-transform duration-200">
+                            <i class="fa fa-play-circle mr-1"></i> 预览课程
+                        </button>
+                    </div>
+                </div>
+                <div class="p-5">
+                    <div class="flex items-center mb-3">
+                        <span class="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full mr-2">金融模型</span>
+                        <div class="flex items-center text-yellow-400">
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i>
+                            <span class="text-gray-600 text-xs ml-1">5.0 (156)</span>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2 line-clamp-2 h-12">期权定价与交易策略：从Black-Scholes到波动率曲面</h3>
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2 h-10">深入学习期权定价模型和交易策略，掌握期权组合管理和风险管理的核心技能。</p>
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center">
+                            <img src="https://picsum.photos/id/26/100/100" alt="讲师头像" class="w-8 h-8 rounded-full mr-2">
+                            <div>
+                                <span class="text-sm font-medium">王教授</span>
+                            </div>
+                        </div>
+                        <div class="text-primary font-bold">¥499</div>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-gray-500 mb-3">
+                        <span class="flex items-center"><i class="fa fa-users mr-1"></i> 623人学习</span>
+                        <span class="flex items-center"><i class="fa fa-calendar mr-1"></i> 2026-01更新</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <button class="favorite-btn flex items-center text-gray-500 hover:text-red-500 transition-colors">
+                            <i class="fa fa-heart-o mr-1"></i>
+                            <span class="text-sm">收藏</span>
+                        </button>
+                        <button class="share-btn flex items-center text-gray-500 hover:text-primary transition-colors">
+                            <i class="fa fa-share-alt mr-1"></i>
+                            <span class="text-sm">分享</span>
+                        </button>
+                        <button class="bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors" onclick="handleEnrollment(this)" >
+                            立即报名
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="mt-12 flex justify-center animate-slide-up" style="animation-delay: 0.6s">
+            <nav class="flex items-center space-x-1">
+                <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:bg-gray-100">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                <a href="#" class="px-3 py-2 rounded-md text-sm font-medium bg-primary text-white">1</a>
+                <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:bg-gray-100">2</a>
+                <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:bg-gray-100">3</a>
+                <span class="px-3 py-2 rounded-md text-sm font-medium text-gray-500">...</span>
+                <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:bg-gray-100">8</a>
+                <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:bg-gray-100">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </nav>
+        </div>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

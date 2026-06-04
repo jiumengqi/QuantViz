@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略模板中心 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        .template-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        .strategy-tag {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: #e5e7eb;
+            color: #374151;
+            margin-right: 4px;
+            display: inline-block;
+        }
+        .param-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #f3f4f6;
+            color: #6b7280;
+            margin-right: 4px;
+        }
+        .detail-section {
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        .detail-section:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    {% include 'components/header.html' %}
+    
+    <main class="container mx-auto px-4 py-8">
+        <!-- 页面标题 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold flex items-center">
+                        <i class="fa fa-cubes mr-3 text-blue-500"></i>
+                        策略模板中心
+                    </h1>
+                    <p class="text-gray-500 mt-2">浏览和使用预定义的量化交易策略模板</p>
+                </div>
+                <div class="flex gap-3">
+                    <a href="/backtest" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center transition">
+                        <i class="fa fa-play mr-2"></i> 进入回测
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 搜索和筛选 -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div class="flex-1 min-w-[250px]">
+                    <div class="relative">
+                        <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="searchInput" placeholder="搜索策略名称、描述或标签..." 
+                               class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="filterByTag('all')" class="filter-btn px-4 py-2 rounded-lg border bg-blue-500 text-white transition" data-tag="all">全部</button>
+                    <button onclick="filterByTag('趋势跟踪')" class="filter-btn px-4 py-2 rounded-lg border bg-white hover:bg-gray-50 transition" data-tag="趋势跟踪">趋势跟踪</button>
+                    <button onclick="filterByTag('反转交易')" class="filter-btn px-4 py-2 rounded-lg border bg-white hover:bg-gray-50 transition" data-tag="反转交易">反转交易</button>
+                    <button onclick="filterByTag('选股')" class="filter-btn px-4 py-2 rounded-lg border bg-white hover:bg-gray-50 transition" data-tag="选股">选股</button>
+                    <button onclick="filterByTag('经典')" class="filter-btn px-4 py-2 rounded-lg border bg-white hover:bg-gray-50 transition" data-tag="经典">经典</button>
+                </div>
+            </div>
+            
+            <!-- 统计信息 -->
+            <div class="mt-4 flex gap-4 text-sm text-gray-500">
+                <span><i class="fa fa-cube mr-1"></i> 共 <span id="templateCount">0</span> 个模板</span>
+                <span class="separator">|</span>
+                <span>当前筛选: <span id="currentFilter" class="text-blue-500">全部</span></span>
+            </div>
+        </div>
+        
+        <!-- 策略模板列表 -->
+        <div id="templateList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <!-- 模板卡片将通过JS动态生成 -->
+        </div>
+        
+        <!-- 空状态 -->
+        <div id="emptyState" class="hidden bg-white rounded-lg shadow-md p-12 text-center">
+            <i class="fa fa-search text-5xl text-gray-300 mb-4"></i>
+            <h3 class="text-xl font-medium text-gray-500 mb-2">未找到匹配的策略模板</h3>
+            <p class="text-gray-400">请尝试调整搜索条件或筛选标签</p>
+        </div>
+        
+        <!-- 分页 -->
+        <div id="pagination" class="flex justify-center gap-2 mt-6 hidden">
+            <button onclick="prevPage()" class="px-3 py-1 rounded border bg-white hover:bg-gray-50 disabled:opacity-50" id="prevBtn">
+                <i class="fa fa-chevron-left"></i>
+            </button>
+            <div id="pageNumbers" class="flex gap-1"></div>
+            <button onclick="nextPage()" class="px-3 py-1 rounded border bg-white hover:bg-gray-50 disabled:opacity-50" id="nextBtn">
+                <i class="fa fa-chevron-right"></i>
+            </button>
+        </div>
+    </main>
+    
+    <!-- 策略详情Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 overflow-y-auto">
+        <div class="flex items-start justify-center min-h-screen p-4 pt-20">
+            <div class="bg-white rounded-lg w-full max-w-3xl mx-4 mb-20">
+                <!-- Modal Header -->
+                <div class="p-6 border-b flex justify-between items-start">
+                    <div>
+                        <h2 id="modalName" class="text-2xl font-bold text-gray-800"></h2>
+                        <p id="modalAuthor" class="text-sm text-gray-500 mt-1"></p>
+                    </div>
+                    <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="p-6 max-h-[60vh] overflow-y-auto">
+                    <!-- 基本信息 -->
+                    <div class="detail-section">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">策略描述</h3>
+                        <p id="modalDesc" class="text-gray-700 leading-relaxed"></p>
+                    </div>
+                    
+                    <!-- 适用场景 -->
+                    <div class="detail-section">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">适用场景</h3>
+                        <p id="modalScenario" class="text-gray-700 leading-relaxed"></p>
+                    </div>
+                    
+                    <!-- 策略标签 -->
+                    <div class="detail-section">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">标签</h3>
+                        <div id="modalTags" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    
+                    <!-- 参数说明 -->
+                    <div class="detail-section">
+                        <h3 class="text-sm font-medium text-gray-500 mb-4">参数说明</h3>
+                        <div id="modalParams" class="space-y-3"></div>
+                    </div>
+                    
+                    <!-- 默认参数值 -->
+                    <div class="detail-section">
+                        <h3 class="text-sm font-medium text-gray-500 mb-4">默认参数值</h3>
+                        <div id="modalDefaultParams" class="bg-blue-50 rounded-lg p-4 grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+                    </div>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="p-6 border-t bg-gray-50 rounded-b-lg flex justify-between items-center">
+                    <div class="text-sm text-gray-500">
+                        <i class="fa fa-share-alt mr-1"></i> 支持导出/导入JSON
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="exportTemplateFromModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition flex items-center">
+                            <i class="fa fa-share-alt mr-2"></i> 导出
+                        </button>
+                        <button onclick="runBacktestFromModal()" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition flex items-center">
+                            <i class="fa fa-play mr-2"></i> 一键回测
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 导出Modal -->
+    <div id="exportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">导出策略模板</h3>
+                <button onclick="closeExportModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">策略JSON</label>
+                <textarea id="exportJson" rows="12" readonly
+                          class="w-full px-3 py-2 border rounded-lg bg-gray-50 font-mono text-xs"></textarea>
+            </div>
+            <div class="flex gap-3 justify-end">
+                <button onclick="copyExportJson()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition">
+                    <i class="fa fa-copy mr-1"></i> 复制
+                </button>
+                <button onclick="closeExportModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 回测跳转Modal -->
+    <div id="backtestModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-bold mb-4">即将跳转到回测页面</h3>
+            <p class="text-gray-600 mb-4">系统将使用"<span id="backtestTemplateName" class="font-medium text-blue-500"></span>"模板的参数进行回测。</p>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">选择股票代码</label>
+                <input type="text" id="backtestStockCode" placeholder="如: 600036.SH" 
+                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeBacktestModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition">取消</button>
+                <button onclick="confirmBacktest()" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition">
+                    <i class="fa fa-play mr-1"></i> 开始回测
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    {% include 'components/footer.html' %}
+    
+    <script>
+        // 全局变量
+        let allTemplates = [];
+        let filteredTemplates = [];
+        let currentTemplate = null;
+        let currentPage = 1;
+        const pageSize = 9;
+        let currentFilterTag = 'all';
+        
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTemplates();
+            setupEventListeners();
+        });
+        
+        // 加载策略模板
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/backtest/api/templates');
+                const data = await response.json();
+                allTemplates = data.templates || [];
+                filteredTemplates = [...allTemplates];
+                updateTemplateCount();
+                renderTemplates();
+            } catch (error) {
+                console.error('加载模板失败:', error);
+                showEmptyState();
+            }
+        }
+        
+        // 设置事件监听
+        function setupEventListeners() {
+            // 搜索输入
+            document.getElementById('searchInput')?.addEventListener('input', function(e) {
+                const keyword = e.target.value.trim();
+                if (keyword) {
+                    searchTemplates(keyword);
+                } else {
+                    filterByTag(currentFilterTag);
+                }
+            });
+        }
+        
+        // 搜索模板
+        function searchTemplates(keyword) {
+            keyword = keyword.toLowerCase();
+            filteredTemplates = allTemplates.filter(t => 
+                t.name.toLowerCase().includes(keyword) ||
+                t.description.toLowerCase().includes(keyword) ||
+                (t.tags || []).some(tag => tag.toLowerCase().includes(keyword)) ||
+                t.scenario.toLowerCase().includes(keyword)
+            );
+            currentFilterTag = 'all';
+            updateFilterButtons();
+            currentPage = 1;
+            renderTemplates();
+            document.getElementById('currentFilter').textContent = '搜索结果';
+        }
+        
+        // 按标签筛选
+        function filterByTag(tag) {
+            currentFilterTag = tag;
+            
+            if (tag === 'all') {
+                filteredTemplates = [...allTemplates];
+                document.getElementById('currentFilter').textContent = '全部';
+            } else {
+                filteredTemplates = allTemplates.filter(t => 
+                    (t.tags || []).some(t => t.toLowerCase() === tag.toLowerCase())
+                );
+                document.getElementById('currentFilter').textContent = tag;
+            }
+            
+            document.getElementById('searchInput').value = '';
+            updateFilterButtons();
+            currentPage = 1;
+            renderTemplates();
+        }
+        
+        // 更新筛选按钮状态
+        function updateFilterButtons() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('bg-white');
+                if (btn.dataset.tag === currentFilterTag) {
+                    btn.classList.add('bg-blue-500', 'text-white');
+                    btn.classList.remove('bg-white');
+                }
+            });
+        }
+        
+        // 渲染模板列表
+        function renderTemplates() {
+            const container = document.getElementById('templateList');
+            
+            if (filteredTemplates.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            hideEmptyState();
+            
+            // 分页计算
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const pageTemplates = filteredTemplates.slice(startIndex, endIndex);
+            
+            container.innerHTML = pageTemplates.map(t => `
+                <div class="template-card bg-white rounded-lg shadow-md p-6 cursor-pointer transition-all"
+                     onclick="showTemplateDetail('${t.id}')">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg text-gray-800">${t.name}</h3>
+                        <span class="text-xs text-gray-400">v${t.version}</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3 line-clamp-3">${t.description}</p>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        ${(t.tags || []).map(tag => `<span class="strategy-tag">${tag}</span>`).join('')}
+                    </div>
+                    <div class="flex justify-between items-center text-sm text-gray-500 pt-3 border-t">
+                        <span><i class="fa fa-sliders mr-1"></i> ${t.parameters?.length || 0}个参数</span>
+                        <span class="text-blue-500 hover:text-blue-700">
+                            查看详情 <i class="fa fa-chevron-right"></i>
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 更新分页
+            updatePagination();
+        }
+        
+        // 显示模板详情
+        function showTemplateDetail(templateId) {
+            const template = allTemplates.find(t => t.id === templateId);
+            if (!template) return;
+            
+            currentTemplate = template;
+            
+            document.getElementById('modalName').textContent = template.name;
+            document.getElementById('modalAuthor').textContent = `作者: ${template.author} | 版本: ${template.version}`;
+            document.getElementById('modalDesc').textContent = template.description;
+            document.getElementById('modalScenario').textContent = template.scenario;
+            
+            // 标签
+            document.getElementById('modalTags').innerHTML = (template.tags || []).map(t => 
+                `<span class="strategy-tag">${t}</span>`
+            ).join('');
+            
+            // 参数详情
+            const paramsContainer = document.getElementById('modalParams');
+            paramsContainer.innerHTML = (template.parameters || []).map(p => `
+                <div class="bg-gray-50 rounded-lg p-3">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-medium text-gray-800">${p.display_name || p.name}</span>
+                        <span class="param-badge">${p.type}</span>
+                    </div>
+                    <p class="text-sm text-gray-500">${p.description || '无描述'}</p>
+                    <div class="flex gap-4 mt-2 text-xs text-gray-400">
+                        ${p.min_value !== null ? `<span>最小值: ${p.min_value}</span>` : ''}
+                        ${p.max_value !== null ? `<span>最大值: ${p.max_value}</span>` : ''}
+                        ${p.step !== null ? `<span>步长: ${p.step}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            // 默认参数值
+            const defaultParams = template.default_params || {};
+            document.getElementById('modalDefaultParams').innerHTML = Object.entries(defaultParams).map(([key, value]) => `
+                <div class="bg-white rounded p-2 text-center">
+                    <div class="text-xs text-gray-500 mb-1">${key}</div>
+                    <div class="font-bold text-blue-600">${value}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // 关闭详情Modal
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentTemplate = null;
+        }
+        
+        // 从Modal导出模板
+        function exportTemplateFromModal() {
+            if (!currentTemplate) return;
+            
+            const exportData = {
+                id: currentTemplate.id,
+                name: currentTemplate.name,
+                description: currentTemplate.description,
+                scenario: currentTemplate.scenario,
+                parameters: currentTemplate.parameters,
+                default_params: currentTemplate.default_params,
+                author: currentTemplate.author,
+                version: currentTemplate.version,
+                tags: currentTemplate.tags
+            };
+            
+            document.getElementById('exportJson').value = JSON.stringify(exportData, null, 2);
+            document.getElementById('exportModal').classList.remove('hidden');
+        }
+        
+        // 关闭导出Modal
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.add('hidden');
+        }
+        
+        // 复制导出JSON
+        function copyExportJson() {
+            const textarea = document.getElementById('exportJson');
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                showToast('已复制到剪贴板');
+            }).catch(() => {
+                textarea.select();
+                document.execCommand('copy');
+                showToast('已复制到剪贴板');
+            });
+        }
+        
+        // 一键回测
+        function runBacktestFromModal() {
+            if (!currentTemplate) return;
+            
+            closeDetailModal();
+            document.getElementById('backtestTemplateName').textContent = currentTemplate.name;
+            document.getElementById('backtestModal').classList.remove('hidden');
+        }
+        
+        // 关闭回测Modal
+        function closeBacktestModal() {
+            document.getElementById('backtestModal').classList.add('hidden');
+        }
+        
+        // 确认回测
+        function confirmBacktest() {
+            const stockCode = document.getElementById('backtestStockCode').value.trim();
+            if (!stockCode) {
+                showToast('请输入股票代码', 'error');
+                return;
+            }
+            
+            // 将模板ID和股票代码存储到sessionStorage
+            sessionStorage.setItem('backtestTemplate', JSON.stringify({
+                templateId: currentTemplate.id,
+                stockCode: stockCode,
+                params: currentTemplate.default_params
+            }));
+            
+            closeBacktestModal();
+            // 跳转到回测页面
+            window.location.href = '/backtest';
+        }
+        
+        // 更新分页
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredTemplates.length / pageSize);
+            
+            if (totalPages <= 1) {
+                document.getElementById('pagination').classList.add('hidden');
+                return;
+            }
+            
+            document.getElementById('pagination').classList.remove('hidden');
+            
+            // 更新上一页/下一页按钮
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+            
+            // 更新页码
+            const pageNumbers = document.getElementById('pageNumbers');
+            let pagesHtml = '';
+            
+            for (let i = 1; i <= totalPages; i++) {
+                pagesHtml += `
+                    <button onclick="goToPage(${i})" 
+                            class="px-3 py-1 rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'border bg-white hover:bg-gray-50'}">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            pageNumbers.innerHTML = pagesHtml;
+        }
+        
+        // 跳转到指定页
+        function goToPage(page) {
+            const totalPages = Math.ceil(filteredTemplates.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage = page;
+            renderTemplates();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // 上一页
+        function prevPage() {
+            if (currentPage > 1) {
+                goToPage(currentPage - 1);
+            }
+        }
+        
+        // 下一页
+        function nextPage() {
+            const totalPages = Math.ceil(filteredTemplates.length / pageSize);
+            if (currentPage < totalPages) {
+                goToPage(currentPage + 1);
+            }
+        }
+        
+        // 显示空状态
+        function showEmptyState() {
+            document.getElementById('templateList').classList.add('hidden');
+            document.getElementById('emptyState').classList.remove('hidden');
+            document.getElementById('pagination').classList.add('hidden');
+        }
+        
+        // 隐藏空状态
+        function hideEmptyState() {
+            document.getElementById('templateList').classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+        }
+        
+        // 更新模板计数
+        function updateTemplateCount() {
+            document.getElementById('templateCount').textContent = allTemplates.length;
+        }
+        
+        // Toast提示
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${type === 'error' ? 'bg-red-500' : 'bg-green-500'} text-white`;
+            toast.innerHTML = `<i class="fa ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i>${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // 点击Modal外部关闭
+        document.getElementById('detailModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDetailModal();
+            }
+        });
+        
+        document.getElementById('exportModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeExportModal();
+            }
+        });
+        
+        document.getElementById('backtestModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeBacktestModal();
+            }
+        });
+    </script>
+</body>
+</html>

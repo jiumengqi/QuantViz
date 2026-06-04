@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回测历史 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5',
+                        success: '#00B42A',
+                        danger: '#F53F3F',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题和面包屑 -->
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-neutral-dark mb-2">回测历史</h1>
+                        <p class="text-gray-600">查看和管理您的策略回测历史记录</p>
+                    </div>
+                    <nav class="flex mt-4 md:mt-0" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="{{ url_for('main.index') }}" class="text-gray-700 hover:text-primary text-sm font-medium">首页</a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <a href="{{ url_for('backtest.backtest_index') }}" class="ml-1 text-gray-700 hover:text-primary text-sm font-medium">策略回测</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="ml-1 text-gray-500 font-medium text-sm">回测历史</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- 回测历史概览 -->
+            <div class="mb-8">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-6">回测历史概览</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all">
+                            <div class="text-sm text-gray-500 mb-2">总回测次数</div>
+                            <div class="text-3xl font-bold mb-1">24</div>
+                            <div class="text-xs text-gray-500">近30天: +5</div>
+                        </div>
+                        <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all">
+                            <div class="text-sm text-gray-500 mb-2">平均收益率</div>
+                            <div class="text-3xl font-bold text-success mb-1">11.2%</div>
+                            <div class="text-xs text-gray-500">较上月: +0.8%</div>
+                        </div>
+                        <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all">
+                            <div class="text-sm text-gray-500 mb-2">最佳策略</div>
+                            <div class="text-3xl font-bold mb-1">Fama-French</div>
+                            <div class="text-xs text-gray-500">收益率: 15.3%</div>
+                        </div>
+                        <div class="border border-gray-100 rounded-xl p-5 hover:border-primary transition-all">
+                            <div class="text-sm text-gray-500 mb-2">回测成功率</div>
+                            <div class="text-3xl font-bold text-success mb-1">87.5%</div>
+                            <div class="text-xs text-gray-500">盈利策略占比</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选和搜索 -->
+            <div class="mb-8">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                        <h2 class="text-lg font-semibold mb-4 md:mb-0">策略筛选</h2>
+                        <div class="relative w-full md:w-64">
+                            <input type="text" id="search-input" placeholder="搜索策略名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <i class="fa fa-search text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-4">
+                        <div class="w-full md:w-auto">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">策略类型</label>
+                            <select id="strategy-type-filter" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary w-full md:w-48">
+                                <option value="all">全部策略</option>
+                                <option value="trend">趋势跟踪</option>
+                                <option value="mean-reversion">均值回归</option>
+                                <option value="momentum">动量策略</option>
+                                <option value="volatility">波动率策略</option>
+                                <option value="multi-factor">多因子策略</option>
+                                <option value="seasonal">季节性策略</option>
+                                <option value="arbitrage">套利策略</option>
+                            </select>
+                        </div>
+                        <div class="w-full md:w-auto">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">时间范围</label>
+                            <select id="time-range-filter" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary w-full md:w-48">
+                                <option value="all">全部时间</option>
+                                <option value="7d">最近7天</option>
+                                <option value="30d">最近30天</option>
+                                <option value="90d">最近90天</option>
+                                <option value="1y">最近1年</option>
+                            </select>
+                        </div>
+                        <div class="w-full md:w-auto">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">收益率范围</label>
+                            <select id="return-range-filter" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary w-full md:w-48">
+                                <option value="all">全部范围</option>
+                                <option value="positive">正收益</option>
+                                <option value="negative">负收益</option>
+                                <option value="high">高收益 (>10%)</option>
+                                <option value="low">低收益 (<5%)</option>
+                            </select>
+                        </div>
+                        <div class="w-full md:w-auto flex items-end">
+                            <button id="apply-filters" class="w-full md:w-auto px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                                应用筛选
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 回测历史表格 -->
+            <div class="mb-8">
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        策略名称
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        回测时间范围
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        收益率
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        最大回撤
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Sharpe比率
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        回测时间
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        操作
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="backtest-history-table">
+                                <!-- 回测记录1 -->
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">
+                                        双均线策略
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2024-01-01 至 2024-12-31
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-success font-medium">
+                                        12.5%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-danger">
+                                        -8.3%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        0.85
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2024-12-01 14:30
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="#" class="text-primary hover:text-primary/80 mr-3">查看详情</a>
+                                        <a href="#" class="text-yellow-600 hover:text-yellow-800 mr-3">复制策略</a>
+                                        <a href="#" class="text-red-600 hover:text-red-800 delete-backtest">删除</a>
+                                    </td>
+                                </tr>
+                                <!-- 回测记录2 -->
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">
+                                        布林带策略
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2024-01-01 至 2024-12-31
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-success font-medium">
+                                        8.7%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-danger">
+                                        -6.2%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        0.72
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2024-11-28 09:15
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="#" class="text-primary hover:text-primary/80 mr-3">查看详情</a>
+                                        <a href="#" class="text-yellow-600 hover:text-yellow-800 mr-3">复制策略</a>
+                                        <a href="#" class="text-red-600 hover:text-red-800 delete-backtest">删除</a>
+                                    </td>
+                                </tr>
+                                <!-- 回测记录3 -->
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">
+                                        相对强弱策略
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2024-01-01 至 2024-12-31
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-success font-medium">
+                                        10.2%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-danger">
+                                        -7.5%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        0.78
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2024-11-25 16:45
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="#" class="text-primary hover:text-primary/80 mr-3">查看详情</a>
+                                        <a href="#" class="text-yellow-600 hover:text-yellow-800 mr-3">复制策略</a>
+                                        <a href="#" class="text-red-600 hover:text-red-800 delete-backtest">删除</a>
+                                    </td>
+                                </tr>
+                                <!-- 回测记录4 -->
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">
+                                        Fama-French三因子策略
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2024-01-01 至 2024-12-31
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-success font-medium">
+                                        15.3%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-danger">
+                                        -9.8%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        0.92
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2024-11-20 11:30
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="#" class="text-primary hover:text-primary/80 mr-3">查看详情</a>
+                                        <a href="#" class="text-yellow-600 hover:text-yellow-800 mr-3">复制策略</a>
+                                        <a href="#" class="text-red-600 hover:text-red-800 delete-backtest">删除</a>
+                                    </td>
+                                </tr>
+                                <!-- 回测记录5 -->
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark">
+                                        MACD策略
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2024-01-01 至 2024-12-31
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-success font-medium">
+                                        9.8%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-danger">
+                                        -7.1%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        0.75
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2024-11-18 15:20
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="#" class="text-primary hover:text-primary/80 mr-3">查看详情</a>
+                                        <a href="#" class="text-yellow-600 hover:text-yellow-800 mr-3">复制策略</a>
+                                        <a href="#" class="text-red-600 hover:text-red-800 delete-backtest">删除</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- 分页 -->
+                    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                        <div class="hidden sm:block">
+                            <p class="text-sm text-gray-700">
+                                显示 <span class="font-medium">1</span> 到 <span class="font-medium">5</span> 条，共 <span class="font-medium">12</span> 条记录
+                            </p>
+                        </div>
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                上一页
+                            </a>
+                            <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                下一页
+                            </a>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    上一页
+                                </a>
+                                <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    下一页
+                                </a>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">第一页</span>
+                                        <i class="fa fa-angle-double-left"></i>
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">上一页</span>
+                                        <i class="fa fa-angle-left"></i>
+                                    </a>
+                                    <a href="#" aria-current="page" class="z-10 bg-primary border-primary text-white relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        1
+                                    </a>
+                                    <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        2
+                                    </a>
+                                    <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        3
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">下一页</span>
+                                        <i class="fa fa-angle-right"></i>
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">最后一页</span>
+                                        <i class="fa fa-angle-double-right"></i>
+                                    </a>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 策略性能对比 -->
+            <div class="mb-8">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-6">策略性能对比</h2>
+                    <div class="h-[400px]">
+                        <canvas id="strategy-comparison-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+    <!-- 回测历史脚本 -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 删除回测记录
+        const deleteButtons = document.querySelectorAll('.delete-backtest');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (confirm('确定要删除这条回测记录吗？')) {
+                    // 这里可以添加删除逻辑
+                    const row = this.closest('tr');
+                    row.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                    setTimeout(() => {
+                        row.remove();
+                    }, 500);
+                }
+            });
+        });
+        
+        // 搜索功能
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#backtest-history-table tr');
+                rows.forEach(row => {
+                    const strategyName = row.querySelector('td:first-child').textContent.toLowerCase();
+                    if (strategyName.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // 筛选功能
+        const strategyTypeFilter = document.getElementById('strategy-type-filter');
+        const timeRangeFilter = document.getElementById('time-range-filter');
+        const returnRangeFilter = document.getElementById('return-range-filter');
+        const applyFiltersBtn = document.getElementById('apply-filters');
+        
+        function applyFilters() {
+            const strategyType = strategyTypeFilter.value;
+            const timeRange = timeRangeFilter.value;
+            const returnRange = returnRangeFilter.value;
+            // 这里可以添加筛选逻辑
+            console.log('应用筛选:', { strategyType, timeRange, returnRange });
+        }
+        
+        if (applyFiltersBtn) {
+            applyFiltersBtn.addEventListener('click', applyFilters);
+        }
+        
+        // 初始化策略对比图表
+        function initStrategyComparisonChart() {
+            const ctx = document.getElementById('strategy-comparison-chart').getContext('2d');
+            
+            const strategies = ['双均线策略', '布林带策略', '相对强弱策略', 'Fama-French', 'MACD策略', '海龟交易策略'];
+            const returns = [12.5, 8.7, 10.2, 15.3, 9.8, 11.5];
+            const maxDrawdowns = [-8.3, -6.2, -7.5, -9.8, -7.1, -8.7];
+            const sharpeRatios = [0.85, 0.72, 0.78, 0.92, 0.75, 0.88];
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: strategies,
+                    datasets: [
+                        {
+                            label: '收益率 (%)',
+                            data: returns,
+                            backgroundColor: 'rgba(0, 180, 42, 0.7)',
+                            borderColor: 'rgba(0, 180, 42, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '最大回撤 (%)',
+                            data: maxDrawdowns,
+                            backgroundColor: 'rgba(245, 63, 63, 0.7)',
+                            borderColor: 'rgba(245, 63, 63, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Sharpe比率',
+                            data: sharpeRatios,
+                            backgroundColor: 'rgba(22, 93, 255, 0.7)',
+                            borderColor: 'rgba(22, 93, 255, 1)',
+                            borderWidth: 1,
+                            type: 'line',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#165DFF',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '百分比 (%)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        y1: {
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Sharpe比率',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+        
+        // 初始化图表
+        initStrategyComparisonChart();
+    });
+    </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas显示测试
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('图表加载中...', canvas.width/2, canvas.height/2);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

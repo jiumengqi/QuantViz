@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多因子分析 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto { content-visibility: auto; }
+            .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .card-hover { transition: all 0.3s ease; }
+            .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+            .gradient-bg { background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%); }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    {% include 'components/header.html' %}
+
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-neutral-dark mb-2">多因子分析</h1>
+                        <p class="text-gray-600">通过多种因子综合评估，选出优质股票构建投资组合</p>
+                    </div>
+                    <nav class="flex mt-4 md:mt-0" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="{{ url_for('main.index') }}" class="text-gray-700 hover:text-primary text-sm font-medium">首页</a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                    <a href="{{ url_for('analysis.analysis_index') }}" class="ml-1 text-gray-700 hover:text-primary text-sm font-medium">数据分析</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                    <span class="ml-1 text-gray-500 font-medium text-sm">多因子分析</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
+                        <h2 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fa fa-sliders text-primary mr-2"></i> 分析配置
+                        </h2>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">选择因子类别</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="cat-valuation" class="category-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" checked>
+                                    <label for="cat-valuation" class="ml-2 text-sm text-gray-700">估值因子</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="cat-growth" class="category-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" checked>
+                                    <label for="cat-growth" class="ml-2 text-sm text-gray-700">成长因子</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="cat-quality" class="category-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" checked>
+                                    <label for="cat-quality" class="ml-2 text-sm text-gray-700">质量因子</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="cat-technical" class="category-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                    <label for="cat-technical" class="ml-2 text-sm text-gray-700">技术因子</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-6" id="factors-container">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">选择具体因子</label>
+                            <div class="space-y-2" id="factor-list"></div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">正交化处理</label>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="use-orthogonalization" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                <label for="use-orthogonalization" class="ml-2 text-sm text-gray-700">去除因子间相关性</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">选取股票数量</label>
+                            <select id="n-top" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                <option value="10">前10名</option>
+                                <option value="20">前20名</option>
+                                <option value="30">前30名</option>
+                                <option value="50" selected>前50名</option>
+                                <option value="100">前100名</option>
+                            </select>
+                        </div>
+
+                        <button id="analyze-btn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center font-medium">
+                            <i class="fa fa-bar-chart mr-2"></i> 开始分析
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-3 space-y-8">
+                    <div class="bg-white rounded-xl shadow-md p-6" id="factor-validity-section" style="display: none;">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold">因子有效性分析</h2>
+                            <span class="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm" id="validity-level">有效性: 高</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr class="bg-gray-50">
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">因子名称</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">类别</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">IC值</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">|IC|</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">IR值</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200" id="factor-validity-table"></tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4 grid grid-cols-3 gap-4">
+                            <div class="border border-gray-100 rounded-lg p-4 text-center">
+                                <div class="text-sm text-gray-500">平均IC</div>
+                                <div class="text-xl font-bold text-primary" id="avg-ic">0.00</div>
+                            </div>
+                            <div class="border border-gray-100 rounded-lg p-4 text-center">
+                                <div class="text-sm text-gray-500">平均|IC|</div>
+                                <div class="text-xl font-bold text-primary" id="avg-ic-abs">0.00</div>
+                            </div>
+                            <div class="border border-gray-100 rounded-lg p-4 text-center">
+                                <div class="text-sm text-gray-500">分析股票数</div>
+                                <div class="text-xl font-bold text-primary" id="total-stocks">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6" id="ic-chart-section" style="display: none;">
+                        <h2 class="text-xl font-semibold mb-4">因子IC分析</h2>
+                        <div class="h-64">
+                            <canvas id="ic-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6" id="ranking-section" style="display: none;">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold">股票排名</h2>
+                            <div class="flex items-center space-x-2">
+                                <button id="export-btn" class="px-4 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center text-sm">
+                                    <i class="fa fa-download mr-2"></i> 导出CSV
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr class="bg-gray-50">
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">排名</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">股票代码</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">股票名称</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">综合得分</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200" id="ranking-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6" id="score-chart-section" style="display: none;">
+                        <h2 class="text-xl font-semibold mb-4">综合得分分布</h2>
+                        <div class="h-64">
+                            <canvas id="score-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6" id="loading-section" style="display: none;">
+                        <div class="text-center py-12">
+                            <i class="fa fa-spinner fa-spin text-4xl text-primary mb-4"></i>
+                            <p class="text-gray-600">分析中，请稍候...</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6" id="empty-section">
+                        <div class="text-center py-12">
+                            <i class="fa fa-line-chart text-6xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500 text-lg">点击左侧"开始分析"按钮进行多因子选股</p>
+                            <p class="text-gray-400 text-sm mt-2">选择您关注的因子，配置权重，系统将为您筛选优质股票</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+    let factorChart = null;
+    let scoreChart = null;
+    let currentRanking = [];
+    let factorsData = {};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadFactors();
+        bindEvents();
+    });
+
+    async function loadFactors() {
+        try {
+            const response = await fetch('/multi_factor/factors/list');
+            const result = await response.json();
+            
+            if (result.success) {
+                factorsData = result.categories;
+                renderFactorList(result.factors);
+            }
+        } catch (error) {
+            console.error('加载因子列表失败:', error);
+        }
+    }
+
+    function renderFactorList(factors) {
+        const container = document.getElementById('factor-list');
+        container.innerHTML = '';
+        
+        factors.forEach(factor => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center';
+            div.innerHTML = `
+                <input type="checkbox" id="factor-${factor.id}" class="factor-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" checked data-category="${factor.category}">
+                <label for="factor-${factor.id}" class="ml-2 text-sm text-gray-700 flex-grow">${factor.name}</label>
+                <input type="number" id="weight-${factor.id}" class="w-16 p-1 border border-gray-300 rounded text-sm text-center" value="${factor.default_weight}" min="0" max="1" step="0.05">
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function bindEvents() {
+        document.getElementById('analyze-btn').addEventListener('click', runAnalysis);
+        document.getElementById('export-btn').addEventListener('click', exportResults);
+        
+        document.querySelectorAll('.category-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', filterFactorsByCategory);
+        });
+    }
+
+    function filterFactorsByCategory() {
+        const selectedCategories = [];
+        document.querySelectorAll('.category-checkbox:checked').forEach(cb => {
+            selectedCategories.push(cb.id.replace('cat-', ''));
+        });
+        
+        document.querySelectorAll('.factor-checkbox').forEach(checkbox => {
+            const category = checkbox.dataset.category;
+            const row = checkbox.closest('div');
+            if (selectedCategories.includes(category)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    async function runAnalysis() {
+        const selectedFactors = [];
+        const weights = {};
+        
+        document.querySelectorAll('.factor-checkbox:checked').forEach(cb => {
+            const factorId = cb.id.replace('factor-', '');
+            selectedFactors.push(factorId);
+            const weightInput = document.getElementById(`weight-${factorId}`);
+            weights[factorId] = parseFloat(weightInput.value) || 0.1;
+        });
+        
+        if (selectedFactors.length === 0) {
+            alert('请至少选择一个因子');
+            return;
+        }
+        
+        const useOrthogonalization = document.getElementById('use-orthogonalization').checked;
+        const nTop = parseInt(document.getElementById('n-top').value);
+        
+        document.getElementById('empty-section').style.display = 'none';
+        document.getElementById('loading-section').style.display = 'block';
+        document.getElementById('factor-validity-section').style.display = 'none';
+        document.getElementById('ic-chart-section').style.display = 'none';
+        document.getElementById('ranking-section').style.display = 'none';
+        document.getElementById('score-chart-section').style.display = 'none';
+        
+        try {
+            const response = await fetch('/multi_factor/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    selected_factors: selectedFactors,
+                    weights: weights,
+                    use_orthogonalization: useOrthogonalization,
+                    n_top: nTop
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                currentRanking = result.analysis_result.ranking;
+                displayResults(result.analysis_result);
+            } else {
+                alert('分析失败: ' + result.error);
+            }
+        } catch (error) {
+            console.error('分析失败:', error);
+            alert('分析请求失败，请重试');
+        } finally {
+            document.getElementById('loading-section').style.display = 'none';
+        }
+    }
+
+    function displayResults(data) {
+        document.getElementById('factor-validity-section').style.display = 'block';
+        document.getElementById('ic-chart-section').style.display = 'block';
+        document.getElementById('ranking-section').style.display = 'block';
+        document.getElementById('score-chart-section').style.display = 'block';
+        
+        document.getElementById('validity-level').textContent = '有效性: ' + data.factor_validity.validity_level;
+        document.getElementById('avg-ic').textContent = data.factor_validity.avg_ic.toFixed(4);
+        document.getElementById('avg-ic-abs').textContent = data.factor_validity.avg_ic_abs.toFixed(4);
+        document.getElementById('total-stocks').textContent = data.total_stocks;
+        
+        const tableBody = document.getElementById('factor-validity-table');
+        tableBody.innerHTML = '';
+        data.factor_validity.factors.forEach(factor => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-3 px-4 text-sm font-medium text-gray-900">${factor.factor_name}</td>
+                <td class="py-3 px-4 text-sm text-gray-500">${factor.category}</td>
+                <td class="py-3 px-4 text-sm ${factor.ic >= 0 ? 'text-green-600' : 'text-red-600'}">${factor.ic.toFixed(4)}</td>
+                <td class="py-3 px-4 text-sm text-gray-500">${factor.ic_abs.toFixed(4)}</td>
+                <td class="py-3 px-4 text-sm text-gray-500">${factor.ir.toFixed(4)}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+        
+        renderICChart(data.factor_validity.factors);
+        renderRankingTable(data.ranking);
+        renderScoreChart(data.ranking);
+    }
+
+    function renderICChart(factors) {
+        const ctx = document.getElementById('ic-chart').getContext('2d');
+        
+        if (factorChart) {
+            factorChart.destroy();
+        }
+        
+        factorChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: factors.map(f => f.factor_name),
+                datasets: [{
+                    label: 'IC值',
+                    data: factors.map(f => f.ic),
+                    backgroundColor: factors.map(f => f.ic >= 0 ? 'rgba(54, 207, 201, 0.7)' : 'rgba(245, 63, 63, 0.7)'),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'IC: ' + context.raw.toFixed(4);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'IC值' }
+                    },
+                    x: {
+                        ticks: { maxRotation: 45, minRotation: 45 }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderRankingTable(ranking) {
+        const tableBody = document.getElementById('ranking-table');
+        tableBody.innerHTML = '';
+        
+        ranking.forEach(stock => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-3 px-4 text-sm font-medium ${stock.rank <= 10 ? 'text-primary' : 'text-gray-900'}">${stock.rank}</td>
+                <td class="py-3 px-4 text-sm text-gray-500">${stock.stock_code}</td>
+                <td class="py-3 px-4 text-sm font-medium text-gray-900">${stock.stock_name}</td>
+                <td class="py-3 px-4 text-sm ${stock.composite_score >= 0 ? 'text-green-600' : 'text-red-600'}">${stock.composite_score.toFixed(4)}</td>
+                <td class="py-3 px-4 text-sm">
+                    <button class="text-primary hover:text-primary/80" onclick="viewStockDetail('${stock.stock_code}')">
+                        <i class="fa fa-eye"></i> 查看
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    }
+
+    function renderScoreChart(ranking) {
+        const ctx = document.getElementById('score-chart').getContext('2d');
+        
+        if (scoreChart) {
+            scoreChart.destroy();
+        }
+        
+        const top20 = ranking.slice(0, 20);
+        
+        scoreChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: top20.map(s => s.stock_name),
+                datasets: [{
+                    label: '综合得分',
+                    data: top20.map(s => s.composite_score),
+                    backgroundColor: top20.map(s => s.composite_score >= 0 ? 'rgba(22, 93, 255, 0.7)' : 'rgba(245, 63, 63, 0.7)'),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: '综合得分' }
+                    }
+                }
+            }
+        });
+    }
+
+    function viewStockDetail(stockCode) {
+        window.location.href = '/data/stock/' + stockCode;
+    }
+
+    async function exportResults() {
+        if (currentRanking.length === 0) {
+            alert('没有可导出的数据');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/multi_factor/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ranking: currentRanking,
+                    format: 'csv'
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const blob = new Blob([result.content], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = result.filename;
+                link.click();
+            } else {
+                alert('导出失败: ' + result.error);
+            }
+        } catch (error) {
+            console.error('导出失败:', error);
+            alert('导出失败，请重试');
+        }
+    }
+    </script>
+</body>
+</html>

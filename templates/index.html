@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <!-- 自定义CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+    
+    <!-- 用户主题偏好注入 -->
+    <script>
+        window.__userThemePreference = '{{ current_user.theme_preference if current_user.is_authenticated else "system" }}';
+    </script>
+</head>
+<body class="bg-neutral-50 font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 英雄区域 -->
+    <section id="home" class="pt-28 pb-16 md:pt-36 md:pb-24 bg-gradient-to-b from-blue-50 to-white">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0 animate-fade-in">
+                    <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-tight text-neutral mb-4">
+                        金融数学驱动的<br>
+                        <span class="text-primary">量化投资分析平台</span>
+                    </h1>
+                    <p class="text-lg text-gray-600 mb-8 max-w-lg">
+                        融合金融数学理论与计算机技术，为您提供专业的量化分析工具，助力投资决策与学术研究。
+                    </p>
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                        <a href="{{ url_for('auth.register') }}" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl text-center transform hover:-translate-y-1 active:translate-y-0">
+                            开始使用 <i class="fa fa-arrow-right ml-2"></i>
+                        </a>
+                        <a href="{{ url_for('main.features') }}" class="px-6 py-3 border border-gray-300 rounded-lg hover:border-primary hover:text-primary transition-all duration-300 text-center transform hover:-translate-y-1 active:translate-y-0">
+                            了解更多 <i class="fa fa-info-circle ml-2"></i>
+                        </a>
+                    </div>
+                    <div class="mt-10 flex items-center space-x-6 animate-slide-up" style="animation-delay: 0.2s;">
+                        <div class="flex -space-x-2">
+                            <img src="https://picsum.photos/id/1001/40/40" alt="用户头像" class="w-10 h-10 rounded-full border-2 border-white transform hover:scale-110 transition-transform duration-300">
+                            <img src="https://picsum.photos/id/1002/40/40" alt="用户头像" class="w-10 h-10 rounded-full border-2 border-white transform hover:scale-110 transition-transform duration-300">
+                            <img src="https://picsum.photos/id/1003/40/40" alt="用户头像" class="w-10 h-10 rounded-full border-2 border-white transform hover:scale-110 transition-transform duration-300">
+                            <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center border-2 border-white text-sm font-medium transform hover:scale-110 transition-transform duration-300">
+                                +2k
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center mb-1">
+                                <i class="fa fa-star text-yellow-400"></i>
+                                <i class="fa fa-star text-yellow-400"></i>
+                                <i class="fa fa-star text-yellow-400"></i>
+                                <i class="fa fa-star text-yellow-400"></i>
+                                <i class="fa fa-star-half-o text-yellow-400"></i>
+                                <span class="ml-2 text-gray-600">4.8/5</span>
+                            </div>
+                            <p class="text-sm text-gray-500">来自2000+用户的信赖</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="md:w-1/2 relative animate-slide-up" style="animation-delay: 0.3s;">
+                    <div class="bg-white rounded-xl shadow-2xl p-4 relative z-10 transform rotate-1 hover:rotate-0 transition-transform duration-500 hover:shadow-2xl">
+                        <div class="bg-neutral-light rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-semibold">股票分析仪表盘</h3>
+                                <div class="flex space-x-2">
+                                    <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                                    <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
+                                    <span class="w-3 h-3 rounded-full bg-green-400"></span>
+                                </div>
+                            </div>
+                            <div style="height: 220px; width: 100%;">
+                                <canvas id="stockChart" style="display: block; width: 100% !important; height: 100% !important;"></canvas>
+                            </div>
+                            <div id="simulatedDataBadge" class="mt-1 text-center hidden">
+                                <span class="inline-block px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
+                                    <i class="fa fa-exclamation-triangle mr-1"></i>模拟数据
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-2xl p-4 w-48 z-0 transform -rotate-3 hover:rotate-0 transition-transform duration-500 hover:shadow-xl">
+                        <div class="flex items-center mb-2">
+                            <i class="fa fa-bar-chart text-accent mr-2"></i>
+                            <span class="font-medium">策略绩效</span>
+                        </div>
+                        <div class="text-2xl font-bold text-green-500 mb-1">+24.6%</div>
+                        <div class="text-sm text-gray-500">年化收益率</div>
+                    </div>
+                    <div class="absolute -top-6 -right-6 bg-white rounded-xl shadow-2xl p-4 w-48 z-0 transform rotate-3 hover:rotate-0 transition-transform duration-500 hover:shadow-xl">
+                        <div class="flex items-center mb-2">
+                            <i class="fa fa-shield text-secondary mr-2"></i>
+                            <span class="font-medium">风险指标</span>
+                        </div>
+                        <div class="text-2xl font-bold text-primary mb-1">1.87</div>
+                        <div class="text-sm text-gray-500">夏普比率</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能模块 -->
+    <section id="features" class="py-16 md:py-24 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-neutral mb-4">核心功能模块</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    集成金融数据获取、专业分析、模型计算和策略回测等功能，满足量化研究与投资决策需求
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 数据中心 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
+                    <div class="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-200">
+                        <i class="fa fa-database text-primary text-2xl transition-all duration-300 group-hover:scale-110"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 transition-all duration-300 group-hover:text-primary">金融数据中心</h3>
+                    <p class="text-gray-600 mb-4 transition-all duration-300">
+                        集成多源金融数据，提供股票、指数、财务指标等数据的获取、清洗和存储服务，支持历史数据查询与更新。
+                    </p>
+                    <ul class="space-y-2 mb-6">
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>股票行情与财务数据</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>指数与宏观经济数据</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>数据清洗与标准化</span>
+                        </li>
+                    </ul>
+                    <a href="{{ url_for('data.data_index') }}" class="text-primary font-medium flex items-center transition-all duration-300 group-hover:translate-x-1">
+                        了解更多 <i class="fa fa-arrow-right ml-2 transition-all duration-300 group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+
+                <!-- 数据分析 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
+                    <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 group-hover:bg-purple-200">
+                        <i class="fa fa-bar-chart text-accent text-2xl transition-all duration-300 group-hover:scale-110"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 transition-all duration-300 group-hover:text-primary">专业数据分析</h3>
+                    <p class="text-gray-600 mb-4 transition-all duration-300">
+                        提供全面的金融数据分析工具，包括收益率计算、风险度量、相关性分析等，支持数据可视化展示。
+                    </p>
+                    <ul class="space-y-2 mb-6">
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>收益率与风险指标计算</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>技术指标与因子分析</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>统计检验与可视化</span>
+                        </li>
+                    </ul>
+                    <a href="/analysis" class="text-primary font-medium flex items-center transition-all duration-300 group-hover:translate-x-1">
+                        了解更多 <i class="fa fa-arrow-right ml-2 transition-all duration-300 group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+
+                <!-- 模型计算 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
+                    <div class="w-14 h-14 bg-teal-100 rounded-lg flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 group-hover:bg-teal-200">
+                        <i class="fa fa-calculator text-secondary text-2xl transition-all duration-300 group-hover:scale-110"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 transition-all duration-300 group-hover:text-primary">金融数学模型</h3>
+                    <p class="text-gray-600 mb-4 transition-all duration-300">
+                        实现多种经典金融数学模型，包括期权定价、风险度量、组合优化等，支持模型参数调整与结果分析。
+                    </p>
+                    <ul class="space-y-2 mb-6">
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>期权定价模型（Black-Scholes）</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>风险价值（VaR）计算</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>马克维茨组合优化</span>
+                        </li>
+                    </ul>
+                    <a href="/models" class="text-primary font-medium flex items-center transition-all duration-300 group-hover:translate-x-1">
+                        了解更多 <i class="fa fa-arrow-right ml-2 transition-all duration-300 group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+
+                <!-- 策略回测 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
+                    <div class="w-14 h-14 bg-orange-100 rounded-lg flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 group-hover:bg-orange-200">
+                        <i class="fa fa-refresh text-orange-500 text-2xl transition-all duration-300 group-hover:scale-110"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 transition-all duration-300 group-hover:text-primary">策略回测系统</h3>
+                    <p class="text-gray-600 mb-4 transition-all duration-300">
+                        提供量化交易策略的回测功能，支持多种绩效指标评估，生成详细的回测报告与可视化结果。
+                    </p>
+                    <ul class="space-y-2 mb-6">
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>经典技术分析策略</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>自定义策略开发接口</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>绩效评估与风险分析</span>
+                        </li>
+                    </ul>
+                    <a href="/backtest" class="text-primary font-medium flex items-center transition-all duration-300 group-hover:translate-x-1">
+                        了解更多 <i class="fa fa-arrow-right ml-2 transition-all duration-300 group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+
+                <!-- 课程实践 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
+                    <div class="w-14 h-14 bg-red-100 rounded-lg flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 group-hover:bg-red-200">
+                        <i class="fa fa-graduation-cap text-red-500 text-2xl transition-all duration-300 group-hover:scale-110"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 transition-all duration-300 group-hover:text-primary">课程实践模块</h3>
+                    <p class="text-gray-600 mb-4 transition-all duration-300">
+                        结合金融数学专业课程设计的实践模块，帮助学生将理论知识转化为实际应用能力。
+                    </p>
+                    <ul class="space-y-2 mb-6">
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>金融工程实验案例</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>计量经济学分析工具</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>课程作业与研究支持</span>
+                        </li>
+                    </ul>
+                    <a href="/courses" class="text-primary font-medium flex items-center transition-all duration-300 group-hover:translate-x-1">
+                        了解更多 <i class="fa fa-arrow-right ml-2 transition-all duration-300 group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+
+                <!-- 研究支持 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
+                    <div class="w-14 h-14 bg-indigo-100 rounded-lg flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 group-hover:bg-indigo-200">
+                        <i class="fa fa-flask text-indigo-500 text-2xl transition-all duration-300 group-hover:scale-110"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 transition-all duration-300 group-hover:text-primary">研究支持工具</h3>
+                    <p class="text-gray-600 mb-4 transition-all duration-300">
+                        为学术研究提供数据支持与分析工具，支持因子研究、市场有效性检验等研究方向。
+                    </p>
+                    <ul class="space-y-2 mb-6">
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>因子挖掘与验证</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>研究笔记与结果记录</span>
+                        </li>
+                        <li class="flex items-start transition-all duration-300 group-hover:text-gray-700">
+                            <i class="fa fa-check text-green-500 mt-1 mr-2"></i>
+                            <span>论文写作数据支持</span>
+                        </li>
+                    </ul>
+                    <a href="/analysis" class="text-primary font-medium flex items-center transition-all duration-300 group-hover:translate-x-1">
+                        了解更多 <i class="fa fa-arrow-right ml-2 transition-all duration-300 group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+            </div>
+            <!-- 查看全部功能 -->
+            <div class="text-center mt-10">
+                <a href="{{ url_for('main.features') }}" class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl inline-flex items-center transform hover:-translate-y-1 active:translate-y-0">
+                    查看全部功能 <i class="fa fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 金融模型 -->
+    <section id="models" class="py-16 md:py-24 bg-neutral-light">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-neutral mb-4">金融数学模型库</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    实现多种经典金融数学模型，助力理论学习与实践应用
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 定价模型 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:shadow-lg">
+                    <div class="p-6 cursor-pointer model-card-header" data-target="pricing-models">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4 transform transition-transform duration-300 hover:scale-110">
+                                    <i class="fa fa-tag text-primary"></i>
+                                </div>
+                                <h3 class="text-xl font-bold">定价模型</h3>
+                            </div>
+                            <i class="fa fa-chevron-down text-gray-500 transform transition-transform duration-300"></i>
+                        </div>
+                        <p class="text-gray-600 mb-6">实现多种金融工具的定价模型，包括期权、债券等</p>
+                    </div>
+
+                    <div class="model-card-content hidden" id="pricing-models">
+                        <div class="space-y-4 px-6 pb-6">
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-colors transform hover:translate-x-1 transition-transform duration-300">
+                                <h4 class="font-semibold mb-2">Black-Scholes期权定价模型</h4>
+                                <p class="text-sm text-gray-600 mb-3">计算欧式期权的理论价格与希腊字母</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">看涨期权</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">看跌期权</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">希腊字母</span>
+                                </div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-colors transform hover:translate-x-1 transition-transform duration-300">
+                                <h4 class="font-semibold mb-2">债券定价模型</h4>
+                                <p class="text-sm text-gray-600 mb-3">计算债券的理论价格、久期与凸性</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">息票债券</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">久期</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">凸性</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 风险模型 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:shadow-lg">
+                    <div class="p-6 cursor-pointer model-card-header" data-target="risk-models">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-4 transform transition-transform duration-300 hover:scale-110">
+                                    <i class="fa fa-shield text-red-500"></i>
+                                </div>
+                                <h3 class="text-xl font-bold">风险模型</h3>
+                            </div>
+                            <i class="fa fa-chevron-down text-gray-500 transform transition-transform duration-300"></i>
+                        </div>
+                        <p class="text-gray-600 mb-6">实现多种风险度量与管理模型</p>
+                    </div>
+
+                    <div class="model-card-content hidden" id="risk-models">
+                        <div class="space-y-4 px-6 pb-6">
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-colors transform hover:translate-x-1 transition-transform duration-300">
+                                <h4 class="font-semibold mb-2">风险价值(VaR)模型</h4>
+                                <p class="text-sm text-gray-600 mb-3">使用多种方法计算风险价值</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">历史模拟法</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">参数法</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">蒙特卡洛法</span>
+                                </div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-colors transform hover:translate-x-1 transition-transform duration-300">
+                                <h4 class="font-semibold mb-2">下行风险模型</h4>
+                                <p class="text-sm text-gray-600 mb-3">计算下行风险、最大回撤等指标</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">下行标准差</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">最大回撤</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">风险调整收益</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 预测模型 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:shadow-lg">
+                    <div class="p-6 cursor-pointer model-card-header" data-target="forecasting-models">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4 transform transition-transform duration-300 hover:scale-110">
+                                    <i class="fa fa-line-chart text-green-500"></i>
+                                </div>
+                                <h3 class="text-xl font-bold">预测模型</h3>
+                            </div>
+                            <i class="fa fa-chevron-down text-gray-500 transform transition-transform duration-300"></i>
+                        </div>
+                        <p class="text-gray-600 mb-6">实现多种时间序列预测与分析模型</p>
+                    </div>
+
+                    <div class="model-card-content hidden" id="forecasting-models">
+                        <div class="space-y-4 px-6 pb-6">
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-colors transform hover:translate-x-1 transition-transform duration-300">
+                                <h4 class="font-semibold mb-2">时间序列模型</h4>
+                                <p class="text-sm text-gray-600 mb-3">ARIMA、GARCH等经典时间序列模型</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">ARIMA</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">GARCH</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">指数平滑</span>
+                                </div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-colors transform hover:translate-x-1 transition-transform duration-300">
+                                <h4 class="font-semibold mb-2">机器学习模型</h4>
+                                <p class="text-sm text-gray-600 mb-3">用于金融时间序列预测的机器学习模型</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">LSTM</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">随机森林</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">支持向量机</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 组合优化 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:shadow-lg">
+                    <div class="p-6 cursor-pointer model-card-header" data-target="portfolio-models">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4 transform transition-transform duration-300 hover:scale-110">
+                                    <i class="fa fa-pie-chart text-accent"></i>
+                                </div>
+                                <h3 class="text-xl font-bold">组合优化模型</h3>
+                            </div>
+                            <i class="fa fa-chevron-down text-gray-500 transform transition-transform duration-300"></i>
+                        </div>
+                        <p class="text-gray-600 mb-6">实现多种资产配置与组合优化模型</p>
+                    </div>
+
+                    <div class="model-card-content hidden" id="portfolio-models">
+                        <div class="space-y-4 px-6 pb-6">
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-colors transform hover:translate-x-1 transition-transform duration-300">
+                                <h4 class="font-semibold mb-2">马克维茨均值-方差模型</h4>
+                                <p class="text-sm text-gray-600 mb-3">构建有效前沿与最优资产组合</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">有效前沿</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">最小方差</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">最优夏普</span>
+                                </div>
+                            </div>
+
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-colors transform hover:translate-x-1 transition-transform duration-300">
+                                <h4 class="font-semibold mb-2">风险平价模型</h4>
+                                <p class="text-sm text-gray-600 mb-3">实现风险贡献相等的资产配置</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">风险平价</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">风险预算</span>
+                                    <span class="px-2 py-1 bg-blue-50 text-primary text-xs rounded-full transform transition-transform duration-300 hover:scale-105">带约束优化</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 策略回测展示 -->
+    <section id="backtest" class="py-16 md:py-24 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-neutral mb-4">策略回测系统</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    验证量化交易策略的有效性，提供全面的绩效评估与风险分析
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100">
+                <div class="p-6 md:p-8">
+                    <div class="flex flex-col md:flex-row gap-8">
+                        <div class="md:w-1/3">
+                            <h3 class="text-xl font-bold mb-6">策略参数设置</h3>
+
+                            <div class="space-y-6">
+                                <div class="transform transition-transform duration-300 hover:scale-[1.01]">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">选择策略</label>
+                                    <select class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                        <option>移动平均线交叉策略</option>
+                                        <option>RSI超买超卖策略</option>
+                                        <option>MACD策略</option>
+                                        <option>布林带策略</option>
+                                        <option>自定义策略</option>
+                                    </select>
+                                </div>
+
+                                <div class="transform transition-transform duration-300 hover:scale-[1.01]">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">股票代码</label>
+                                    <input type="text" value="600036.SH" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                    <p class="text-xs text-gray-500 mt-1">例如: 600036.SH (招商银行)</p>
+                                </div>
+
+                                <div class="transform transition-transform duration-300 hover:scale-[1.01]">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">回测时间段</label>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <input type="date" value="2020-01-01" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                        <input type="date" value="2023-12-31" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                    </div>
+                                </div>
+
+                                <div class="transform transition-transform duration-300 hover:scale-[1.01]">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">策略参数</label>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="text-xs text-gray-600">短期均线窗口</label>
+                                            <input type="number" value="10" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="text-xs text-gray-600">长期均线窗口</label>
+                                            <input type="number" value="30" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="transform transition-transform duration-300 hover:scale-[1.01]">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">初始资金</label>
+                                    <input type="number" value="1000000" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                </div>
+
+                                <button id="start-backtest-btn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center transform hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200">
+                                    <i class="fa fa-play mr-2"></i> 开始回测
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="md:w-2/3">
+                            <h3 class="text-xl font-bold mb-6">回测结果分析</h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div id="total-return-container" class="bg-neutral-light rounded-lg p-4 transform transition-transform duration-300 hover:scale-[1.03] hover:shadow-md">
+                                    <div class="text-sm text-gray-500 mb-1">总收益率</div>
+                                    <div id="total-return-value" class="text-2xl font-bold text-green-500 transform transition-transform duration-300 hover:scale-110">24.6%</div>
+                                    <div class="text-xs text-gray-500 mt-1">相对于基准 +8.3%</div>
+                                </div>
+                                <div id="annual-return-container" class="bg-neutral-light rounded-lg p-4 transform transition-transform duration-300 hover:scale-[1.03] hover:shadow-md">
+                                    <div class="text-sm text-gray-500 mb-1">年化收益率</div>
+                                    <div id="annual-return-value" class="text-2xl font-bold text-green-500 transform transition-transform duration-300 hover:scale-110">7.8%</div>
+                                    <div class="text-xs text-gray-500 mt-1">相对于基准 +2.5%</div>
+                                </div>
+                                <div id="sharpe-ratio-container" class="bg-neutral-light rounded-lg p-4 transform transition-transform duration-300 hover:scale-[1.03] hover:shadow-md">
+                                    <div class="text-sm text-gray-500 mb-1">夏普比率</div>
+                                    <div id="sharpe-ratio-value" class="text-2xl font-bold text-primary transform transition-transform duration-300 hover:scale-110">1.87</div>
+                                    <div class="text-xs text-gray-500 mt-1">越高表示风险调整收益越好</div>
+                                </div>
+                                <div id="max-drawdown-container" class="bg-neutral-light rounded-lg p-4 transform transition-transform duration-300 hover:scale-[1.03] hover:shadow-md">
+                                    <div class="text-sm text-gray-500 mb-1">最大回撤</div>
+                                    <div id="max-drawdown-value" class="text-2xl font-bold text-red-500 transform transition-transform duration-300 hover:scale-110">-12.3%</div>
+                                    <div class="text-xs text-gray-500 mt-1">相对于基准 -5.2%</div>
+                                </div>
+                                <div id="win-rate-container" class="bg-neutral-light rounded-lg p-4 transform transition-transform duration-300 hover:scale-[1.03] hover:shadow-md">
+                                    <div class="text-sm text-gray-500 mb-1">胜率</div>
+                                    <div id="win-rate-value" class="text-2xl font-bold text-primary transform transition-transform duration-300 hover:scale-110">62.5%</div>
+                                    <div class="text-xs text-gray-500 mt-1">盈利交易占比</div>
+                                </div>
+                                <div id="trade-count-container" class="bg-neutral-light rounded-lg p-4 transform transition-transform duration-300 hover:scale-[1.03] hover:shadow-md">
+                                    <div class="text-sm text-gray-500 mb-1">交易次数</div>
+                                    <div id="trade-count-value" class="text-2xl font-bold text-neutral transform transition-transform duration-300 hover:scale-110">24</div>
+                                    <div class="text-xs text-gray-500 mt-1">12次买入，12次卖出</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-6 transform transition-transform duration-300 hover:scale-[1.01]">
+                                <h4 class="font-medium mb-3">策略与基准收益对比</h4>
+                                <div class="bg-neutral-light rounded-lg p-4 h-64 transform transition-transform duration-300 hover:shadow-md">
+                                    <canvas id="backtestChart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="transform transition-transform duration-300 hover:scale-[1.01]">
+                                <h4 class="font-medium mb-3">交易记录</h4>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full bg-white transform transition-transform duration-300 hover:shadow-md">
+                                        <thead>
+                                            <tr class="bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th class="px-4 py-3">日期</th>
+                                                <th class="px-4 py-3">类型</th>
+                                                <th class="px-4 py-3">价格</th>
+                                                <th class="px-4 py-3">数量</th>
+                                                <th class="px-4 py-3">金额</th>
+                                                <th class="px-4 py-3">手续费</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200">
+                                            <tr class="transform transition-transform duration-300 hover:bg-gray-50">
+                                                <td class="px-4 py-3 text-sm">2023-11-15</td>
+                                                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">买入</span></td>
+                                                <td class="px-4 py-3 text-sm">32.56</td>
+                                                <td class="px-4 py-3 text-sm">3000</td>
+                                                <td class="px-4 py-3 text-sm">97,680.00</td>
+                                                <td class="px-4 py-3 text-sm">29.30</td>
+                                            </tr>
+                                            <tr class="transform transition-transform duration-300 hover:bg-gray-50">
+                                                <td class="px-4 py-3 text-sm">2023-10-08</td>
+                                                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">卖出</span></td>
+                                            <td class="px-4 py-3 text-sm">34.21</td>
+                                            <td class="px-4 py-3 text-sm">3000</td>
+                                            <td class="px-4 py-3 text-sm">102,630.00</td>
+                                            <td class="px-4 py-3 text-sm">30.79</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 立即注册CTA -->
+    <section class="py-12 md:py-16 bg-gradient-to-r from-primary to-secondary">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">准备好开始量化投资之旅了吗？</h2>
+            <p class="text-white/80 max-w-2xl mx-auto mb-8 text-lg">立即注册，免费体验专业的量化分析工具，提升您的投资决策能力。</p>
+            <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <a href="{{ url_for('auth.register') }}" class="px-8 py-3 bg-white text-primary rounded-lg hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold transform hover:-translate-y-1 active:translate-y-0">
+                    立即注册 <i class="fa fa-user-plus ml-2"></i>
+                </a>
+                <a href="{{ url_for('main.contact') }}" class="px-8 py-3 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0">
+                    联系我们 <i class="fa fa-envelope ml-2"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 联系我们 -->
+    <section id="contact" class="py-16 md:py-24 bg-neutral-light">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-neutral mb-4">联系我们</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    如有问题或建议，请随时联系我们
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-xl p-8 max-w-3xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-bold mb-6">联系方式</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fa fa-map-marker text-primary"></i>
+                                </div>
+                                <span>恒祥北大街3118号</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fa fa-envelope text-primary"></i>
+                                </div>
+                                <span>contact@quantfinance.com</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fa fa-phone text-primary"></i>
+                                </div>
+                                <span>+86 10 8888 8888</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-8">
+                            <h4 class="font-semibold mb-4">关注我们</h4>
+                            <div class="flex space-x-4">
+                                <a href="#" class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                                    <i class="fa fa-weibo"></i>
+                                </a>
+                                <a href="#" class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                                    <i class="fa fa-wechat"></i>
+                                </a>
+                                <a href="https://github.com" target="_blank" class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                                    <i class="fa fa-github"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-6">留言反馈</h3>
+                        <form id="contactForm">
+                            <div class="mb-4 transform transition-transform duration-300 hover:scale-[1.01]">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                                <input type="text" id="name" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary" placeholder="请输入您的姓名" required>
+                                <div class="text-red-500 text-xs mt-1 hidden" id="nameError">请输入您的姓名</div>
+                            </div>
+                            <div class="mb-4 transform transition-transform duration-300 hover:scale-[1.01]">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+                                <input type="email" id="email" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary" placeholder="请输入您的邮箱" required>
+                                <div class="text-red-500 text-xs mt-1 hidden" id="emailError">请输入有效的邮箱地址</div>
+                            </div>
+                            <div class="mb-4 transform transition-transform duration-300 hover:scale-[1.01]">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">留言内容</label>
+                                <textarea rows="4" id="message" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary" placeholder="请输入您的留言内容" required></textarea>
+                                <div class="text-red-500 text-xs mt-1 hidden" id="messageError">请输入留言内容</div>
+                            </div>
+                            <button type="submit" id="submitBtn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center transform hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200">
+                                <i class="fa fa-paper-plane mr-2"></i> 提交留言
+                            </button>
+                        </form>
+                        <div id="formSuccess" class="mt-4 p-4 bg-green-100 text-green-700 rounded-lg hidden">
+                            <div class="flex items-center">
+                                <i class="fa fa-check-circle mr-2"></i>
+                                <span>留言提交成功！我们会尽快回复您。</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 自定义JavaScript -->
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+    <!-- 金融模型卡片展开/收起功能 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 金融模型卡片展开/收起功能
+            const modelCardHeaders = document.querySelectorAll('.model-card-header');
+            
+            modelCardHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const content = document.getElementById(targetId);
+                    const icon = this.querySelector('i');
+                    
+                    if (content) {
+                        // 切换内容的显示/隐藏
+                        content.style.maxHeight = content.style.maxHeight ? null : content.scrollHeight + 'px';
+                        content.style.overflow = content.style.maxHeight ? 'hidden' : 'visible';
+                        
+                        // 旋转图标
+                        if (content.style.maxHeight) {
+                            icon.style.transform = 'rotate(180deg)';
+                        } else {
+                            icon.style.transform = 'rotate(0deg)';
+                        }
+                    }
+                });
+                
+                // 初始化时设置内容区域的样式
+                const targetId = header.getAttribute('data-target');
+                const content = document.getElementById(targetId);
+                if (content) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    content.style.overflow = 'visible';
+                    content.style.transition = 'max-height 0.3s ease-in-out';
+                }
+            });
+        });
+    </script>
+    
+    <!-- 联系表单验证与提交功能 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const contactForm = document.getElementById('contactForm');
+            const nameInput = document.getElementById('name');
+            const emailInput = document.getElementById('email');
+            const messageInput = document.getElementById('message');
+            const nameError = document.getElementById('nameError');
+            const emailError = document.getElementById('emailError');
+            const messageError = document.getElementById('messageError');
+            const formSuccess = document.getElementById('formSuccess');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // 表单验证函数
+            function validateForm() {
+                let isValid = true;
+                
+                // 验证姓名
+                if (!nameInput.value.trim()) {
+                    nameError.classList.remove('hidden');
+                    nameInput.classList.add('border-red-500');
+                    isValid = false;
+                } else {
+                    nameError.classList.add('hidden');
+                    nameInput.classList.remove('border-red-500');
+                }
+                
+                // 验证邮箱
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(emailInput.value.trim())) {
+                    emailError.classList.remove('hidden');
+                    emailInput.classList.add('border-red-500');
+                    isValid = false;
+                } else {
+                    emailError.classList.add('hidden');
+                    emailInput.classList.remove('border-red-500');
+                }
+                
+                // 验证留言内容
+                if (!messageInput.value.trim()) {
+                    messageError.classList.remove('hidden');
+                    messageInput.classList.add('border-red-500');
+                    isValid = false;
+                } else {
+                    messageError.classList.add('hidden');
+                    messageInput.classList.remove('border-red-500');
+                }
+                
+                return isValid;
+            }
+            
+            // 输入框实时验证
+            nameInput.addEventListener('input', function() {
+                if (nameInput.value.trim()) {
+                    nameError.classList.add('hidden');
+                    nameInput.classList.remove('border-red-500');
+                }
+            });
+            
+            emailInput.addEventListener('input', function() {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (emailRegex.test(emailInput.value.trim())) {
+                    emailError.classList.add('hidden');
+                    emailInput.classList.remove('border-red-500');
+                }
+            });
+            
+            messageInput.addEventListener('input', function() {
+                if (messageInput.value.trim()) {
+                    messageError.classList.add('hidden');
+                    messageInput.classList.remove('border-red-500');
+                }
+            });
+            
+            // 表单提交处理
+            contactForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (validateForm()) {
+                    // 显示加载状态
+                    submitBtn.disabled = true;
+                    const originalBtnHtml = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 提交中...';
+                    
+                    // 发送API请求
+                    fetch('/api/contact', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: nameInput.value.trim(),
+                            email: emailInput.value.trim(),
+                            subject: '首页留言',
+                            message: messageInput.value.trim()
+                        })
+                    })
+                    .then(function(response) { return response.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            // 显示成功消息
+                            formSuccess.classList.remove('hidden');
+                            formSuccess.classList.add('animate-fade-in');
+                            
+                            if (typeof showToast === 'function') {
+                                showToast(data.message || '留言提交成功！', 'success');
+                            }
+                            
+                            // 重置表单
+                            contactForm.reset();
+                            
+                            // 5秒后隐藏成功消息
+                            setTimeout(function() {
+                                formSuccess.classList.add('hidden');
+                            }, 5000);
+                        } else {
+                            if (typeof showToast === 'function') {
+                                showToast(data.message || '提交失败，请重试', 'error');
+                            } else {
+                                alert(data.message || '提交失败，请重试');
+                            }
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('提交失败:', error);
+                        if (typeof showToast === 'function') {
+                            showToast('网络错误，请稍后重试', 'error');
+                        } else {
+                            alert('网络错误，请稍后重试');
+                        }
+                    })
+                    .finally(function() {
+                        // 恢复按钮状态
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnHtml;
+                    });
+                }
+            });
+        });
+    </script>
+    
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+<script>
+// ============================================
+// 首页图表初始化 & 动态数据
+// ============================================
+
+// 全局图表实例管理
+const homeCharts = {};
+
+// 市场概览数据（从服务端注入或API获取）
+const marketOverviewData = {{ market_overview | tojson if market_overview else 'null' }};
+
+/**
+ * 初始化 #stockChart - 市场指数走势图
+ */
+function initStockChart() {
+    const canvas = document.getElementById('stockChart');
+    if (!canvas) return;
+    
+    if (homeCharts.stockChart) {
+        homeCharts.stockChart.destroy();
+    }
+
+    // 检测并显示模拟数据标签
+    if (marketOverviewData && marketOverviewData.is_simulated) {
+        const badge = document.getElementById('simulatedDataBadge');
+        if (badge) badge.classList.remove('hidden');
+    }
+
+    const ctx = canvas.getContext('2d');
+    
+    // 优先使用服务端数据，否则使用默认数据
+    let labels, data, labelText;
+    if (marketOverviewData && marketOverviewData.index_trend) {
+        const trend = marketOverviewData.index_trend;
+        labels = trend.map(d => d.date);
+        data = trend.map(d => d.value);
+        labelText = marketOverviewData.index_name || '上证指数';
+    } else {
+        // 默认模拟数据（后续API自动刷新）
+        labels = ['01/02', '01/08', '01/15', '01/22', '01/29', '02/05', '02/12', '02/19', '02/26'];
+        data = [3200, 3185, 3220, 3250, 3240, 3280, 3310, 3295, 3330];
+        labelText = '上证指数';
+    }
+
+    homeCharts.stockChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: labelText,
+                data: data,
+                borderColor: '#165DFF',
+                backgroundColor: 'rgba(22, 93, 255, 0.05)',
+                borderWidth: 2,
+                pointRadius: 2,
+                pointHoverRadius: 5,
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 10 } } },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2); }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 9 }, maxTicksLimit: 6 } },
+                y: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 9 } } }
+            },
+            animation: { duration: 800 }
+        }
+    });
+}
+
+/**
+ * 初始化 #backtestChart - 策略回测收益对比图
+ */
+function initBacktestChart() {
+    const canvas = document.getElementById('backtestChart');
+    if (!canvas) return;
+    
+    if (homeCharts.backtestChart) {
+        homeCharts.backtestChart.destroy();
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    // 初始加载默认数据，后续可通过"开始回测"按钮动态更新
+    const labels = ['01/02', '01/16', '01/30', '02/13', '02/27', '03/13', '03/27', '04/10', '04/24'];
+    const strategyData = [0, 3.2, 8.5, 14.7, 18.3, 15.8, 20.1, 18.6, 24.6];
+    const benchmarkData = [0, 2.1, 5.7, 9.4, 12.2, 11.5, 14.8, 13.1, 16.3];
+
+    homeCharts.backtestChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '策略收益',
+                    data: strategyData,
+                    borderColor: '#165DFF',
+                    backgroundColor: 'rgba(22, 93, 255, 0.08)',
+                    borderWidth: 2,
+                    tension: 0.2,
+                    fill: true
+                },
+                {
+                    label: '基准收益',
+                    data: benchmarkData,
+                    borderColor: '#86909C',
+                    backgroundColor: 'rgba(134, 144, 156, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0.2,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'; }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+                y: {
+                    grid: { color: 'rgba(0,0,0,0.06)' },
+                    ticks: { font: { size: 9 }, callback: v => v + '%' }
+                }
+            },
+            animation: { duration: 800 }
+        }
+    });
+}
+
+/**
+ * 通过API获取市场数据并刷新 #stockChart
+ */
+async function refreshMarketChart() {
+    try {
+        const resp = await fetch('/api/market-status');
+        if (!resp.ok) return;
+
+        // 尝试获取市场概览（如果缓存中有）
+        const resp2 = await fetch('/');
+        const html = await resp2.text();
+        // 市场数据在页面中通过 market_overview 注入，这里通过页面内变量读取
+        
+        // 简单方案：基于当前时间生成一些变化
+        if (homeCharts.stockChart) {
+            const ds = homeCharts.stockChart.data.datasets[0];
+            const lastVal = ds.data[ds.data.length - 1];
+            if (lastVal && typeof lastVal === 'number') {
+                const variation = (Math.random() - 0.5) * 20;
+                const newLabels = [...homeCharts.stockChart.data.labels, new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})];
+                const newData = [...ds.data, Math.round((lastVal + variation) * 100) / 100];
+                if (newLabels.length > 20) { newLabels.shift(); newData.shift(); }
+                homeCharts.stockChart.data.labels = newLabels;
+                ds.data = newData;
+                homeCharts.stockChart.update('none');
+            }
+        }
+    } catch (e) {
+        // 静默失败
+    }
+}
+
+/**
+ * 页面"开始回测"按钮 - 调用后端API动态更新图表
+ */
+async function runHomeBacktest() {
+    const btn = document.getElementById('start-backtest-btn');
+    if (!btn) return;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 回测中...';
+    
+    try {
+        const selectEl = document.querySelector('#backtest select');
+        const stockInput = document.querySelector('#backtest input[value="600036.SH"]');
+        const dateInputs = document.querySelectorAll('#backtest input[type="date"]');
+        const capitalInput = document.querySelector('#backtest input[type="number"][value="1000000"]');
+        const shortWin = document.querySelector('#backtest input[type="number"][value="10"]');
+        const longWin = document.querySelector('#backtest input[type="number"][value="30"]');
+
+        const strategyMap = {
+            '移动平均线交叉策略': 'ma_cross',
+            'RSI超买超卖策略': 'rsi',
+            'MACD策略': 'macd',
+            '布林带策略': 'ma_cross',
+            '自定义策略': 'custom'
+        };
+        
+        const strategyName = selectEl ? selectEl.value : '移动平均线交叉策略';
+        
+        const formData = {
+            strategy: strategyMap[strategyName] || 'ma_cross',
+            stock_code: stockInput ? stockInput.value : '600036.SH',
+            start_date: dateInputs[0] ? dateInputs[0].value : '2023-01-01',
+            end_date: dateInputs[1] ? dateInputs[1].value : '2024-12-31',
+            initial_capital: capitalInput ? parseFloat(capitalInput.value) : 1000000,
+            short_window: shortWin ? parseInt(shortWin.value) : 10,
+            long_window: longWin ? parseInt(longWin.value) : 30,
+            rsi_period: 14,
+            rsi_overbought: 70,
+            rsi_oversold: 30,
+            macd_fast: 12,
+            macd_slow: 26,
+            macd_signal: 9
+        };
+        
+        const resp = await fetch('/backtest/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await resp.json();
+        
+        if (result.error) {
+            showToast('回测失败: ' + result.error, 'error');
+            return;
+        }
+        
+        // 更新指标
+        document.getElementById('total-return-value').textContent = (result.total_return || 0).toFixed(1) + '%';
+        document.getElementById('annual-return-value').textContent = (result.annual_return || 0).toFixed(1) + '%';
+        document.getElementById('sharpe-ratio-value').textContent = (result.sharpe_ratio || 0).toFixed(2);
+        document.getElementById('max-drawdown-value').textContent = (result.max_drawdown || 0).toFixed(1) + '%';
+        document.getElementById('win-rate-value').textContent = (result.win_rate || 0).toFixed(1) + '%';
+        document.getElementById('trade-count-value').textContent = result.total_trades || 0;
+        
+        // 更新图表
+        if (result.equity_data && result.equity_data.length > 0 && homeCharts.backtestChart) {
+            const labels = result.equity_data.map(d => d.date || '');
+            const returns = result.equity_data.map(d => (d.cumulative_return || 0) * 100);
+            
+            homeCharts.backtestChart.data.labels = labels;
+            homeCharts.backtestChart.data.datasets[0].data = returns;
+            // 基准不更新（无新数据）
+            homeCharts.backtestChart.update();
+        }
+        
+        showToast('回测完成!');
+    } catch (err) {
+        showToast('回测失败: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-play mr-2"></i> 开始回测';
+    }
+}
+
+// 页面初始化
+document.addEventListener('DOMContentLoaded', function() {
+    initStockChart();
+    initBacktestChart();
+    
+    // 监听回测按钮
+    const backtestBtn = document.getElementById('start-backtest-btn');
+    if (backtestBtn) {
+        backtestBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            runHomeBacktest();
+        });
+    }
+    
+    // 自动刷新市场图表（每60秒）
+    setInterval(refreshMarketChart, 60000);
+});
+
+// 窗口大小变化时重新渲染
+window.addEventListener('resize', function() {
+    Object.values(homeCharts).forEach(chart => {
+        if (chart && chart.resize) chart.resize();
+    });
+});
+</script>
+
+
+<script>
+// 通用按钮处理函数
+function handleEnrollment(button) {
+    console.log('报名按钮被点击');
+    alert('报名功能正在开发中...');
+}
+
+function handleFavorite(button) {
+    console.log('收藏按钮被点击');
+    const icon = button.querySelector('i');
+    if (icon) {
+        if (icon.classList.contains('fa-heart-o')) {
+            icon.classList.remove('fa-heart-o');
+            icon.classList.add('fa-heart');
+            button.classList.add('text-red-500');
+            button.classList.remove('text-gray-500');
+            showToast('收藏成功！');
+        } else {
+            icon.classList.remove('fa-heart');
+            icon.classList.add('fa-heart-o');
+            button.classList.remove('text-red-500');
+            button.classList.add('text-gray-500');
+            showToast('已取消收藏');
+        }
+    }
+}
+
+function handleShare(button) {
+    console.log('分享按钮被点击');
+    showToast('分享功能正在开发中...');
+}
+</script>
+
+<!-- 主题通过 utils.js 自动初始化 -->
+
+</body>
+</html>

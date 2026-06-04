@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markowitz均值-方差模型 - 股票分析与量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E40AF',
+                        secondary: '#3B82F6',
+                        accent: '#F59E0B',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    {% include 'components/header.html' %}
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <!-- 面包屑导航 -->
+        <div class="mb-6">
+            <nav class="flex" aria-label="面包屑">
+                <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                    <li class="inline-flex items-center">
+                        <a href="/" class="text-gray-500 hover:text-primary">
+                            <i class="fa fa-home mr-2"></i>首页
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fa fa-chevron-right text-gray-400 text-xs mx-2"></i>
+                            <a href="/models" class="text-gray-500 hover:text-primary">金融模型</a>
+                        </div>
+                    </li>
+                    <li aria-current="page">
+                        <div class="flex items-center">
+                            <i class="fa fa-chevron-right text-gray-400 text-xs mx-2"></i>
+                            <span class="text-primary font-medium">Markowitz均值-方差模型</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+
+        <!-- 页面标题 -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Markowitz均值-方差模型</h1>
+            <p class="text-gray-600">通过优化风险与收益的平衡，构建高效的投资组合</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 左侧：参数设置 -->
+            <div class="lg:col-span-1 bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">参数设置</h2>
+                <form id="markowitz-form">
+                    <div class="mb-4">
+                        <label for="stock-codes" class="block text-gray-700 font-medium mb-2">股票代码 (逗号分隔)</label>
+                        <input type="text" id="stock-codes" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="600036.SH,601318.SH,600519.SH,000858.SZ,000001.SZ">
+                        <p class="text-xs text-gray-500 mt-1">输入2-10个股票代码</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="risk-free-rate" class="block text-gray-700 font-medium mb-2">无风险利率 (%)</label>
+                        <input type="number" id="risk-free-rate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="3" min="0" max="10" step="0.1">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2">优化目标</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="optimization-target" value="max_sharpe" class="w-4 h-4 text-primary focus:ring-primary border-gray-300" checked>
+                                <span class="ml-2">最大化夏普比率</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="optimization-target" value="min_variance" class="w-4 h-4 text-primary focus:ring-primary border-gray-300">
+                                <span class="ml-2">最小化风险</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="optimize-portfolio" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300">
+                        <i class="fa fa-area-chart mr-2"></i>优化投资组合
+                    </button>
+                </form>
+
+                <!-- 权重列表 -->
+                <div id="weights-list" class="mt-6 hidden">
+                    <h3 class="font-medium mb-3 text-gray-700">最优配置权重</h3>
+                    <div id="weights-container" class="space-y-2"></div>
+                </div>
+            </div>
+            
+            <!-- 右侧：结果展示 -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- 投资组合结果摘要 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">投资组合优化结果</h2>
+                    <div id="portfolio-result" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <p class="text-gray-600 text-sm">预期年化收益率</p>
+                                <p class="text-3xl font-bold text-primary" id="expected-return">--</p>
+                            </div>
+                            <div class="bg-red-50 p-4 rounded-lg">
+                                <p class="text-gray-600 text-sm">预期年化波动率</p>
+                                <p class="text-3xl font-bold text-red-500" id="expected-volatility">--</p>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <p class="text-gray-600 text-sm">夏普比率</p>
+                                <p class="text-3xl font-bold text-green-600" id="sharpe-ratio">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 有效前沿图表 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">有效前沿</h2>
+                    <div class="h-80">
+                        <canvas id="efficient-frontier-chart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 投资组合权重饼图 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">投资组合权重</h2>
+                    <div class="h-64">
+                        <canvas id="weights-pie-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+        let efficientFrontierChart = null;
+        let weightsPieChart = null;
+
+        const COLORS = [
+            'rgba(59, 130, 246, 0.8)',
+            'rgba(239, 68, 68, 0.8)',
+            'rgba(245, 158, 11, 0.8)',
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(139, 92, 246, 0.8)',
+            'rgba(236, 72, 153, 0.8)',
+            'rgba(14, 165, 233, 0.8)',
+            'rgba(168, 85, 247, 0.8)',
+            'rgba(34, 197, 94, 0.8)',
+            'rgba(251, 146, 60, 0.8)'
+        ];
+
+        const BORDER_COLORS = [
+            'rgba(59, 130, 246, 1)',
+            'rgba(239, 68, 68, 1)',
+            'rgba(245, 158, 11, 1)',
+            'rgba(16, 185, 129, 1)',
+            'rgba(139, 92, 246, 1)',
+            'rgba(236, 72, 153, 1)',
+            'rgba(14, 165, 233, 1)',
+            'rgba(168, 85, 247, 1)',
+            'rgba(34, 197, 94, 1)',
+            'rgba(251, 146, 60, 1)'
+        ];
+
+        function generateMockReturns(count) {
+            // 生成模拟日收益率
+            const n = 252; // 一年交易日
+            const returns = [];
+            for (let i = 0; i < n; i++) {
+                const row = [];
+                for (let j = 0; j < count; j++) {
+                    const u1 = Math.random();
+                    const u2 = Math.random();
+                    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                    row.push(z * 0.02); // 日波动率约2%
+                }
+                returns.push(row);
+            }
+            return returns;
+        }
+
+        async function optimizePortfolio() {
+            const stockCodesStr = document.getElementById('stock-codes').value.trim();
+            const riskFreeRate = parseFloat(document.getElementById('risk-free-rate').value) || 3;
+            const objective = document.querySelector('input[name="optimization-target"]:checked').value;
+
+            const codes = stockCodesStr.split(',').map(s => s.trim()).filter(s => s);
+            if (codes.length < 2) {
+                alert('请至少输入2个股票代码');
+                return;
+            }
+
+            const btn = document.getElementById('optimize-portfolio');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>计算中...';
+            btn.disabled = true;
+
+            // 生成模拟收益率（实际应从API获取）
+            const returns = generateMockReturns(codes.length);
+
+            try {
+                const resp = await fetch('/models/portfolio-optimization', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        returns: returns,
+                        risk_free_rate: riskFreeRate / 100,
+                        objective: objective
+                    })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    updateResults(data, codes);
+                } else {
+                    alert('优化失败: ' + (data.error || '未知错误'));
+                }
+            } catch (err) {
+                console.error('优化请求失败:', err);
+                // 使用本地模拟
+                updateResultsWithMock(codes);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function updateResults(data, codes) {
+            document.getElementById('expected-return').textContent = (data.expected_return * 100).toFixed(2) + '%';
+            document.getElementById('expected-volatility').textContent = (data.volatility * 100).toFixed(2) + '%';
+            document.getElementById('sharpe-ratio').textContent = data.sharpe_ratio.toFixed(3);
+
+            // 更新权重列表
+            const weightsDiv = document.getElementById('weights-list');
+            const weightsContainer = document.getElementById('weights-container');
+            weightsContainer.innerHTML = '';
+            weightsDiv.classList.remove('hidden');
+
+            data.weights.forEach((w, i) => {
+                const name = i < codes.length ? codes[i] : `资产${i+1}`;
+                weightsContainer.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 rounded-full mr-2" style="background:${COLORS[i % COLORS.length]}"></span>
+                            <span class="font-medium text-sm">${name}</span>
+                        </div>
+                        <span class="font-bold text-primary">${(w * 100).toFixed(1)}%</span>
+                    </div>
+                `;
+            });
+
+            // 更新图表
+            updateEfficientFrontierChart(data, codes);
+            updateWeightsPieChart(data.weights, codes);
+        }
+
+        function updateResultsWithMock(codes) {
+            const n = codes.length;
+            const weights = Array(n).fill(0).map(() => Math.random());
+            const total = weights.reduce((a, b) => a + b, 0);
+            const normalizedWeights = weights.map(w => w / total);
+
+            document.getElementById('expected-return').textContent = (10 + Math.random() * 8).toFixed(2) + '%';
+            document.getElementById('expected-volatility').textContent = (12 + Math.random() * 12).toFixed(2) + '%';
+            document.getElementById('sharpe-ratio').textContent = (0.3 + Math.random() * 0.6).toFixed(3);
+
+            const weightsDiv = document.getElementById('weights-list');
+            const weightsContainer = document.getElementById('weights-container');
+            weightsContainer.innerHTML = '';
+            weightsDiv.classList.remove('hidden');
+
+            normalizedWeights.forEach((w, i) => {
+                weightsContainer.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 rounded-full mr-2" style="background:${COLORS[i % COLORS.length]}"></span>
+                            <span class="font-medium text-sm">${codes[i]}</span>
+                        </div>
+                        <span class="font-bold text-primary">${(w * 100).toFixed(1)}%</span>
+                    </div>
+                `;
+            });
+
+            updateMockCharts(codes, normalizedWeights);
+        }
+
+        function updateEfficientFrontierChart(data, codes) {
+            const ctx = document.getElementById('efficient-frontier-chart').getContext('2d');
+            if (efficientFrontierChart) efficientFrontierChart.destroy();
+
+            const ef = data.efficient_frontier || {returns: [], volatilities: []};
+            const indiv = data.individual_assets || {returns: [], volatilities: []};
+
+            const datasets = [];
+
+            // 有效前沿线
+            if (ef.returns && ef.returns.length > 0) {
+                datasets.push({
+                    label: '有效前沿',
+                    data: ef.returns.map((r, i) => ({x: ef.volatilities[i] * 100, y: r * 100})),
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    showLine: true,
+                    tension: 0.3
+                });
+            }
+
+            // 最大夏普比率组合
+            if (data.max_sharpe_portfolio) {
+                const ms = data.max_sharpe_portfolio;
+                datasets.push({
+                    label: '最大夏普比率组合',
+                    data: [{x: ms.volatility * 100, y: ms.return * 100}],
+                    backgroundColor: 'rgba(245, 158, 11, 1)',
+                    borderColor: 'rgba(245, 158, 11, 1)',
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    showLine: false
+                });
+            }
+
+            // 单个资产
+            if (indiv.returns && indiv.returns.length > 0) {
+                const points = indiv.returns.map((r, i) => {
+                    const name = i < codes.length ? codes[i] : `资产${i+1}`;
+                    return {x: indiv.volatilities[i] * 100, y: r * 100, name: name};
+                });
+                datasets.push({
+                    label: '单个资产',
+                    data: points,
+                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    pointRadius: 6,
+                    showLine: false
+                });
+            }
+
+            efficientFrontierChart = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const p = ctx.raw;
+                                    if (p.name) {
+                                        return `${p.name}: 波动率 ${p.x.toFixed(1)}%, 收益率 ${p.y.toFixed(1)}%`;
+                                    }
+                                    return `${ctx.dataset.label}: 波动率 ${p.x.toFixed(1)}%, 收益率 ${p.y.toFixed(1)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: '年化波动率 (%)' },
+                            min: 0
+                        },
+                        y: {
+                            title: { display: true, text: '年化收益率 (%)' },
+                            min: 0
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateWeightsPieChart(weights, codes) {
+            const ctx = document.getElementById('weights-pie-chart').getContext('2d');
+            if (weightsPieChart) weightsPieChart.destroy();
+
+            weightsPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: codes,
+                    datasets: [{
+                        data: weights,
+                        backgroundColor: weights.map((_, i) => COLORS[i % COLORS.length]),
+                        borderColor: weights.map((_, i) => BORDER_COLORS[i % BORDER_COLORS.length]),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return `${ctx.label}: ${(ctx.parsed * 100).toFixed(1)}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateMockCharts(codes, weights) {
+            const ctx = document.getElementById('efficient-frontier-chart').getContext('2d');
+            if (efficientFrontierChart) efficientFrontierChart.destroy();
+
+            const efPoints = [];
+            for (let v = 12; v <= 28; v += 0.3) {
+                efPoints.push({x: v, y: 8 + Math.sqrt(0.5 * Math.max(v - 12, 0)) * 5});
+            }
+
+            efficientFrontierChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: '有效前沿',
+                        data: efPoints,
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        showLine: true,
+                        tension: 0.3
+                    }, {
+                        label: '最优组合',
+                        data: [{x: 16, y: 13}],
+                        backgroundColor: 'rgba(245, 158, 11, 1)',
+                        pointRadius: 8,
+                        showLine: false
+                    }, {
+                        label: '单个资产',
+                        data: codes.map((c, i) => ({
+                            x: 15 + i * 3,
+                            y: 10 + i * 2.5,
+                            name: c
+                        })),
+                        backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                        pointRadius: 6,
+                        showLine: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const p = ctx.raw;
+                                    if (p.name) return `${p.name}: 波动率 ${p.x.toFixed(1)}%, 收益率 ${p.y.toFixed(1)}%`;
+                                    return `${ctx.dataset.label}: 波动率 ${p.x.toFixed(1)}%, 收益率 ${p.y.toFixed(1)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: '年化波动率 (%)' }, min: 0 },
+                        y: { title: { display: true, text: '年化收益率 (%)' }, min: 0 }
+                    }
+                }
+            });
+
+            updateWeightsPieChart(weights, codes);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('optimize-portfolio').addEventListener('click', optimizePortfolio);
+            // 初始加载
+            const codes = document.getElementById('stock-codes').value.split(',').map(s => s.trim()).filter(s => s);
+            const weights = Array(codes.length).fill(1/codes.length);
+            updateMockCharts(codes, weights);
+        });
+    </script>
+</body>
+</html>

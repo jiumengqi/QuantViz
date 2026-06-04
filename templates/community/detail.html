@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略详情 - 量化投资平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+            min-height: 100vh;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        .like-btn.liked {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    {% include 'components/header.html' %}
+    
+    <div class="container mx-auto px-4 pt-24 pb-12">
+        <!-- 返回链接 -->
+        <a href="{{ url_for('community.community_index') }}" class="inline-flex items-center text-blue-500 hover:text-blue-700 mb-6 transition-colors duration-300">
+            <i class="fa fa-arrow-left mr-2"></i>返回社区
+        </a>
+
+        <!-- 策略详情 -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8" id="strategyDetail">
+            <div class="p-6">
+                <!-- 加载状态 -->
+                <div class="text-center py-12" id="loading">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                    <p class="mt-4 text-gray-500">加载中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 评论区域 -->
+        <div class="bg-white rounded-xl shadow-md p-6" id="comments">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fa fa-comment mr-2 text-blue-500"></i>评论
+            </h2>
+            
+            <!-- 发表评论 -->
+            {% if current_user.is_authenticated %}
+            <div class="mb-6">
+                <textarea id="commentInput" rows="3" 
+                    class="w-full p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="写下你的评论..."></textarea>
+                <div class="text-right mt-3">
+                    <button onclick="submitComment()" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300">
+                        <i class="fa fa-send mr-2"></i>发表评论
+                    </button>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-gray-50 rounded-lg p-4 mb-6 text-center">
+                <p class="text-gray-500">登录后即可发表评论</p>
+                <a href="{{ url_for('auth.login') }}" class="text-blue-500 hover:text-blue-700">前往登录</a>
+            </div>
+            {% endif %}
+
+            <!-- 评论列表 -->
+            <div id="commentList" class="space-y-4">
+                <!-- 动态加载 -->
+            </div>
+
+            <!-- 加载更多评论 -->
+            <div class="text-center mt-6" id="loadMoreComments" style="display: none;">
+                <button onclick="loadComments(currentCommentPage + 1, true)" class="px-6 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all duration-300">
+                    加载更多评论
+                </button>
+            </div>
+
+            <!-- 评论加载中 -->
+            <div class="text-center py-8" id="commentsLoading" style="display: none;">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+            </div>
+
+            <!-- 无评论 -->
+            <div class="text-center py-8 text-gray-400" id="noComments" style="display: none;">
+                <i class="fa fa-comments text-4xl mb-2"></i>
+                <p>还没有评论，来发表第一条评论吧</p>
+            </div>
+        </div>
+    </div>
+
+    {% include 'components/footer.html' %}
+
+    <script>
+        let strategyId = {{ strategy_id }};
+        let currentCommentPage = 1;
+        let currentComments = [];
+
+        async function loadStrategy() {
+            try {
+                const response = await fetch(`/api/community/strategies/${strategyId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderStrategy(data.strategy);
+                    loadComments(1, false);
+                } else {
+                    document.getElementById('strategyDetail').innerHTML = `
+                        <div class="p-6 text-center text-gray-500">
+                            <p>策略不存在或已被删除</p>
+                            <a href="{{ url_for('community.community_index') }}" class="text-blue-500 hover:text-blue-700 mt-2 inline-block">返回社区</a>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('加载策略失败:', error);
+            }
+        }
+
+        function renderStrategy(strategy) {
+            const container = document.getElementById('strategyDetail');
+            container.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl mr-4">
+                        ${strategy.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-800">${strategy.username}</p>
+                        <p class="text-sm text-gray-400">${strategy.created_at}</p>
+                    </div>
+                </div>
+                
+                <h1 class="text-2xl font-bold text-gray-800 mb-4">${strategy.strategy_name}</h1>
+                
+                ${strategy.description ? `<p class="text-gray-600 mb-6">${strategy.description}</p>` : ''}
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-gray-700 mb-3">
+                        <i class="fa fa-code mr-2 text-blue-500"></i>策略代码
+                    </h3>
+                    <div class="code-block rounded-lg p-4 overflow-x-auto">
+                        <pre class="whitespace-pre-wrap">${escapeHtml(strategy.strategy_code)}</pre>
+                    </div>
+                </div>
+                
+                ${strategy.parameters && strategy.parameters !== '{}' ? `
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-gray-700 mb-3">
+                        <i class="fa fa-sliders mr-2 text-blue-500"></i>策略参数
+                    </h3>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <pre class="text-sm text-gray-700">${escapeHtml(formatJson(strategy.parameters))}</pre>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <div class="flex items-center justify-between border-t pt-4">
+                    <div class="flex items-center space-x-6">
+                        <button id="likeBtn" class="like-btn ${strategy.has_liked ? 'liked' : ''} text-xl hover:text-red-500 transition-colors duration-300" onclick="toggleLike()">
+                            <i class="fa-heart ${strategy.has_liked ? 'fa' : 'fa'} mr-2"></i>
+                            <span id="likeCount">${strategy.likes_count}</span>
+                        </button>
+                        <span class="text-gray-500">
+                            <i class="fa fa-share mr-1"></i>${strategy.shares_count} 次分享
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatJson(jsonStr) {
+            try {
+                return JSON.stringify(JSON.parse(jsonStr), null, 2);
+            } catch {
+                return jsonStr;
+            }
+        }
+
+        async function toggleLike() {
+            {% if current_user.is_authenticated %}
+            try {
+                const response = await fetch(`/api/community/strategies/${strategyId}/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const btn = document.getElementById('likeBtn');
+                    const icon = btn.querySelector('i');
+                    btn.classList.toggle('liked');
+                    icon.className = btn.classList.contains('liked') ? 'fa fa-heart mr-2' : 'fa fa-heart mr-2';
+                    document.getElementById('likeCount').textContent = data.likes_count;
+                }
+            } catch (error) {
+                console.error('点赞失败:', error);
+            }
+            {% else %}
+            alert('请先登录后再点赞');
+            {% endif %}
+        }
+
+        async function loadComments(page, append = false) {
+            const loading = document.getElementById('commentsLoading');
+            const listContainer = document.getElementById('commentList');
+            const loadMoreBtn = document.getElementById('loadMoreComments');
+            const noComments = document.getElementById('noComments');
+
+            if (!append) {
+                loading.style.display = 'block';
+            }
+
+            try {
+                const response = await fetch(`/api/community/strategies/${strategyId}/comments?page=${page}&per_page=20`);
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.comments.length === 0 && !append) {
+                        noComments.style.display = 'block';
+                        listContainer.innerHTML = '';
+                    } else {
+                        noComments.style.display = 'none';
+                        
+                        const commentsHtml = data.comments.map(c => `
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center mb-2">
+                                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                        ${c.username.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-gray-800">${c.username}</p>
+                                        <p class="text-xs text-gray-400">${c.created_at}</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-700 ml-11">${escapeHtml(c.content)}</p>
+                            </div>
+                        `).join('');
+
+                        if (append) {
+                            listContainer.insertAdjacentHTML('beforeend', commentsHtml);
+                        } else {
+                            listContainer.innerHTML = commentsHtml;
+                        }
+
+                        currentComments = append ? [...currentComments, ...data.comments] : data.comments;
+                    }
+
+                    currentCommentPage = page;
+                    loadMoreBtn.style.display = page < data.pages ? 'block' : 'none';
+                }
+            } catch (error) {
+                console.error('加载评论失败:', error);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function submitComment() {
+            {% if current_user.is_authenticated %}
+            const input = document.getElementById('commentInput');
+            const content = input.value.trim();
+
+            if (!content) {
+                alert('请输入评论内容');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/community/strategies/${strategyId}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    input.value = '';
+                    loadComments(1, false);
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('发表评论失败:', error);
+            }
+            {% else %}
+            alert('请先登录后再发表评论');
+            {% endif %}
+        }
+
+        // 初始加载
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStrategy();
+        });
+    </script>
+</body>
+</html>

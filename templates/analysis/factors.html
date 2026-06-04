@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>因子分析 - 股票分析与量化投资平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        'neutral-dark': '#1D2129',
+                        'neutral-medium': '#86909C',
+                        'neutral-light': '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #165DFF 0%, #36CFC9 100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-light font-inter text-neutral-dark">
+    <!-- 统一导航栏 -->
+    {% include 'components/header.html' %}
+
+    <!-- 主要内容 -->
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题 -->
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-neutral-dark mb-2">因子分析</h1>
+                        <p class="text-gray-600">通过多种因子分析股票表现，构建因子模型</p>
+                    </div>
+                    <nav class="flex mt-4 md:mt-0" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="{{ url_for('main.index') }}" class="text-gray-700 hover:text-primary text-sm font-medium">首页</a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <a href="{{ url_for('analysis.analysis_index') }}" class="ml-1 text-gray-700 hover:text-primary text-sm font-medium">数据分析</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="ml-1 text-gray-500 font-medium text-sm">因子分析</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- 左侧：因子设置 -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
+                        <h2 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fa fa-sliders text-primary mr-2"></i> 因子设置
+                        </h2>
+                        
+                        <!-- 因子选择 -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">选择因子</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="factor-market" class="factor-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" checked>
+                                    <label for="factor-market" class="ml-2 text-sm text-gray-700">市场因子 (Market)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="factor-size" class="factor-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" checked>
+                                    <label for="factor-size" class="ml-2 text-sm text-gray-700">规模因子 (Size)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="factor-value" class="factor-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary" checked>
+                                    <label for="factor-value" class="ml-2 text-sm text-gray-700">价值因子 (Value)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="factor-momentum" class="factor-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                    <label for="factor-momentum" class="ml-2 text-sm text-gray-700">动量因子 (Momentum)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="factor-quality" class="factor-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                    <label for="factor-quality" class="ml-2 text-sm text-gray-700">质量因子 (Quality)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="factor-volatility" class="factor-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                    <label for="factor-volatility" class="ml-2 text-sm text-gray-700">波动率因子 (Volatility)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="factor-liquidity" class="factor-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                    <label for="factor-liquidity" class="ml-2 text-sm text-gray-700">流动性因子 (Liquidity)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="factor-momentum-reversal" class="factor-checkbox w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                                    <label for="factor-momentum-reversal" class="ml-2 text-sm text-gray-700">反转因子 (Reversal)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 时间范围 -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">时间范围</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs text-gray-500 mb-1 block">开始日期</label>
+                                    <input type="date" id="start-date" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="2024-01-01">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500 mb-1 block">结束日期</label>
+                                    <input type="date" id="end-date" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" value="2024-12-31">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 因子权重 -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">因子权重</label>
+                            <div class="space-y-3">
+                                <div>
+                                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                        <span>市场因子</span>
+                                        <span id="market-weight-value">0.3</span>
+                                    </div>
+                                    <input type="range" id="market-weight" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="1" step="0.1" value="0.3">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                        <span>规模因子</span>
+                                        <span id="size-weight-value">0.2</span>
+                                    </div>
+                                    <input type="range" id="size-weight" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="1" step="0.1" value="0.2">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                        <span>价值因子</span>
+                                        <span id="value-weight-value">0.2</span>
+                                    </div>
+                                    <input type="range" id="value-weight" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="1" step="0.1" value="0.2">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                        <span>动量因子</span>
+                                        <span id="momentum-weight-value">0.1</span>
+                                    </div>
+                                    <input type="range" id="momentum-weight" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="1" step="0.1" value="0.1">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                        <span>质量因子</span>
+                                        <span id="quality-weight-value">0.1</span>
+                                    </div>
+                                    <input type="range" id="quality-weight" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="1" step="0.1" value="0.1">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                        <span>波动率因子</span>
+                                        <span id="volatility-weight-value">0.1</span>
+                                    </div>
+                                    <input type="range" id="volatility-weight" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="1" step="0.1" value="0.1">
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                                    <span>权重总和</span>
+                                    <span id="total-weight-value" class="text-primary">1.0</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div id="total-weight-bar" class="bg-primary h-2.5 rounded-full" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 分析按钮 -->
+                        <button id="analyze-button" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center font-medium">
+                            <i class="fa fa-bar-chart mr-2"></i> 开始分析
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 右侧：分析结果 -->
+                <div class="lg:col-span-3 space-y-8">
+                    <!-- 因子暴露度 -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold">因子暴露度</h2>
+                            <button id="export-exposure-btn" class="px-4 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center text-sm">
+                                <i class="fa fa-download mr-2"></i> 导出图表
+                            </button>
+                        </div>
+                        <div class="h-96">
+                            <canvas id="factor-exposure-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 因子贡献 -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold">因子贡献</h2>
+                            <button id="export-contribution-btn" class="px-4 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center text-sm">
+                                <i class="fa fa-download mr-2"></i> 导出图表
+                            </button>
+                        </div>
+                        <div class="h-96">
+                            <canvas id="factor-contribution-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 因子表现 -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold">因子表现</h2>
+                            <button id="export-performance-btn" class="px-4 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center text-sm">
+                                <i class="fa fa-download mr-2"></i> 导出数据
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-100 rounded-lg">
+                                <thead>
+                                    <tr class="bg-gray-50">
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">因子</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">收益率</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">波动率</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">Sharpe比率</th>
+                                        <th class="py-3 px-4 border-b border-gray-200 font-medium text-gray-700 text-left">信息比率</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="factor-performance-table">
+                                    <tr>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900">市场因子</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">8.2%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">12.5%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">0.66</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">0.32</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900">规模因子</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">2.1%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">8.7%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">0.24</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">0.18</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900">价值因子</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">4.3%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">10.2%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">0.42</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">0.25</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900">动量因子</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">5.7%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">14.3%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">0.40</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">0.22</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900">质量因子</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">3.9%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">9.8%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">0.40</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">0.19</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900">波动率因子</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">-1.2%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">7.5%</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">-0.16</td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-500">-0.10</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 因子模型评估 -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-semibold mb-4">因子模型评估</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-all">
+                                <div class="text-sm text-gray-500 mb-1">R² 决定系数</div>
+                                <div class="text-2xl font-bold text-primary mb-2">0.82</div>
+                                <div class="text-xs text-gray-500">模型解释方差的比例</div>
+                            </div>
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-all">
+                                <div class="text-sm text-gray-500 mb-1">Adjusted R²</div>
+                                <div class="text-2xl font-bold text-primary mb-2">0.79</div>
+                                <div class="text-xs text-gray-500">调整自由度后的决定系数</div>
+                            </div>
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-primary transition-all">
+                                <div class="text-sm text-gray-500 mb-1">F统计量</div>
+                                <div class="text-2xl font-bold text-primary mb-2">45.36</div>
+                                <div class="text-xs text-gray-500">模型整体显著性</div>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <h3 class="text-lg font-medium mb-3">模型诊断</h3>
+                            <p class="text-gray-600 text-sm">
+                                因子模型表现良好，R²为0.82，说明模型能够解释82%的股票收益率变化。市场因子是最显著的因子，其次是价值因子和质量因子。模型残差检验显示无明显自相关性，表明模型设定合理。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- 因子分析脚本 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化图表
+    initFactorExposureChart();
+    initFactorContributionChart();
+    
+    // 绑定事件
+    bindEvents();
+    
+    // 初始化权重总和
+    updateTotalWeight();
+});
+
+// 初始化因子暴露度图表
+function initFactorExposureChart() {
+    const ctx = document.getElementById('factor-exposure-chart').getContext('2d');
+    
+    window.factorExposureChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['市场因子', '规模因子', '价值因子', '动量因子', '质量因子', '波动率因子', '流动性因子', '反转因子'],
+            datasets: [
+                {
+                    label: '股票组合',
+                    data: [0.8, -0.2, 0.5, 0.3, 0.6, -0.4, 0.2, -0.1],
+                    backgroundColor: 'rgba(22, 93, 255, 0.2)',
+                    borderColor: 'rgba(22, 93, 255, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(22, 93, 255, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(22, 93, 255, 1)'
+                },
+                {
+                    label: '基准指数',
+                    data: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    backgroundColor: 'rgba(134, 144, 156, 0.2)',
+                    borderColor: 'rgba(134, 144, 156, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(134, 144, 156, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(134, 144, 156, 1)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 10
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#165DFF',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: true
+                }
+            },
+            scales: {
+                r: {
+                    angleLines: {
+                        display: true,
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    suggestedMin: -1,
+                    suggestedMax: 1,
+                    ticks: {
+                        stepSize: 0.5,
+                        backdropColor: 'transparent'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 初始化因子贡献图表
+function initFactorContributionChart() {
+    const ctx = document.getElementById('factor-contribution-chart').getContext('2d');
+    
+    window.factorContributionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['市场因子', '规模因子', '价值因子', '动量因子', '质量因子', '波动率因子', '流动性因子', '反转因子', '残差'],
+            datasets: [
+                {
+                    label: '收益率贡献',
+                    data: [3.2, 0.5, 1.8, 0.9, 1.2, -0.3, 0.4, -0.1, 0.8],
+                    backgroundColor: [
+                        'rgba(22, 93, 255, 0.7)',
+                        'rgba(54, 207, 201, 0.7)',
+                        'rgba(114, 46, 209, 0.7)',
+                        'rgba(245, 63, 63, 0.7)',
+                        'rgba(0, 180, 42, 0.7)',
+                        'rgba(255, 125, 0, 0.7)',
+                        'rgba(134, 144, 156, 0.7)',
+                        'rgba(255, 211, 0, 0.7)',
+                        'rgba(209, 213, 219, 0.7)'
+                    ],
+                    borderWidth: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(29, 33, 41, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#165DFF',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            return `收益率贡献: ${value.toFixed(2)}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '收益率贡献 (%)',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 绑定事件
+function bindEvents() {
+    // 权重滑块事件
+    const weightSliders = [
+        { slider: document.getElementById('market-weight'), value: document.getElementById('market-weight-value') },
+        { slider: document.getElementById('size-weight'), value: document.getElementById('size-weight-value') },
+        { slider: document.getElementById('value-weight'), value: document.getElementById('value-weight-value') },
+        { slider: document.getElementById('momentum-weight'), value: document.getElementById('momentum-weight-value') },
+        { slider: document.getElementById('quality-weight'), value: document.getElementById('quality-weight-value') },
+        { slider: document.getElementById('volatility-weight'), value: document.getElementById('volatility-weight-value') }
+    ];
+    
+    weightSliders.forEach(item => {
+        if (item.slider && item.value) {
+            item.slider.addEventListener('input', function() {
+                item.value.textContent = this.value;
+                updateTotalWeight();
+            });
+        }
+    });
+    
+    // 分析按钮事件
+    const analyzeButton = document.getElementById('analyze-button');
+    if (analyzeButton) {
+        analyzeButton.addEventListener('click', function() {
+            // 显示加载状态
+            this.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 分析中...';
+            this.disabled = true;
+            
+            // 模拟分析过程
+            setTimeout(() => {
+                this.innerHTML = '<i class="fa fa-bar-chart mr-2"></i> 开始分析';
+                this.disabled = false;
+                
+                // 显示成功消息
+                alert('因子分析完成！');
+            }, 1500);
+        });
+    }
+    
+    // 导出按钮事件
+    document.getElementById('export-exposure-btn')?.addEventListener('click', function() {
+        exportChart('factor-exposure-chart', '因子暴露度图表');
+    });
+    
+    document.getElementById('export-contribution-btn')?.addEventListener('click', function() {
+        exportChart('factor-contribution-chart', '因子贡献图表');
+    });
+    
+    document.getElementById('export-performance-btn')?.addEventListener('click', function() {
+        exportFactorPerformance();
+    });
+}
+
+// 更新权重总和
+function updateTotalWeight() {
+    const weights = [
+        parseFloat(document.getElementById('market-weight-value')?.textContent || '0.3'),
+        parseFloat(document.getElementById('size-weight-value')?.textContent || '0.2'),
+        parseFloat(document.getElementById('value-weight-value')?.textContent || '0.2'),
+        parseFloat(document.getElementById('momentum-weight-value')?.textContent || '0.1'),
+        parseFloat(document.getElementById('quality-weight-value')?.textContent || '0.1'),
+        parseFloat(document.getElementById('volatility-weight-value')?.textContent || '0.1')
+    ];
+    
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    const totalWeightValue = document.getElementById('total-weight-value');
+    const totalWeightBar = document.getElementById('total-weight-bar');
+    
+    if (totalWeightValue && totalWeightBar) {
+        totalWeightValue.textContent = totalWeight.toFixed(2);
+        totalWeightBar.style.width = `${Math.min(totalWeight * 100, 100)}%`;
+        
+        // 根据权重总和设置颜色
+        if (Math.abs(totalWeight - 1) < 0.01) {
+            totalWeightValue.className = 'text-primary';
+            totalWeightBar.className = 'bg-primary h-2.5 rounded-full';
+        } else if (totalWeight > 1) {
+            totalWeightValue.className = 'text-danger';
+            totalWeightBar.className = 'bg-danger h-2.5 rounded-full';
+        } else {
+            totalWeightValue.className = 'text-warning';
+            totalWeightBar.className = 'bg-warning h-2.5 rounded-full';
+        }
+    }
+}
+
+// 导出图表
+function exportChart(chartId, fileName) {
+    // 模拟导出功能
+    alert(`${fileName} 导出功能即将实现，敬请期待！`);
+}
+
+// 导出因子表现
+function exportFactorPerformance() {
+    // 模拟导出功能
+    alert('因子表现数据导出功能即将实现，敬请期待！');
+}
+</script>
+
+    <!-- 统一页脚 -->
+    {% include 'components/footer.html' %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas显示测试
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('图表加载中...', canvas.width/2, canvas.height/2);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Canvas初始化代码
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+        if (canvas.id && !window[canvas.id + '_chart']) {
+            try {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 基本的Canvas初始化，不显示加载文字
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch (e) {
+                console.warn('Canvas初始化失败:', canvas.id, e);
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>
