@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# 密钥 & 环境变量
+.env
+
+# 数据库文件（Render 上每次部署会重建，不打包）
+*.db
+*.db-journal
+instance/
+
+# 日志
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# 文档（减小镜像体积）
+*.md
+
+# 上传文件
+uploads/
+
+# 测试 & 缓存
+.pytest_cache/
+.tox/
+.coverage
