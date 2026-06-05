@@ -17,5 +17,5 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt 
 
 COPY . .
 
-# 关键：gunicorn强制监听0.0.0.0:$PORT
-CMD ["gunicorn","app:app","--bind","0.0.0.0:$PORT"]
+# 关键：去掉[]，shell写法自动解析$PORT
+CMD gunicorn app:app --bind 0.0.0.0:$PORT
