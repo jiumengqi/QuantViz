@@ -48,13 +48,13 @@ def get_available_features():
 @ml_prediction_bp.route('/api/train', methods=['POST'])
 def train_model():
     """
-    训练机器学习模型
+    训练机器学习模型（支持旧 MLPredictor 和新 EnhancedModelManager）
     请求参数:
     {
         "stock_code": "600036.SH",
         "start_date": "2020-01-01",
         "end_date": "2024-12-31",
-        "model_type": "logistic|random_forest|xgboost",
+        "model_type": "logistic|random_forest|xgboost|lightgbm|lstm|ensemble",
         "feature_categories": ["technical", "fundamental"],
         "test_size": 0.2
     }
@@ -75,10 +75,6 @@ def train_model():
         feature_categories = data.get('feature_categories', ['technical'])
         test_size = float(data.get('test_size', 0.2))
 
-        # 验证模型类型
-        if model_type not in ['logistic', 'random_forest', 'xgboost']:
-            return jsonify({'success': False, 'error': f'不支持的模型类型: {model_type}'}), 400
-
         # 获取特征列表
         feature_list = []
         for category in feature_categories:
@@ -90,6 +86,16 @@ def train_model():
 
         if df is None or df.empty:
             return jsonify({'success': False, 'error': '无法获取股票数据'}), 400
+
+        # ---- 增强模型分支（xgboost 增强版 / lightgbm / lstm / ensemble） ----
+        ENHANCED_MODELS = ['xgboost', 'lightgbm', 'lstm', 'ensemble']
+        if model_type in ENHANCED_MODELS:
+            return _train_enhanced_model(stock_code, start_date, end_date, model_type, df, test_size)
+
+        # ---- 传统模型分支（logistic / random_forest） ----
+        # 验证模型类型
+        if model_type not in ['logistic', 'random_forest']:
+            return jsonify({'success': False, 'error': f'不支持的模型类型: {model_type}'}), 400
 
         # 准备特征
         X, y = ml_predictor.prepare_features(df, feature_list)
@@ -131,17 +137,67 @@ def train_model():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def _train_enhanced_model(stock_code, start_date, end_date, model_type, df, test_size):
+    """使用 EnhancedModelManager 训练增强模型"""
+    from services.ml_enhanced import enhanced_model_manager, FeatureEngineer
+
+    # 用 FeatureEngineer 准备数据
+    df_copy = df.copy()
+    df_copy['target'] = (df_copy['close'].shift(-1) > df_copy['close']).astype(int)
+    X, y = FeatureEngineer.prepare_supervised_data(df_copy)
+
+    if X is None or y is None:
+        return jsonify({'success': False, 'error': '特征准备失败，数据不足'}), 400
+
+    # 训练
+    result = enhanced_model_manager.train(X, y, model_type, test_size=test_size)
+
+    if not result.get('success'):
+        return jsonify(result), 400
+
+    # 生成图表
+    from services.models.ml_predictor import ml_predictor
+    cm_base64 = None
+    fi_base64 = None
+    roc_base64 = None
+
+    try:
+        if 'confusion_matrix' in result:
+            cm_base64 = ml_predictor.plot_confusion_matrix(result['confusion_matrix'])
+        if 'fpr' in result and 'tpr' in result:
+            roc_base64 = ml_predictor.plot_roc_curve(result['fpr'], result['tpr'], result.get('roc_auc', 0))
+    except Exception as e:
+        logger.warning(f"生成增强模型图表失败: {str(e)}")
+
+    # 特征重要性
+    fi_data = result.get('feature_importance')
+    if fi_data:
+        try:
+            fi_base64 = ml_predictor.plot_feature_importance(fi_data)
+        except Exception:
+            pass
+
+    result['confusion_matrix_plot'] = cm_base64
+    result['feature_importance_plot'] = fi_base64
+    result['roc_curve_plot'] = roc_base64
+    result['stock_code'] = stock_code
+    result['start_date'] = start_date
+    result['end_date'] = end_date
+
+    return jsonify(result)
+
+
 @ml_prediction_bp.route('/api/predict', methods=['POST'])
 def predict():
     """
-    使用训练好的模型进行预测
+    使用训练好的模型进行预测（支持增强模型）
     请求参数:
     {
         "stock_code": "600036.SH",
         "start_date": "2020-01-01",
         "end_date": "2024-12-31",
         "feature_categories": ["technical", "fundamental"],
-        "model_type": "logistic|random_forest|xgboost"
+        "model_type": "logistic|random_forest|xgboost|lightgbm|lstm|ensemble"
     }
     """
     try:
@@ -171,6 +227,12 @@ def predict():
         if df is None or df.empty:
             return jsonify({'success': False, 'error': '无法获取股票数据'}), 400
 
+        # ---- 增强模型分支 ----
+        ENHANCED_MODELS = ['xgboost', 'lightgbm', 'lstm', 'ensemble']
+        if model_type in ENHANCED_MODELS:
+            return _predict_enhanced_model(stock_code, model_type, df)
+
+        # ---- 传统模型分支 ----
         # 检查模型是否已训练
         if ml_predictor.model is None or ml_predictor.model_type != model_type:
             # 需要先训练模型
@@ -204,6 +266,42 @@ def predict():
     except Exception as e:
         logger.error(f"预测失败: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _predict_enhanced_model(stock_code, model_type, df):
+    """使用 EnhancedModelManager 进行预测"""
+    from services.ml_enhanced import enhanced_model_manager, FeatureEngineer
+
+    df_copy = df.copy()
+    df_copy['target'] = (df_copy['close'].shift(-1) > df_copy['close']).astype(int)
+    X, y = FeatureEngineer.prepare_supervised_data(df_copy)
+
+    if X is None:
+        return jsonify({'success': False, 'error': '特征准备失败'}), 400
+
+    # 确保模型已训练
+    status = enhanced_model_manager.get_status(model_type)
+    if not status.get('trained', False):
+        # 自动训练
+        train_result = enhanced_model_manager.train(X, y, model_type, test_size=0.2)
+        if not train_result.get('success'):
+            return jsonify(train_result), 400
+
+    # 预测
+    prediction_result = enhanced_model_manager.predict(X, model_type)
+
+    if not prediction_result.get('success'):
+        return jsonify(prediction_result), 400
+
+    latest_data = {
+        'date': df['trade_date'].iloc[-1].strftime('%Y-%m-%d') if 'trade_date' in df.columns else None,
+        'close': float(df['close'].iloc[-1]) if 'close' in df.columns else None
+    }
+
+    prediction_result['latest_data'] = latest_data
+    prediction_result['stock_code'] = stock_code
+
+    return jsonify(prediction_result)
 
 
 @ml_prediction_bp.route('/api/signals', methods=['POST'])
@@ -282,6 +380,52 @@ def generate_signals():
 
     except Exception as e:
         logger.error(f"生成交易信号失败: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@ml_prediction_bp.route('/api/models', methods=['GET'])
+def get_available_models():
+    """
+    列出所有可用的 ML 模型及其状态
+    返回增强模型（来自 ml_enhanced）+ 传统模型状态
+    """
+    try:
+        from services.models.ml_predictor import ml_predictor
+
+        # 传统模型状态
+        traditional = {
+            'logistic': {
+                'type': 'logistic',
+                'name': '逻辑回归',
+                'module': 'sklearn',
+                'available': True,
+                'trained': ml_predictor.model is not None and ml_predictor.model_type == 'logistic'
+            },
+            'random_forest': {
+                'type': 'random_forest',
+                'name': '随机森林',
+                'module': 'sklearn',
+                'available': True,
+                'trained': ml_predictor.model is not None and ml_predictor.model_type == 'random_forest'
+            }
+        }
+
+        # 增强模型状态
+        try:
+            from services.ml_enhanced import enhanced_model_manager
+            enhanced_models = enhanced_model_manager.get_available_models()
+        except ImportError as e:
+            logger.warning(f"增强模型模块不可用: {e}")
+            enhanced_models = []
+
+        return jsonify({
+            'success': True,
+            'models': enhanced_models,
+            'traditional': list(traditional.values())
+        })
+
+    except Exception as e:
+        logger.error(f"获取模型列表失败: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

@@ -7,7 +7,7 @@
     <!-- 页面标题 -->
     <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-800 mb-2">机器学习预测</h1>
-        <p class="text-gray-600">使用机器学习算法预测股票涨跌趋势</p>
+        <p class="text-gray-600">使用多种机器学习算法预测股票涨跌趋势</p>
         <div class="mt-4">
             <nav class="flex" aria-label="Breadcrumb">
                 <ol class="inline-flex items-center space-x-1 md:space-x-3">
@@ -60,14 +60,18 @@
                     </div>
                 </div>
 
-                <!-- 模型选择 -->
+                <!-- 模型选择下拉框 -->
                 <div class="mb-4">
                     <label class="block text-gray-700 font-medium mb-2">选择模型</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button id="model-logistic" class="model-btn bg-blue-600 text-white py-2 px-3 rounded-md hover:bg-blue-700 transition-colors text-sm">逻辑回归</button>
-                        <button id="model-random_forest" class="model-btn bg-gray-200 text-gray-800 py-2 px-3 rounded-md hover:bg-gray-300 transition-colors text-sm">随机森林</button>
-                        <button id="model-xgboost" class="model-btn bg-gray-200 text-gray-800 py-2 px-3 rounded-md hover:bg-gray-300 transition-colors text-sm">XGBoost</button>
-                    </div>
+                    <select id="model-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="logistic">逻辑回归</option>
+                        <option value="random_forest">随机森林</option>
+                        <option value="xgboost">XGBoost</option>
+                        <option value="lightgbm">LightGBM</option>
+                        <option value="lstm">LSTM</option>
+                        <option value="ensemble">集成模型</option>
+                    </select>
+                    <p id="model-status-msg" class="text-xs text-gray-500 mt-1"></p>
                 </div>
 
                 <!-- 特征选择 -->
@@ -85,7 +89,6 @@
                             <span class="ml-2 text-gray-700">基本面/收益率</span>
                         </label>
                     </div>
-                    <button id="show-features" class="mt-2 text-sm text-blue-600 hover:text-blue-800">查看已选特征</button>
                 </div>
 
                 <!-- 测试集比例 -->
@@ -124,11 +127,23 @@
                     </div>
                     <div>
                         <h4 class="font-semibold text-gray-700">随机森林</h4>
-                        <p>集成学习方法，通过多棵决策树投票，适合非线性关系</p>
+                        <p>集成学习方法，多棵决策树投票，适合非线性关系</p>
                     </div>
                     <div>
                         <h4 class="font-semibold text-gray-700">XGBoost</h4>
-                        <p>梯度提升算法，性能优异，适合大规模数据</p>
+                        <p>梯度提升算法，带超参数调优，特征重要性输出</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700">LightGBM</h4>
+                        <p>高效梯度提升框架，训练速度快，支持类别特征</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700">LSTM</h4>
+                        <p>深度时序神经网络，利用序列信息预测（需 TensorFlow）</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700">集成模型</h4>
+                        <p>加权组合多模型预测，基于近期性能自动分配权重</p>
                     </div>
                 </div>
             </div>
@@ -136,14 +151,16 @@
 
         <!-- 右侧结果展示 -->
         <div class="lg:col-span-2">
-            <!-- 训练状态 -->
+            <!-- 训练进度指示器 -->
             <div id="training-status" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <div class="flex items-center">
-                    <svg class="animate-spin h-5 w-5 text-blue-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span id="status-text">正在训练模型...</span>
+                    <div id="status-spinner" class="animate-spin h-5 w-5 text-blue-600 mr-3" style="display:none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <span id="status-text">正在处理...</span>
                 </div>
             </div>
 
@@ -241,24 +258,8 @@
                         </tbody>
                     </table>
                 </div>
+                <div id="signals-stats" class="mt-4"></div>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- 特征列表模态框 -->
-<div id="features-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
-        <div class="p-4 border-b flex justify-between items-center">
-            <h3 class="text-lg font-bold">已选特征列表</h3>
-            <button id="close-features-modal" class="text-gray-500 hover:text-gray-700">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-        <div class="p-4 overflow-y-auto max-h-[60vh]">
-            <div id="features-list" class="space-y-4"></div>
         </div>
     </div>
 </div>
@@ -269,20 +270,20 @@
     let selectedFeatures = ['technical', 'fundamental'];
     let modelTrained = false;
     let trainingResult = null;
+    let availableModels = [];
 
     // 初始化
     document.addEventListener('DOMContentLoaded', function() {
         initEventListeners();
-        loadFeatures();
+        loadModels();
     });
 
     function initEventListeners() {
-        // 模型选择按钮
-        document.querySelectorAll('.model-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const model = this.id.replace('model-', '');
-                setActiveModel(model);
-            });
+        // 模型选择下拉框
+        document.getElementById('model-select').addEventListener('change', function() {
+            currentModel = this.value;
+            modelTrained = false;
+            updateModelStatusMessage();
         });
 
         // 特征复选框
@@ -291,16 +292,7 @@
 
         // 测试集比例滑块
         document.getElementById('test-size').addEventListener('input', function() {
-            document.getElementById('test-size-label').textContent = (this.value * 100) + '%';
-        });
-
-        // 查看特征按钮
-        document.getElementById('show-features').addEventListener('click', showFeaturesModal);
-
-        // 关闭模态框
-        document.getElementById('close-features-modal').addEventListener('click', closeFeaturesModal);
-        document.getElementById('features-modal').addEventListener('click', function(e) {
-            if (e.target === this) closeFeaturesModal();
+            document.getElementById('test-size-label').textContent = Math.round(this.value * 100) + '%';
         });
 
         // 训练按钮
@@ -313,15 +305,25 @@
         document.getElementById('signals-btn').addEventListener('click', generateSignals);
     }
 
-    function setActiveModel(model) {
-        currentModel = model;
-        document.querySelectorAll('.model-btn').forEach(btn => {
-            btn.classList.remove('bg-blue-600', 'text-white');
-            btn.classList.add('bg-gray-200', 'text-gray-800');
-        });
-        document.getElementById('model-' + model).classList.remove('bg-gray-200', 'text-gray-800');
-        document.getElementById('model-' + model).classList.add('bg-blue-600', 'text-white');
-        modelTrained = false;
+    function updateModelStatusMessage() {
+        const msgEl = document.getElementById('model-status-msg');
+        if (!msgEl) return;
+
+        const model = availableModels.find(m => m.type === currentModel);
+        if (model) {
+            if (!model.available) {
+                msgEl.textContent = '⚠ ' + model.message;
+                msgEl.className = 'text-xs text-red-500 mt-1';
+            } else if (model.trained) {
+                msgEl.textContent = '✓ 已训练';
+                msgEl.className = 'text-xs text-green-500 mt-1';
+            } else if (model.message) {
+                msgEl.textContent = 'ℹ ' + model.message;
+                msgEl.className = 'text-xs text-blue-500 mt-1';
+            } else {
+                msgEl.textContent = '';
+            }
+        }
     }
 
     function updateFeatureSelection() {
@@ -331,54 +333,54 @@
         modelTrained = false;
     }
 
-    function loadFeatures() {
-        fetch('/ml/api/features')
+    function loadModels() {
+        fetch('/ml/api/models')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    window.allFeatures = data;
+                    // 合并增强模型和传统模型
+                    const enhanced = data.models || [];
+                    const traditional = data.traditional || [];
+
+                    // 用传统模型状态覆盖增强模型中已有的
+                    const traditionalMap = {};
+                    traditional.forEach(t => { traditionalMap[t.type] = t; });
+
+                    availableModels = enhanced.map(m => {
+                        if (traditionalMap[m.type]) {
+                            return { ...m, trained: m.trained || traditionalMap[m.type].trained };
+                        }
+                        return m;
+                    });
+
+                    // 添加传统模型中增强列表没有的
+                    traditional.forEach(t => {
+                        if (!availableModels.find(m => m.type === t.type)) {
+                            availableModels.push(t);
+                        }
+                    });
+
+                    updateModelStatusMessage();
                 }
             })
-            .catch(error => console.error('加载特征失败:', error));
+            .catch(error => console.error('加载模型列表失败:', error));
     }
 
-    function showFeaturesModal() {
-        const modal = document.getElementById('features-modal');
-        const listContainer = document.getElementById('features-list');
-        listContainer.innerHTML = '';
-
-        if (!window.allFeatures || !window.allFeatures.success) {
-            listContainer.innerHTML = '<p class="text-gray-500">无法加载特征列表</p>';
+    function setButtonLoading(btn, loading) {
+        if (loading) {
+            btn.dataset.originalText = btn.textContent;
+            btn.textContent = '处理中...';
+            btn.disabled = true;
         } else {
-            const features = window.allFeatures.features;
-            const descriptions = window.allFeatures.descriptions;
-
-            for (const [category, featureList] of Object.entries(features)) {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.innerHTML = `
-                    <h4 class="font-semibold text-gray-700 mb-2">${category === 'technical' ? '技术指标' : '基本面/收益率'}</h4>
-                    <div class="flex flex-wrap gap-2">
-                        ${featureList.map(f => `
-                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                                ${f} ${descriptions[f] ? '-' + descriptions[f] : ''}
-                            </span>
-                        `).join('')}
-                    </div>
-                `;
-                listContainer.appendChild(categoryDiv);
-            }
+            btn.textContent = btn.dataset.originalText || btn.textContent;
+            btn.disabled = false;
         }
-
-        modal.classList.remove('hidden');
     }
 
-    function closeFeaturesModal() {
-        document.getElementById('features-modal').classList.add('hidden');
-    }
-
-    function showTrainingStatus(message) {
+    function showTrainingStatus(message, showSpinner) {
         const statusDiv = document.getElementById('training-status');
         document.getElementById('status-text').textContent = message;
+        document.getElementById('status-spinner').style.display = showSpinner ? '' : 'none';
         statusDiv.classList.remove('hidden');
     }
 
@@ -398,11 +400,8 @@
         }
 
         const btn = document.getElementById('train-btn');
-        const originalText = btn.textContent;
-        btn.textContent = '训练中...';
-        btn.disabled = true;
-
-        showTrainingStatus('正在训练模型，请稍候...');
+        setButtonLoading(btn, true);
+        showTrainingStatus('正在训练 ' + (currentModel === 'ensemble' ? '集成' : currentModel.toUpperCase()) + ' 模型，请稍候...', true);
 
         fetch('/ml/api/train', {
             method: 'POST',
@@ -424,13 +423,25 @@
                 trainingResult = data;
                 updateMetrics(data);
                 updatePlots(data);
-                document.getElementById('prediction-result').innerHTML = `
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <p class="text-green-800 font-medium">模型训练成功！</p>
-                        <p class="text-sm text-green-600 mt-1">准确率: ${(data.accuracy * 100).toFixed(2)}%</p>
-                        <p class="text-sm text-green-600">您现在可以进行预测</p>
-                    </div>
-                `;
+
+                // 显示特征重要性（对于集成模型显示权重）
+                if (currentModel === 'ensemble' && data.weights) {
+                    showEnsembleWeights(data);
+                } else {
+                    let fiMsg = '';
+                    if (data.model_type && data.model_type.includes('lstm')) {
+                        fiMsg = '<p class="text-sm text-gray-500 mt-2">（LSTM 模型不直接输出特征重要性）</p>';
+                    }
+                    document.getElementById('prediction-result').innerHTML = `
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <p class="text-green-800 font-medium">${getModelDisplayName(currentModel)} 训练成功！</p>
+                            <p class="text-sm text-green-600 mt-1">模型类型: ${currentModel.toUpperCase()}</p>
+                            <p class="text-sm text-green-600 mt-1">准确率: ${(data.accuracy * 100).toFixed(2)}%</p>
+                            <p class="text-sm text-green-600">您现在可以进行预测</p>
+                            ${fiMsg}
+                        </div>
+                    `;
+                }
             } else {
                 alert('训练失败: ' + data.error);
             }
@@ -441,20 +452,66 @@
             alert('训练请求失败: ' + error.message);
         })
         .finally(() => {
-            btn.textContent = originalText;
-            btn.disabled = false;
+            setButtonLoading(btn, false);
         });
     }
 
+    function getModelDisplayName(type) {
+        const names = {
+            'logistic': '逻辑回归', 'random_forest': '随机森林',
+            'xgboost': 'XGBoost', 'lightgbm': 'LightGBM',
+            'lstm': 'LSTM', 'ensemble': '集成模型'
+        };
+        return names[type] || type;
+    }
+
+    function showEnsembleWeights(data) {
+        let weightHtml = '';
+        if (data.weights) {
+            weightHtml = '<div class="mt-3 text-left"><p class="text-sm font-semibold mb-2">子模型权重分配:</p>';
+            for (const [model, weight] of Object.entries(data.weights)) {
+                const pct = (weight * 100).toFixed(1);
+                weightHtml += `<p class="text-xs text-gray-600">${getModelDisplayName(model)}: ${pct}%</p>`;
+            }
+            weightHtml += '</div>';
+        }
+        document.getElementById('prediction-result').innerHTML = `
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p class="text-green-800 font-medium">集成模型训练成功！</p>
+                <p class="text-sm text-green-600 mt-1">子模型数量: ${data.model_results ? Object.keys(data.model_results).length : '-'}</p>
+                <p class="text-sm text-green-600">您现在可以进行预测</p>
+                ${weightHtml}
+            </div>
+        `;
+    }
+
     function updateMetrics(data) {
-        document.getElementById('metric-accuracy').textContent = (data.accuracy * 100).toFixed(1) + '%';
-        document.getElementById('metric-precision').textContent = (data.precision * 100).toFixed(1) + '%';
-        document.getElementById('metric-recall').textContent = (data.recall * 100).toFixed(1) + '%';
-        document.getElementById('metric-f1').textContent = (data.f1_score * 100).toFixed(1) + '%';
-        document.getElementById('metric-auc').textContent = data.roc_auc.toFixed(4);
-        document.getElementById('metric-cv').textContent = (data.cv_mean * 100).toFixed(1) + '%';
-        document.getElementById('metric-train').textContent = data.train_size;
-        document.getElementById('metric-test').textContent = data.test_size;
+        if (data.accuracy !== undefined) {
+            document.getElementById('metric-accuracy').textContent = (data.accuracy * 100).toFixed(1) + '%';
+        }
+        if (data.precision !== undefined) {
+            document.getElementById('metric-precision').textContent = (data.precision * 100).toFixed(1) + '%';
+        }
+        if (data.recall !== undefined) {
+            document.getElementById('metric-recall').textContent = (data.recall * 100).toFixed(1) + '%';
+        }
+        if (data.f1_score !== undefined) {
+            document.getElementById('metric-f1').textContent = (data.f1_score * 100).toFixed(1) + '%';
+        }
+        if (data.roc_auc !== undefined) {
+            document.getElementById('metric-auc').textContent = data.roc_auc.toFixed(4);
+        }
+        if (data.cv_mean !== undefined) {
+            document.getElementById('metric-cv').textContent = (data.cv_mean * 100).toFixed(1) + '%';
+        } else {
+            document.getElementById('metric-cv').textContent = '-';
+        }
+        if (data.train_size !== undefined) {
+            document.getElementById('metric-train').textContent = data.train_size;
+        }
+        if (data.test_size !== undefined) {
+            document.getElementById('metric-test').textContent = data.test_size;
+        }
     }
 
     function updatePlots(data) {
@@ -477,6 +534,25 @@
             document.getElementById('feature-importance-plot').innerHTML = `
                 <img src="data:image/png;base64,${data.feature_importance_plot}" class="max-w-full h-auto">
             `;
+        } else if (data.feature_importance) {
+            // 如果后端返回了特征重要性字典但没生成图表，前端简单展示
+            const fi = data.feature_importance;
+            const entries = Object.entries(fi).sort((a, b) => b[1] - a[1]).slice(0, 15);
+            let html = '<div class="w-full p-4"><table class="min-w-full text-sm text-left">';
+            html += '<thead><tr><th class="pr-4 pb-2 text-gray-500">排名</th><th class="pr-4 pb-2 text-gray-500">特征</th><th class="pb-2 text-gray-500">重要性</th></tr></thead><tbody>';
+            entries.forEach(([name, val], i) => {
+                html += `<tr><td class="pr-4 py-1 text-gray-700">${i + 1}</td><td class="pr-4 py-1 text-gray-700">${name}</td><td class="py-1 text-blue-600">${(val * 100).toFixed(2)}%</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+            document.getElementById('feature-importance-plot').innerHTML = html;
+        } else if (data.model_type && data.model_type.includes('lstm')) {
+            document.getElementById('feature-importance-plot').innerHTML = `
+                <p class="text-gray-400">LSTM 模型不直接输出特征重要性</p>
+            `;
+        } else {
+            document.getElementById('feature-importance-plot').innerHTML = `
+                <p class="text-gray-400">该模型不输出特征重要性</p>
+            `;
         }
     }
 
@@ -491,11 +567,8 @@
         }
 
         const btn = document.getElementById('predict-btn');
-        const originalText = btn.textContent;
-        btn.textContent = '预测中...';
-        btn.disabled = true;
-
-        showTrainingStatus('正在进行预测...');
+        setButtonLoading(btn, true);
+        showTrainingStatus('正在进行预测...', true);
 
         fetch('/ml/api/predict', {
             method: 'POST',
@@ -513,7 +586,17 @@
             hideTrainingStatus();
             if (data.success) {
                 const signalColor = data.signal === '买入' ? 'green' : 'red';
-                const prob = data.probability;
+                const prob = data.probability || {};
+
+                let extraInfo = '';
+                if (data.ensemble_weights) {
+                    extraInfo = '<div class="mt-3 text-left"><p class="text-xs text-gray-500 mb-1">集成子模型数量: ' + data.sub_predictions + '</p>';
+                    for (const [model, weight] of Object.entries(data.ensemble_weights)) {
+                        extraInfo += `<span class="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs mr-1 mb-1">${getModelDisplayName(model)}: ${(weight*100).toFixed(0)}%</span>`;
+                    }
+                    extraInfo += '</div>';
+                }
+
                 document.getElementById('prediction-result').innerHTML = `
                     <div class="bg-${signalColor}-50 border border-${signalColor}-200 rounded-lg p-6">
                         <div class="flex items-center justify-center mb-4">
@@ -524,10 +607,11 @@
                             </div>
                         </div>
                         <div class="mt-4 text-left bg-white rounded p-4">
-                            <p class="text-sm mb-2"><strong>最新数据:</strong> ${data.latest_data.date}</p>
-                            <p class="text-sm mb-2"><strong>收盘价:</strong> ¥${data.latest_data.close.toFixed(2)}</p>
-                            <p class="text-sm mb-2"><strong>上涨概率:</strong> ${(prob.上涨 * 100).toFixed(1)}%</p>
-                            <p class="text-sm"><strong>下跌概率:</strong> ${(prob.下跌 * 100).toFixed(1)}%</p>
+                            ${data.latest_data && data.latest_data.date ? `<p class="text-sm mb-2"><strong>最新数据:</strong> ${data.latest_data.date}</p>` : ''}
+                            ${data.latest_data && data.latest_data.close ? `<p class="text-sm mb-2"><strong>收盘价:</strong> ¥${data.latest_data.close.toFixed(2)}</p>` : ''}
+                            <p class="text-sm mb-2"><strong>上涨概率:</strong> ${prob.上涨 ? (prob.上涨 * 100).toFixed(1) + '%' : '-'}</p>
+                            <p class="text-sm"><strong>下跌概率:</strong> ${prob.下跌 ? (prob.下跌 * 100).toFixed(1) + '%' : '-'}</p>
+                            ${extraInfo}
                         </div>
                     </div>
                 `;
@@ -541,8 +625,7 @@
             alert('预测请求失败: ' + error.message);
         })
         .finally(() => {
-            btn.textContent = originalText;
-            btn.disabled = false;
+            setButtonLoading(btn, false);
         });
     }
 
@@ -557,11 +640,8 @@
         }
 
         const btn = document.getElementById('signals-btn');
-        const originalText = btn.textContent;
-        btn.textContent = '生成中...';
-        btn.disabled = true;
-
-        showTrainingStatus('正在生成交易信号...');
+        setButtonLoading(btn, true);
+        showTrainingStatus('正在生成交易信号...', true);
 
         fetch('/ml/api/signals', {
             method: 'POST',
@@ -580,29 +660,32 @@
                 const tbody = document.getElementById('signals-tbody');
                 tbody.innerHTML = '';
 
-                data.signals.forEach(signal => {
-                    const row = document.createElement('tr');
-                    const signalClass = signal.ml_action === '买入' ? 'text-green-600' : 'text-red-600';
-                    row.innerHTML = `
-                        <td class="px-4 py-2 text-sm text-gray-900">${signal.trade_date}</td>
-                        <td class="px-4 py-2 text-sm text-gray-900">¥${signal.close.toFixed(2)}</td>
-                        <td class="px-4 py-2 text-sm font-medium ${signalClass}">${signal.ml_action}</td>
-                        <td class="px-4 py-2 text-sm text-gray-900">${(signal.ml_confidence * 100).toFixed(1)}%</td>
-                    `;
-                    tbody.appendChild(row);
-                });
+                if (data.signals && data.signals.length > 0) {
+                    data.signals.forEach(signal => {
+                        const row = document.createElement('tr');
+                        const signalClass = signal.ml_action === '买入' ? 'text-green-600' : 'text-red-600';
+                        row.innerHTML = `
+                            <td class="px-4 py-2 text-sm text-gray-900">${signal.trade_date}</td>
+                            <td class="px-4 py-2 text-sm text-gray-900">¥${signal.close.toFixed(2)}</td>
+                            <td class="px-4 py-2 text-sm font-medium ${signalClass}">${signal.ml_action}</td>
+                            <td class="px-4 py-2 text-sm text-gray-900">${(signal.ml_confidence * 100).toFixed(1)}%</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">无信号数据</td></tr>';
+                }
 
-                // 添加统计信息
-                const statsDiv = document.createElement('div');
-                statsDiv.className = 'mt-4 p-4 bg-gray-50 rounded-lg';
+                const statsDiv = document.getElementById('signals-stats');
                 statsDiv.innerHTML = `
-                    <p class="text-sm text-gray-600">
-                        共 ${data.total_records} 条记录，
-                        买入信号: ${data.signal_counts['买入'] || 0} 次，
-                        卖出信号: ${data.signal_counts['卖出'] || 0} 次
-                    </p>
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <p class="text-sm text-gray-600">
+                            共 ${data.total_records !== undefined ? data.total_records : '-'} 条记录，
+                            买入信号: ${data.signal_counts && data.signal_counts['买入'] ? data.signal_counts['买入'] : 0} 次，
+                            卖出信号: ${data.signal_counts && data.signal_counts['卖出'] ? data.signal_counts['卖出'] : 0} 次
+                        </p>
+                    </div>
                 `;
-                document.getElementById('signals-result').appendChild(statsDiv);
             } else {
                 alert('生成信号失败: ' + data.error);
             }
@@ -613,8 +696,7 @@
             alert('请求失败: ' + error.message);
         })
         .finally(() => {
-            btn.textContent = originalText;
-            btn.disabled = false;
+            setButtonLoading(btn, false);
         });
     }
 </script>

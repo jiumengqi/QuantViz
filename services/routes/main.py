@@ -142,6 +142,98 @@ def submit_contact():
         return json.dumps({'success': False, 'message': f'提交失败，请稍后重试'}), 500, {'Content-Type': 'application/json'}
 
 
+@main_bp.route('/api/hot-stocks')
+def api_hot_stocks():
+    """获取热门股票实时数据API"""
+    try:
+        from services.data_fetcher import data_fetcher
+        from config import HOT_STOCKS
+        import numpy as np
+        from datetime import datetime, timedelta
+
+        hot_codes = [s['code'] for s in HOT_STOCKS]
+        hot_names = {s['code']: s['name'] for s in HOT_STOCKS}
+        result = []
+        is_simulated = False
+
+        for code in hot_codes:
+            try:
+                df = data_fetcher.get_stock_daily(code,
+                    start_date=(datetime.now() - timedelta(days=5)).strftime('%Y%m%d'),
+                    end_date=datetime.now().strftime('%Y%m%d'))
+                if df is not None and not df.empty:
+                    df = df.sort_values('trade_date')
+                    latest = df.iloc[-1]
+                    prev = df.iloc[-2] if len(df) > 1 else latest
+                    price = float(latest['close'])
+                    prev_price = float(prev['close'])
+                    change_pct = round((price - prev_price) / prev_price * 100, 2) if prev_price != 0 else 0
+                    volume = int(float(latest.get('vol', 0)))
+                    result.append({
+                        'code': code,
+                        'name': hot_names.get(code, code),
+                        'latest_price': round(price, 2),
+                        'change_pct': change_pct,
+                        'volume': volume
+                    })
+                else:
+                    result.append(_mock_hot_stock(code, hot_names.get(code, code)))
+                    is_simulated = True
+            except Exception:
+                result.append(_mock_hot_stock(code, hot_names.get(code, code)))
+                is_simulated = True
+
+        # 检测是否是模拟数据
+        if not result:
+            for code in hot_codes:
+                result.append(_mock_hot_stock(code, hot_names.get(code, code)))
+            is_simulated = True
+
+        response_data = {
+            'stocks': result,
+            'is_simulated': is_simulated
+        }
+        return json.dumps(response_data), 200, {'Content-Type': 'application/json'}
+    except Exception as e:
+        current_app.logger.error(f"获取热门股票数据失败: {str(e)}")
+        # 完全回退到模拟数据
+        try:
+            from config import HOT_STOCKS
+            mock_data = {
+                'stocks': [_mock_hot_stock(s['code'], s['name']) for s in HOT_STOCKS],
+                'is_simulated': True
+            }
+            return json.dumps(mock_data), 200, {'Content-Type': 'application/json'}
+        except Exception:
+            return json.dumps({'stocks': [], 'is_simulated': True, 'error': '获取数据失败'}), 200, {'Content-Type': 'application/json'}
+
+
+def _mock_hot_stock(code, name):
+    """生成模拟热门股票数据"""
+    import hashlib
+    # 基于代码生成稳定的模拟数据
+    seed = int(hashlib.md5(code.encode()).hexdigest()[:8], 16)
+    mock_prices = {
+        '600036.SH': 32.65, '000858.SZ': 168.50, '601318.SH': 45.80,
+        '600519.SH': 1680.00, '000001.SZ': 12.34
+    }
+    mock_changes = {
+        '600036.SH': 2.58, '000858.SZ': 1.94, '601318.SH': -0.65,
+        '600519.SH': 1.54, '000001.SZ': 3.79
+    }
+    mock_volumes = {
+        '600036.SH': 85000000, '000858.SZ': 32000000, '601318.SH': 56000000,
+        '600519.SH': 12000000, '000001.SZ': 78000000
+    }
+    return {
+        'code': code,
+        'name': name,
+        'latest_price': mock_prices.get(code, round(10 + seed % 50, 2)),
+        'change_pct': mock_changes.get(code, round(((seed % 100) - 50) / 10, 2)),
+        'volume': mock_volumes.get(code, 50000000 + seed % 50000000)
+    }
+
+
 @main_bp.route('/api/search')
 def api_search():
     """全局搜索API"""

@@ -1,7 +1,9 @@
-from flask import Blueprint, render_template, request, jsonify, current_app
+from flask import Blueprint, render_template, request, jsonify, current_app, send_file
 from services.analyzer import financial_analyzer
 import json
 from datetime import datetime, timedelta
+import pandas as pd
+import io
 
 # 创建分析模块蓝图
 analysis_bp = Blueprint('analysis', __name__)
@@ -158,3 +160,59 @@ def analyze_stock():
     except Exception as e:
         current_app.logger.error(f"股票分析失败: {str(e)}")
         return jsonify({'success': False, 'message': f'分析失败: {str(e)}'}), 500
+
+
+@analysis_bp.route('/api/export', methods=['POST'])
+def export_analysis():
+    """导出分析报告为 Excel"""
+    try:
+        data = request.json
+        stock_code = data.get('stockCode', 'unknown')
+        price_data = data.get('priceData', [])
+        analysis_data = data.get('analysisData', {})
+        
+        # 创建 Excel 文件
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # Sheet 1: 价格数据
+            if price_data:
+                df_price = pd.DataFrame(price_data)
+                df_price.to_excel(writer, sheet_name='价格数据', index=False)
+            
+            # Sheet 2: 风险指标
+            risk = analysis_data.get('risk_indicators', {})
+            if risk:
+                df_risk = pd.DataFrame([
+                    {'指标': k, '数值': v} for k, v in risk.items()
+                ])
+                df_risk.to_excel(writer, sheet_name='风险指标', index=False)
+            
+            # Sheet 3: 技术指标
+            tech = analysis_data.get('technical_indicators', {})
+            if tech:
+                df_tech = pd.DataFrame([
+                    {'指标': k, '数值': v} for k, v in tech.items()
+                ])
+                df_tech.to_excel(writer, sheet_name='技术指标', index=False)
+            
+            # Sheet 4: 最新行情
+            latest = analysis_data.get('latest_data', {})
+            if latest:
+                df_latest = pd.DataFrame([
+                    {'字段': k, '数值': v} for k, v in latest.items()
+                ])
+                df_latest.to_excel(writer, sheet_name='最新行情', index=False)
+        
+        output.seek(0)
+        
+        filename = f'分析报告_{stock_code}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        current_app.logger.error(f"导出分析报告失败: {str(e)}")
+        return jsonify({'success': False, 'message': f'导出失败: {str(e)}'}), 500

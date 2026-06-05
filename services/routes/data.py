@@ -95,9 +95,11 @@ def get_stock_prices(ts_code):
         # 获取数据
         df = data_fetcher.get_stock_data(ts_code, start_date, end_date)
 
+        is_simulated = False
         if df is None or df.empty:
             # 如果没有数据，返回模拟数据
             current_app.logger.warning(f"没有找到股票 {ts_code} 的数据，返回模拟数据")
+            is_simulated = True
             # 生成模拟数据
             dates = pd.date_range(end=datetime.now(), periods=30)
             base_price = 100
@@ -128,7 +130,8 @@ def get_stock_prices(ts_code):
         return jsonify({
             'code': ts_code,
             'count': len(data),
-            'data': data
+            'data': data,
+            'is_simulated': is_simulated
         })
     except Exception as e:
         current_app.logger.error(f"获取股票价格数据失败: {str(e)}")

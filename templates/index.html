@@ -150,6 +150,103 @@
         </div>
     </section>
 
+    <!-- 市场概览 & 热门股票 -->
+    <section id="market-hot" class="py-8 md:py-12 bg-white border-b border-gray-100">
+        <div class="container mx-auto px-4">
+            <!-- 指数迷你趋势图 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- 上证指数 -->
+                <div class="bg-white rounded-xl shadow-lg p-5 border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h3 class="font-bold text-gray-800">上证指数</h3>
+                            <span id="sh-idx-name" class="text-xs text-gray-400">000001.SH</span>
+                        </div>
+                        <span id="sh-idx-price" class="text-lg font-bold text-gray-800">--</span>
+                    </div>
+                    <div id="sh-idx-change-container" class="flex items-center space-x-2 mb-3">
+                        <span id="sh-idx-change" class="text-sm font-medium">--</span>
+                        <span id="sh-idx-pct" class="text-sm font-medium px-2 py-0.5 rounded-full">--</span>
+                    </div>
+                    <div style="height: 80px;">
+                        <canvas id="sh-index-chart" style="display: block; width: 100% !important; height: 100% !important;"></canvas>
+                    </div>
+                </div>
+                <!-- 深证成指 -->
+                <div class="bg-white rounded-xl shadow-lg p-5 border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h3 class="font-bold text-gray-800">深证成指</h3>
+                            <span class="text-xs text-gray-400">399001.SZ</span>
+                        </div>
+                        <span id="sz-idx-price" class="text-lg font-bold text-gray-800">--</span>
+                    </div>
+                    <div id="sz-idx-change-container" class="flex items-center space-x-2 mb-3">
+                        <span id="sz-idx-change" class="text-sm font-medium">--</span>
+                        <span id="sz-idx-pct" class="text-sm font-medium px-2 py-0.5 rounded-full">--</span>
+                    </div>
+                    <div style="height: 80px;">
+                        <canvas id="sz-index-chart" style="display: block; width: 100% !important; height: 100% !important;"></canvas>
+                    </div>
+                </div>
+                <!-- 沪深300 -->
+                <div class="bg-white rounded-xl shadow-lg p-5 border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h3 class="font-bold text-gray-800">沪深300</h3>
+                            <span class="text-xs text-gray-400">000300.SH</span>
+                        </div>
+                        <span id="hs-idx-price" class="text-lg font-bold text-gray-800">--</span>
+                    </div>
+                    <div id="hs-idx-change-container" class="flex items-center space-x-2 mb-3">
+                        <span id="hs-idx-change" class="text-sm font-medium">--</span>
+                        <span id="hs-idx-pct" class="text-sm font-medium px-2 py-0.5 rounded-full">--</span>
+                    </div>
+                    <div style="height: 80px;">
+                        <canvas id="hs-index-chart" style="display: block; width: 100% !important; height: 100% !important;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模拟数据标签 -->
+            <div id="hot-stocks-sim-badge" class="mb-4 hidden">
+                <span class="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
+                    <i class="fa fa-exclamation-triangle mr-1"></i>模拟数据（Tushare API 不可用）
+                </span>
+            </div>
+
+            <!-- 热门股票表格 -->
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <i class="fa fa-fire text-orange-500 mr-2"></i>热门股票
+                    </h3>
+                    <span id="hot-stocks-update-time" class="text-xs text-gray-400"></span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-4 py-3">代码</th>
+                                <th class="px-4 py-3">名称</th>
+                                <th class="px-4 py-3">最新价</th>
+                                <th class="px-4 py-3">涨跌幅</th>
+                                <th class="px-4 py-3">成交量</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hot-stocks-body" class="divide-y divide-gray-100">
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-400">
+                                    <i class="fa fa-spinner fa-spin mr-2"></i>加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- 功能模块 -->
     <section id="features" class="py-16 md:py-24 bg-white">
         <div class="container mx-auto px-4">
@@ -522,7 +619,7 @@
                 </p>
             </div>
 
-            <div class="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100">
+            <div id="backtest" class="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100">
                 <div class="p-6 md:p-8">
                     <div class="flex flex-col md:flex-row gap-8">
                         <div class="md:w-1/3">
@@ -531,7 +628,7 @@
                             <div class="space-y-6">
                                 <div class="transform transition-transform duration-300 hover:scale-[1.01]">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">选择策略</label>
-                                    <select class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                    <select id="backtest-strategy" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
                                         <option>移动平均线交叉策略</option>
                                         <option>RSI超买超卖策略</option>
                                         <option>MACD策略</option>
@@ -542,15 +639,15 @@
 
                                 <div class="transform transition-transform duration-300 hover:scale-[1.01]">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">股票代码</label>
-                                    <input type="text" value="600036.SH" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                    <input id="backtest-stock" type="text" value="600036.SH" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
                                     <p class="text-xs text-gray-500 mt-1">例如: 600036.SH (招商银行)</p>
                                 </div>
 
                                 <div class="transform transition-transform duration-300 hover:scale-[1.01]">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">回测时间段</label>
                                     <div class="grid grid-cols-2 gap-4">
-                                        <input type="date" value="2020-01-01" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
-                                        <input type="date" value="2023-12-31" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                        <input id="backtest-start-date" type="date" value="2020-01-01" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                        <input id="backtest-end-date" type="date" value="2023-12-31" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
                                     </div>
                                 </div>
 
@@ -559,18 +656,18 @@
                                     <div class="space-y-3">
                                         <div>
                                             <label class="text-xs text-gray-600">短期均线窗口</label>
-                                            <input type="number" value="10" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                            <input id="backtest-short-window" type="number" value="10" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
                                         </div>
                                         <div>
                                             <label class="text-xs text-gray-600">长期均线窗口</label>
-                                            <input type="number" value="30" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                            <input id="backtest-long-window" type="number" value="30" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="transform transition-transform duration-300 hover:scale-[1.01]">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">初始资金</label>
-                                    <input type="number" value="1000000" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
+                                    <input id="backtest-capital" type="number" value="1000000" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 hover:border-primary">
                                 </div>
 
                                 <button id="start-backtest-btn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center transform hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200">
@@ -636,23 +733,8 @@
                                                 <th class="px-4 py-3">手续费</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="divide-y divide-gray-200">
-                                            <tr class="transform transition-transform duration-300 hover:bg-gray-50">
-                                                <td class="px-4 py-3 text-sm">2023-11-15</td>
-                                                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">买入</span></td>
-                                                <td class="px-4 py-3 text-sm">32.56</td>
-                                                <td class="px-4 py-3 text-sm">3000</td>
-                                                <td class="px-4 py-3 text-sm">97,680.00</td>
-                                                <td class="px-4 py-3 text-sm">29.30</td>
-                                            </tr>
-                                            <tr class="transform transition-transform duration-300 hover:bg-gray-50">
-                                                <td class="px-4 py-3 text-sm">2023-10-08</td>
-                                                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">卖出</span></td>
-                                            <td class="px-4 py-3 text-sm">34.21</td>
-                                            <td class="px-4 py-3 text-sm">3000</td>
-                                            <td class="px-4 py-3 text-sm">102,630.00</td>
-                                            <td class="px-4 py-3 text-sm">30.79</td>
-                                        </tr>
+                                        <tbody id="backtest-trades-body" class="divide-y divide-gray-200">
+                                            <tr><td colspan="6" class="px-4 py-6 text-center text-gray-400 text-sm">点击"开始回测"查看交易记录</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -1034,7 +1116,11 @@ function initStockChart() {
  */
 function initBacktestChart() {
     const canvas = document.getElementById('backtestChart');
-    if (!canvas) return;
+    if (!canvas) {
+        console.warn('[BacktestChart] canvas 元素不存在，跳过初始化');
+        return;
+    }
+    console.log('[BacktestChart] canvas 尺寸:', canvas.clientWidth, 'x', canvas.clientHeight, 'offsetParent:', !!canvas.offsetParent);
     
     if (homeCharts.backtestChart) {
         homeCharts.backtestChart.destroy();
@@ -1141,12 +1227,23 @@ async function runHomeBacktest() {
     btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 回测中...';
     
     try {
-        const selectEl = document.querySelector('#backtest select');
-        const stockInput = document.querySelector('#backtest input[value="600036.SH"]');
-        const dateInputs = document.querySelectorAll('#backtest input[type="date"]');
-        const capitalInput = document.querySelector('#backtest input[type="number"][value="1000000"]');
-        const shortWin = document.querySelector('#backtest input[type="number"][value="10"]');
-        const longWin = document.querySelector('#backtest input[type="number"][value="30"]');
+        const strategyEl = document.getElementById('backtest-strategy');
+        const stockEl = document.getElementById('backtest-stock');
+        const startDateEl = document.getElementById('backtest-start-date');
+        const endDateEl = document.getElementById('backtest-end-date');
+        const shortWinEl = document.getElementById('backtest-short-window');
+        const longWinEl = document.getElementById('backtest-long-window');
+        const capitalEl = document.getElementById('backtest-capital');
+
+        console.log('[Backtest] 读取表单值:', {
+            strategy: strategyEl?.value,
+            stock: stockEl?.value,
+            start: startDateEl?.value,
+            end: endDateEl?.value,
+            short: shortWinEl?.value,
+            long: longWinEl?.value,
+            capital: capitalEl?.value
+        });
 
         const strategyMap = {
             '移动平均线交叉策略': 'ma_cross',
@@ -1156,16 +1253,16 @@ async function runHomeBacktest() {
             '自定义策略': 'custom'
         };
         
-        const strategyName = selectEl ? selectEl.value : '移动平均线交叉策略';
+        const strategyName = strategyEl ? strategyEl.value : '移动平均线交叉策略';
         
         const formData = {
             strategy: strategyMap[strategyName] || 'ma_cross',
-            stock_code: stockInput ? stockInput.value : '600036.SH',
-            start_date: dateInputs[0] ? dateInputs[0].value : '2023-01-01',
-            end_date: dateInputs[1] ? dateInputs[1].value : '2024-12-31',
-            initial_capital: capitalInput ? parseFloat(capitalInput.value) : 1000000,
-            short_window: shortWin ? parseInt(shortWin.value) : 10,
-            long_window: longWin ? parseInt(longWin.value) : 30,
+            stock_code: stockEl ? stockEl.value : '600036.SH',
+            start_date: startDateEl ? startDateEl.value : '2023-01-01',
+            end_date: endDateEl ? endDateEl.value : '2024-12-31',
+            initial_capital: capitalEl ? parseFloat(capitalEl.value) : 1000000,
+            short_window: shortWinEl ? parseInt(shortWinEl.value) : 10,
+            long_window: longWinEl ? parseInt(longWinEl.value) : 30,
             rsi_period: 14,
             rsi_overbought: 70,
             rsi_oversold: 30,
@@ -1173,6 +1270,8 @@ async function runHomeBacktest() {
             macd_slow: 26,
             macd_signal: 9
         };
+
+        console.log('[Backtest] 发送请求:', formData);
         
         const resp = await fetch('/backtest/run', {
             method: 'POST',
@@ -1181,6 +1280,8 @@ async function runHomeBacktest() {
         });
         
         const result = await resp.json();
+
+        console.log('[Backtest] API返回:', result);
         
         if (result.error) {
             showToast('回测失败: ' + result.error, 'error');
@@ -1195,19 +1296,49 @@ async function runHomeBacktest() {
         document.getElementById('win-rate-value').textContent = (result.win_rate || 0).toFixed(1) + '%';
         document.getElementById('trade-count-value').textContent = result.total_trades || 0;
         
-        // 更新图表
-        if (result.equity_data && result.equity_data.length > 0 && homeCharts.backtestChart) {
-            const labels = result.equity_data.map(d => d.date || '');
-            const returns = result.equity_data.map(d => (d.cumulative_return || 0) * 100);
-            
-            homeCharts.backtestChart.data.labels = labels;
-            homeCharts.backtestChart.data.datasets[0].data = returns;
-            // 基准不更新（无新数据）
+        // 更新图表：同时更新策略收益线和基准收益线
+        if (homeCharts.backtestChart) {
+            if (result.equity_data && result.equity_data.length > 0) {
+                const labels = result.equity_data.map(d => d.date || '');
+                const returns = result.equity_data.map(d => (d.cumulative_return || 0) * 100);
+                
+                homeCharts.backtestChart.data.labels = labels;
+                homeCharts.backtestChart.data.datasets[0].data = returns;
+                
+                // 更新基准收益线
+                if (result.benchmark_data && result.benchmark_data.length > 0) {
+                    const benchmarkReturns = result.benchmark_data.map(d => (d.cumulative_return || 0) * 100);
+                    homeCharts.backtestChart.data.datasets[1].data = benchmarkReturns;
+                    console.log('[Backtest] 已更新基准数据, 长度:', benchmarkReturns.length);
+                }
+                console.log('[Backtest] 已更新图表, 数据点:', returns.length);
+            }
             homeCharts.backtestChart.update();
+        } else {
+            console.warn('[Backtest] backtestChart 实例不存在，无法更新图表');
+        }
+
+        // 更新交易记录表
+        const tbody = document.getElementById('backtest-trades-body');
+        if (tbody && result.trades && result.trades.length > 0) {
+            tbody.innerHTML = result.trades.map(t => `
+                <tr class="transform transition-transform duration-300 hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm">${t.date || ''}</td>
+                    <td class="px-4 py-3 text-sm"><span class="px-2 py-1 ${t.type === '买入' || t.type === 'buy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} rounded-full text-xs">${t.type || ''}</span></td>
+                    <td class="px-4 py-3 text-sm">${t.price || ''}</td>
+                    <td class="px-4 py-3 text-sm">${t.quantity || ''}</td>
+                    <td class="px-4 py-3 text-sm">${t.amount || ''}</td>
+                    <td class="px-4 py-3 text-sm">${t.commission || ''}</td>
+                </tr>
+            `).join('');
+            console.log('[Backtest] 已更新交易记录, 条数:', result.trades.length);
+        } else if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-400 text-sm">本次回测无交易记录</td></tr>';
         }
         
         showToast('回测完成!');
     } catch (err) {
+        console.error('[Backtest] 异常:', err);
         showToast('回测失败: ' + err.message, 'error');
     } finally {
         btn.disabled = false;
@@ -1215,11 +1346,220 @@ async function runHomeBacktest() {
     }
 }
 
+// ============================================
+// 迷你指数趋势图 & 热门股票动态表格
+// ============================================
+
+// 迷你图表实例
+const miniCharts = {};
+
+/**
+ * 颜色辅助函数：根据涨跌返回颜色
+ */
+function changeColor(pct) {
+    if (pct > 0) return 'text-green-600';
+    if (pct < 0) return 'text-red-500';
+    return 'text-gray-500';
+}
+function changeBg(pct) {
+    if (pct > 0) return 'bg-green-100 text-green-700';
+    if (pct < 0) return 'bg-red-100 text-red-500';
+    return 'bg-gray-100 text-gray-500';
+}
+
+/**
+ * 生成指数模拟趋势线数据（用于迷你图表）
+ */
+function generateIndexTrendData(baseVal, count) {
+    const data = [baseVal];
+    for (let i = 1; i < count; i++) {
+        const change = (Math.random() - 0.5) * baseVal * 0.015;
+        data.push(Math.round((data[i - 1] + change) * 100) / 100);
+    }
+    return data;
+}
+
+/**
+ * 初始化单个迷你指数图表
+ */
+function initMiniChart(canvasId, label, values, borderColor) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+
+    const keys = Array.from({ length: values.length }, (_, i) => '' + (i + 1));
+    const ctx = canvas.getContext('2d');
+
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: keys,
+            datasets: [{
+                label: label,
+                data: values,
+                borderColor: borderColor,
+                backgroundColor: borderColor + '15',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                pointHoverRadius: 3,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 600 },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) { return ctx.parsed.y.toFixed(2); }
+                    }
+                }
+            },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            }
+        }
+    });
+    return chart;
+}
+
+/**
+ * 更新指数卡片数据
+ */
+function updateIndexCard(idPrefix, price, change, pct) {
+    const priceEl = document.getElementById(idPrefix + '-idx-price');
+    const changeEl = document.getElementById(idPrefix + '-idx-change');
+    const pctEl = document.getElementById(idPrefix + '-idx-pct');
+
+    if (priceEl) priceEl.textContent = price.toFixed(2);
+    if (changeEl) {
+        changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(2);
+        changeEl.className = 'text-sm font-medium ' + changeColor(change);
+    }
+    if (pctEl) {
+        pctEl.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+        pctEl.className = 'text-sm font-medium px-2 py-0.5 rounded-full ' + changeBg(pct);
+    }
+}
+
+/**
+ * 从 marketOverviewData 或默认数据初始化迷你图表
+ */
+function initMiniIndexCharts() {
+    const indexDefs = [
+        { id: 'sh', canvas: 'sh-index-chart', code: '000001.SH', name: '上证指数', defaultPrice: 3215, color: '#EF4444' },
+        { id: 'sz', canvas: 'sz-index-chart', code: '399001.SZ', name: '深证成指', defaultPrice: 11032, color: '#3B82F6' },
+        { id: 'hs', canvas: 'hs-index-chart', code: '000300.SH', name: '沪深300', defaultPrice: 4626, color: '#8B5CF6' }
+    ];
+
+    const overviewMap = {'sh': 'sh', 'sz': 'sz', 'hs': 'hs'};
+
+    indexDefs.forEach(def => {
+        let price, change, pct;
+        let trendValues;
+
+        // 尝试从 marketOverviewData 获取
+        if (marketOverviewData && marketOverviewData[overviewMap[def.id]]) {
+            const idx = marketOverviewData[overviewMap[def.id]];
+            price = idx.close;
+            change = idx.change;
+            pct = idx.pct_chg;
+            trendValues = generateIndexTrendData(price, 20);
+        } else if (marketOverviewData && marketOverviewData.indices) {
+            const idx = marketOverviewData.indices.find(i =>
+                i.code === def.code);
+            if (idx) {
+                price = idx.price;
+                change = idx.change;
+                pct = idx.change_percent;
+                trendValues = generateIndexTrendData(price, 20);
+            }
+        }
+
+        if (!price) {
+            price = def.defaultPrice + (Math.random() - 0.5) * 50;
+            change = (Math.random() - 0.5) * 40;
+            pct = parseFloat((change / price * 100).toFixed(2));
+            trendValues = generateIndexTrendData(price, 20);
+        }
+
+        updateIndexCard(def.id, price, change, pct);
+
+        // 创建迷你图表
+        const oldChart = miniCharts[def.id];
+        if (oldChart) oldChart.destroy();
+        miniCharts[def.id] = initMiniChart(def.canvas, def.name, trendValues, def.color);
+    });
+}
+
+/**
+ * 加载热门股票表格数据
+ */
+async function loadHotStocks() {
+    try {
+        const resp = await fetch('/api/hot-stocks');
+        if (!resp.ok) throw new Error('API error');
+        const data = await resp.json();
+
+        const tbody = document.getElementById('hot-stocks-body');
+        if (!tbody) return;
+
+        // 显示模拟数据标签
+        const simBadge = document.getElementById('hot-stocks-sim-badge');
+        if (simBadge) {
+            if (data.is_simulated) {
+                simBadge.classList.remove('hidden');
+            } else {
+                simBadge.classList.add('hidden');
+            }
+        }
+
+        // 更新时间
+        const timeEl = document.getElementById('hot-stocks-update-time');
+        if (timeEl) {
+            timeEl.textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN');
+        }
+
+        if (!data.stocks || data.stocks.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">暂无数据</td></tr>';
+            return;
+        }
+
+        let html = '';
+        data.stocks.forEach(function(stock) {
+            const pct = stock.change_pct;
+            const pctClass = pct > 0 ? 'text-green-600' : (pct < 0 ? 'text-red-500' : 'text-gray-500');
+            const pctSign = pct > 0 ? '+' : '';
+            const volumeStr = (stock.volume / 10000).toFixed(0) + '万';
+
+            html += '<tr class="hover:bg-gray-50 transition-colors">';
+            html += '<td class="px-4 py-3 text-sm font-mono text-gray-600">' + stock.code + '</td>';
+            html += '<td class="px-4 py-3 text-sm font-medium">' + stock.name + '</td>';
+            html += '<td class="px-4 py-3 text-sm font-semibold">' + stock.latest_price.toFixed(2) + '</td>';
+            html += '<td class="px-4 py-3 text-sm font-medium ' + pctClass + '">' + pctSign + pct.toFixed(2) + '%</td>';
+            html += '<td class="px-4 py-3 text-sm text-gray-500">' + volumeStr + '</td>';
+            html += '</tr>';
+        });
+        tbody.innerHTML = html;
+    } catch (err) {
+        console.error('加载热门股票失败:', err);
+        const tbody = document.getElementById('hot-stocks-body');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400"><i class="fa fa-exclamation-circle mr-2"></i>加载失败，请稍后重试</td></tr>';
+        }
+    }
+}
+
 // 页面初始化
 document.addEventListener('DOMContentLoaded', function() {
     initStockChart();
     initBacktestChart();
-    
+    initMiniIndexCharts();
+    loadHotStocks();
+
     // 监听回测按钮
     const backtestBtn = document.getElementById('start-backtest-btn');
     if (backtestBtn) {
@@ -1228,14 +1568,21 @@ document.addEventListener('DOMContentLoaded', function() {
             runHomeBacktest();
         });
     }
-    
-    // 自动刷新市场图表（每60秒）
-    setInterval(refreshMarketChart, 60000);
+
+    // 自动刷新市场图表 & 热门股票（每60秒）
+    setInterval(function() {
+        refreshMarketChart();
+        loadHotStocks();
+        initMiniIndexCharts();
+    }, 60000);
 });
 
 // 窗口大小变化时重新渲染
 window.addEventListener('resize', function() {
     Object.values(homeCharts).forEach(chart => {
+        if (chart && chart.resize) chart.resize();
+    });
+    Object.values(miniCharts).forEach(chart => {
         if (chart && chart.resize) chart.resize();
     });
 });
