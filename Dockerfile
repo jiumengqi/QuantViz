@@ -13,9 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-# 新增pyjwt
-RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt flask-login pyjwt
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt flask-login pyjwt gunicorn
 
 COPY . .
 
-CMD python -u app.py
+# 关键：gunicorn强制监听0.0.0.0:$PORT
+CMD ["gunicorn","app:app","--bind","0.0.0.0:$PORT"]
